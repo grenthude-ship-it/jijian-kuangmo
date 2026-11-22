@@ -631,6 +631,27 @@ function sanitizeSaveData(d){
   if(typeof d.div!=='number' || d.div<0 || d.div>2) d.div=2;
   if(typeof d.month!=='number' || d.month<1) d.month=1;
   if(monWasMissing || !d.mon || d.mon<1 || d.mon>12) d.mon=((d.month-1)%12)+1;
+  /* 联赛对手表修复：极简/最老格式的存档可能根本没有对手表（table 为空），
+     genFixtures 拿不到对手就生成不出联赛赛程，整月一场联赛都踢不出来。
+     这种存档按当前联赛级别重建对手表（对手积分从 0 起算）；玩家自己的
+     积分/进球/阵容/现金都存在 d 自身上，完全不受影响。已有 3 个以上
+     对手的正常存档原样不动，只补齐缺失的数值字段。 */
+  var validTable=(d.table||[]).filter(function(t){ return t && typeof t.name==='string' && t.name; });
+  if(validTable.length<3){
+    var dvT=DIVS[d.div]||DIVS[2];
+    d.table=dvT.clubs.map(function(n){ return {name:n, str:dvT.base+ri(-4,7), pts:0, gf:0, ga:0}; });
+  } else {
+    validTable.forEach(function(t){ var dvB=(DIVS[d.div]||DIVS[2]).base; if(typeof t.str!=='number') t.str=dvB; if(typeof t.pts!=='number') t.pts=0; if(typeof t.gf!=='number') t.gf=0; if(typeof t.ga!=='number') t.ga=0; });
+    d.table=validTable;
+  }
+  /* 赛程修复：本月赛程里若一场联赛都没有（空数组、或只剩一场足协杯），
+     说明这份存档从没生成过联赛赛程——置空后 ensureFixtures 会按当前
+     月份和当前日期重新生成本月剩余赛程（对手/主客场/比赛日齐全）。
+     只要有联赛赛程（哪怕本月已全部踢完）就一律不动，正常存档不受影响。 */
+  if(d.fixtures instanceof Array){
+    var hasLeagueFx=d.fixtures.some(function(f){ return f && !f.cup; });
+    if(!hasLeagueFx){ d.fixtures=null; d.fixturesMonth=0; }
+  }
   return d;
 }
 function loadAutoSave(){
@@ -1037,6 +1058,11 @@ function pois(lambda){ var L=Math.exp(-lambda), k=0, p=1; do{ k++; p*=Math.rando
    客场计少量分成），工资/赞助/转播/运营仍在月末统一结算。 */
 function genFixtures(){
   if(!G) return;
+  // 兜底：对手表缺失/不足 3 队时先按当前级别重建（只重建对手，不动玩家自己的积分进球）
+  if(!G.table || G.table.filter(function(t){ return t && t.name; }).length<3){
+    var dvG=DIVS[G.div]||DIVS[2];
+    G.table=dvG.clubs.map(function(n){ return {name:n, str:dvG.base+ri(-4,7), pts:0, gf:0, ga:0}; });
+  }
   var opps=G.table.slice().sort(function(){ return Math.random()-0.5; }).slice(0,3);
   var start=Math.max(4, G.day+2);
   var rank=myRank();
@@ -1274,6 +1300,9 @@ function cupMatch(fx){
   var cupResult={cup:true, opp:oppName, score:scoreTxt, res:win?'胜':'负', home:true, cls:win?'good':'bad', scorers:cupScorers, day:cupFx.day, tag:'🏆 足协杯'};
   cupResult.detail=buildMatchDetail({fx:cupFx, oppName:oppName, gf:gf, ga:ga, myScorers:cupScorers, lineup:pickLineup(), injuries:[], xg:1.3+diff*0.09, xa:1.3-diff*0.09, pens:(gf===ga? (win?'胜':'负') : null)});
   queueMatchReport(cupResult);
+  // 杯赛结果同样进本月赛果：月末结算后会出现在首页「最近赛果」里（能点开战报），不再只进动态
+  if(!G.monthResults) G.monthResults=[];
+  G.monthResults.push(cupResult);
   return cupResult;
 }
 /* ---------------- 赛季颁奖：金靴 / 最佳球员 / 金手套 / 最佳新星 / 最佳主帅 ----------------
@@ -4270,7 +4299,12 @@ function buildMatchDetail(o){
     oppLineup:oppPool.slice(0,11)
   };
 }
-/* ---------------- 直播观赛：先结算、后呈现，逐分钟放出同一份战报明细 ---------------- */
+/* ---------------- 直播观赛：结算仍走正式引擎（同一套），呈现严格防剧透 ----------------
+   内部仍先用正式引擎结算、再逐分钟放出同一份明细，比分与结算永远一致；
+   但呈现层只显示「当前分钟为止」的数据：比分/射门随事件逐条出现，控球率
+   随分钟从 50:50 逐步走向终场值；终场数据、最终比分、赛后战报只在终场后
+   才出现。直播期间不 render() 背景页面（赛程状态/积分/动态不提前刷出
+   结果），终场前点「退出直播」也先跳到终场，不会提前弹出战报。 */
 var LIVE=null;
 function watchLive(){
   if(!G || G.ended || LIVE) return;
@@ -4280,7 +4314,7 @@ function watchLive(){
   var guard=0;
   while(G.day<fx.day && guard++<40){ G.day++; dailyRecovery(); } // 推进到比赛日（下一场之前没有别的比赛）
   playFixture(fx); // 正式引擎结算：积分、进球、射手榜、伤病、门票全部在这一步落账
-  render();
+  // 不在这里 render()：直播结束前不把已结算的比分/积分/动态刷到背景页面上，防剧透；退出直播时再统一 render
   var rec=fx.result;
   if(!rec || !rec.detail){ flushReports(); return; }
   LIVE={ fx:fx, det:rec.detail, min:0, speed:1, paused:false, keyOnly:false, done:false, timer:null };
@@ -4296,9 +4330,9 @@ function showLive(){
   +'<div class="live-head"><div class="live-title">📺 比赛直播 · '+d.dateTxt+' · '+(d.cup?'🏆 足协杯':'联赛')+(d.tag?' · '+esc(d.tag):'')+'</div>'
   +'<div class="live-score"><span class="lt-name">'+esc(G.club)+'</span><span class="lt-sc num" id="lv-score">0 : 0</span><span class="lt-name r">'+esc(d.opp)+'</span></div>'
   +'<div class="live-clock"><span id="lv-clock">0\'</span> · <span id="lv-phase">上半场</span></div>'
-  +'<div class="live-stats" id="lv-stats">射门 0 : 0 · 控球 '+d.stats.poss+'% : '+(100-d.stats.poss)+'%</div></div>'
+  +'<div class="live-stats" id="lv-stats">射门 0 : 0 · 控球 50% : 50%</div></div>'
   +'<div class="live-cols"><div class="live-feed" id="lv-feed"></div>'
-  +'<div class="live-side"><h4>🏠 '+esc(G.club)+' 首发</h4><div class="lu">'+myLU+'</div><h4>🚌 '+esc(d.opp)+' 首发</h4><div class="lu">'+opLU+'</div><h4>📊 全场数据（终场）</h4><div class="lu">射门 '+d.stats.myShots+' : '+d.stats.oppShots+'<br>射正 '+d.stats.myOT+' : '+d.stats.oppOT+'<br>控球 '+d.stats.poss+'% : '+(100-d.stats.poss)+'%</div></div></div>'
+  +'<div class="live-side"><h4>🏠 '+esc(G.club)+' 首发</h4><div class="lu">'+myLU+'</div><h4>🚌 '+esc(d.opp)+' 首发</h4><div class="lu">'+opLU+'</div><h4 id="lv-stats-h">📊 实时数据（截至当前分钟）</h4><div class="lu" id="lv-side-stats">射门 0 : 0<br>控球 50% : 50%</div></div></div>'
   +'<div class="live-controls">'
   +'<button class="btn sm" id="lv-pause" onclick="liveTogglePause()">⏸ 暂停</button>'
   +'<button class="btn sm lv-spd on" onclick="liveSetSpeed(1,this)">1× 速度</button>'
@@ -4342,7 +4376,10 @@ function liveReveal(){
   var sc=document.getElementById('lv-score'); if(sc) sc.textContent=s1+' : '+s2;
   var ck=document.getElementById('lv-clock'); if(ck) ck.textContent=Math.min(90,LIVE.min)+'\'';
   var ph=document.getElementById('lv-phase'); if(ph && !LIVE.done) ph.textContent= LIVE.min<45?'上半场':(LIVE.min<90?'下半场':'全场结束');
-  var st=document.getElementById('lv-stats'); if(st) st.textContent='射门 '+sh1+' : '+sh2+' · 控球 '+d.stats.poss+'% : '+(100-d.stats.poss)+'%';
+  // 控球率随分钟推进：从 50:50 出发，按已踢分钟占比逐步走向终场控球，终场前看不到终场值
+  var possNow=Math.round(50+(d.stats.poss-50)*(Math.min(90,Math.max(0,LIVE.min))/90));
+  var st=document.getElementById('lv-stats'); if(st) st.textContent='射门 '+sh1+' : '+sh2+' · 控球 '+possNow+'% : '+(100-possNow)+'%';
+  var ss=document.getElementById('lv-side-stats'); if(ss && !LIVE.done) ss.innerHTML='射门 '+sh1+' : '+sh2+'<br>控球 '+possNow+'% : '+(100-possNow)+'%';
 }
 function liveFinish(){
   if(!LIVE || LIVE.done) return;
@@ -4351,6 +4388,10 @@ function liveFinish(){
   if(LIVE.timer){ clearInterval(LIVE.timer); LIVE.timer=null; }
   var ph=document.getElementById('lv-phase'); if(ph) ph.textContent='全场结束';
   var ck=document.getElementById('lv-clock'); if(ck) ck.textContent='90\'';
+  // 终场哨响后才亮出全场数据（射门/射正/控球终场值），直播进行中侧栏只有实时数据
+  var d=LIVE.det;
+  var sh=document.getElementById('lv-stats-h'); if(sh) sh.textContent='📊 全场数据（终场）';
+  var ss=document.getElementById('lv-side-stats'); if(ss) ss.innerHTML='射门 '+d.stats.myShots+' : '+d.stats.oppShots+'<br>射正 '+d.stats.myOT+' : '+d.stats.oppOT+'<br>控球 '+d.stats.poss+'% : '+(100-d.stats.poss)+'%';
   var ex=document.getElementById('lv-exit'); if(ex) ex.textContent='📋 查看赛后战报';
   var pb=document.getElementById('lv-pause'); if(pb){ pb.disabled=true; pb.style.opacity='.5'; }
 }
@@ -4381,11 +4422,17 @@ function liveToggleKey(){
 }
 function liveSkipEnd(){ liveFinish(); }
 function liveExit(){
+  if(LIVE && !LIVE.done){
+    // 终场前点退出：先跳到终场把全场呈现完——赛后战报只在终场后出现，不提前剧透
+    liveFinish();
+    toast('已到终场，点「📋 查看赛后战报」打开本场战报');
+    return;
+  }
   if(LIVE && LIVE.timer) clearInterval(LIVE.timer);
   LIVE=null;
   $modal.innerHTML='';
   render();
-  flushReports(); // 退出直播后照常弹本场赛后战报（同一份已结算赛果）
+  flushReports(); // 终场后退出直播，照常弹本场赛后战报（同一份已结算赛果）
 }
 </script>
 </body>
