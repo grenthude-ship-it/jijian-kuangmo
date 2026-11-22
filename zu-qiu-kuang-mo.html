@@ -562,6 +562,8 @@ function sanitizeSaveData(d){
   if(!d.fac || typeof d.fac!=='object') d.fac={stadium:1, academy:1, training:1, medical:0, data:0};
   var fd={stadium:1, academy:1, training:1, medical:0, data:0};
   for(var fk in fd){ if(d.fac[fk]===undefined) d.fac[fk]=fd[fk]; }
+  if(!d.biz || typeof d.biz!=='object') d.biz=defaultBiz();
+  else { var bd0=defaultBiz(); for(var bk0 in bd0){ if(d.biz[bk0]===undefined) d.biz[bk0]=bd0[bk0]; } if(!d.biz.brand || typeof d.biz.brand!=='object') d.biz.brand=bd0.brand; if(!d.biz.brand.lines) d.biz.brand.lines=bd0.brand.lines; if(!d.biz.overseas || typeof d.biz.overseas!=='object') d.biz.overseas={}; if(!d.biz.cross || typeof d.biz.cross!=='object') d.biz.cross={}; }
   if(!d.rel || typeof d.rel!=='object') d.rel={fa:30, sponsor:35, fans:40, media:25, ref:20, youth:45};
   var rd={fa:30, sponsor:35, fans:40, media:25, ref:20, youth:45};
   for(var rk in rd){ if(d.rel[rk]===undefined) d.rel[rk]=rd[rk]; }
@@ -784,7 +786,7 @@ function newGame(clubName, origin, diff){
     hist:[o.cash], log:[], lastResults:[], lastFinance:null,
     diamonds:0, vip:0, spent:0, claimed:{}, ended:false, ending:null,
     grayWinBoost:0, seasonRank:0, negMonths:0,
-    ventures:{}, ventureNet:0,
+    ventures:{}, ventureNet:0, biz:defaultBiz(),
     tactic:'均衡攻守', titles:0, cupWins:0, seasonsPlayed:0, totalWins:0,
     boardTarget:null, achClaimed:{}, opsUsed:{},
     youth:[], youthCandidates:[], youthBudget:30, youthPromoted:0, youthSold:0, youthSoldIncome:0, youthLog:[],
@@ -811,7 +813,7 @@ function fmtSign(p){ if(p.cost===0) return p.signNote||'免签'; if(p.cost==null
 function signCost(p){ return p.cost==null? p.value : p.cost; }
 function signProfit(p, price){ return price - signCost(p); }
 function facValue(){ var f=G.fac; return (f.stadium+f.academy+f.training+f.medical+(f.data||0))*120; }
-function valuation(){ return Math.round(G.cash - G.debt + squadValue() + facValue() + venturesValue() + G.rep*15 + G.fans*0.04); }
+function valuation(){ return Math.round(G.cash - G.debt + squadValue() + facValue() + venturesValue() + bizValue() + G.rep*15 + G.fans*0.04); }
 function fatPenalty(p){ var f=p.fat||0; return f>=75?4 : f>=50?2 : f>=30?1 : 0; }
 function effAb(p){ return p.ab - fatPenalty(p); }
 function teamStr(){
@@ -1304,6 +1306,7 @@ function settleMonth(manual){
   var fin=monthlyFinance(results);
   G.lastFinance=fin; G.lastResults=results;
   processVentures();
+  processBiz();
   var wins=results.filter(function(r){ return r.res==='胜'; }).length;
   G.totalWins=(G.totalWins||0)+wins;
   var losses=results.filter(function(r){ return r.res==='负'; }).length;
@@ -1776,7 +1779,7 @@ function restart(){ stopAuto(); clearAutoSave(); G=null; PAGE='home'; showStart(
 <script>
 "use strict";
 /* ---------------- 渲染 ---------------- */
-var NAV=[['home','游戏大厅','📋'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
+var NAV=[['home','游戏大厅','📋'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['cross','跨行业经营','🏭'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
 function navBtns(cls){
   return NAV.map(function(n){
     var bdg='';
@@ -1824,6 +1827,7 @@ function render(){
   if(G.mediaUsed==null) G.mediaUsed=false;
   if(!G.fac) G.fac={stadium:1, academy:1, training:1, medical:0, data:0};
   if(G.fac.data==null) G.fac.data=0;
+  ensureBiz();
   G.squad.forEach(function(p){ if(p.fat==null) p.fat=0; if(p.rest==null) p.rest=false; if(p.trust==null) p.trust=55; if(p.mood==null) p.mood=60; if(p.played==null) p.played=0; if(p.promise===undefined) p.promise=null; });
   ensureFixtures();
   var d=DIVS[G.div];
@@ -1872,6 +1876,10 @@ function render(){
   else if(PAGE==='club') body+=pageClub();
   else if(PAGE==='career') body+=pageCareer();
   else if(PAGE==='empire') body+=pageEmpire();
+  else if(PAGE==='overseas') body+=pageOverseas();
+  else if(PAGE==='brand') body+=pageBrand();
+  else if(PAGE==='deals') body+=pageDeals();
+  else if(PAGE==='cross') body+=pageCross();
   else if(PAGE==='pay') body+=pagePay();
   else if(PAGE==='auto') body+=pageAuto();
   $app.innerHTML='<div class="layout'+(PAGE==='home'?' lobby-mode':'')+'"><aside>'+side+'</aside><div style="flex:1;min-width:0;">'+top+'<main>'+body+'</main></div></div>'+bottomTabsHTML();
@@ -1969,7 +1977,8 @@ function pageEmpire(){
   + stageCardHTML(false)
   +'<div class="card"><h3><span class="no">扩张</span>跨界板块<span class="hint">像创业一样一步一步来：先站稳联赛，再开副业，最后铺向海外</span></h3>'
   +'<p class="desc">每个板块成立后每月自动结算收入和支出，等级越高盘子越大（最高 3 级）。板块估值计入俱乐部总估值——冲 S 级「豪门帝国」不只靠夺冠，集团做大了同样算数。注意别在现金紧张时贪多，板块的月支出可是雷打不动的。</p>'
-  +'<div class="rel-grid">'+cards+'</div></div>';
+  +'<div class="rel-grid">'+cards+'</div></div>'
+  + bizHubHTML();
 }
 function scheduleCardHTML(){
   ensureFixtures();
@@ -2708,6 +2717,10 @@ function showLobbyCat(key){
   var cats={
     club:{ t:'🏛️ 俱乐部类', rows:[
       ['go','empire','🏢','集团扩张','电竞 · 篮球 · 自有品牌 · 海外卫星队，板块每月结算 · 当前 '+ventCount()+' 个板块'],
+      ['go','overseas','🌍','海外俱乐部','成就解锁：葡/西/英/巴/日/荷建队 · 独立经营 · 青训输送主队'],
+      ['go','brand','👕','自有品牌','成就解锁：起名选标志 · 卖球衣周边 · 品牌价值随成绩涨'],
+      ['go','deals','🤝','品牌合作','成就解锁：耐克/阿迪/安踏/李宁等真实品牌赞助合同'],
+      ['go','cross','🏭','跨行业经营','成就解锁：餐饮/房地产/影视/电竞酒店等 · 投钱升级看盈亏'],
       ['go','club','📋','董事会与设施','俱乐部页：设施升级 · 银行授信 · 董事会目标与耐心 · 王朝评级'],
       ['go','gray','🕶️','灰色账本','来钱快，但纪检热度会涨'+(G.heat>=60?' · 当前热度 '+G.heat+'，危险':' · 当前热度 '+G.heat)],
       ['go','auto','🤖','全自动模拟','托管经营：自动买人、自动推进，无限玩下去']
@@ -3459,6 +3472,544 @@ try{
     toast('⚠️ 旧存档和新版本对不上，已自动修复：原存档已备份，新开一局就能玩。');
     window.__hmBooted=true;
   }catch(fallbackErr){ /* 看门狗接管，显示一键修复面板 */ }
+}
+</script>
+<script>
+"use strict";
+/* ================= 深度经营 · 成就解锁（在集团扩张板块之上做深，不另起一套） =================
+   四个独立页面：海外俱乐部 / 自有品牌 / 品牌合作 / 跨行业经营。
+   每个都有明确成就门槛（集团阶段 / 估值 / 声望 / 球迷），未达成显示锁定页 + 条件 + 当前进度；
+   达成后进入真实经营：投钱、升级、签约、定价、输送球员、看月度账目，全部月末随主账结算。
+   与旧板块联动：板块「海外卫星俱乐部」让第一家海外俱乐部打八折；板块「自有运动品牌」
+   让自有品牌创立费减半、品牌价值涨得更快。老存档没有 biz 字段时由 defaultBiz 补齐，不清进度。 */
+function defaultBiz(){
+  return {
+    overseas:{}, ovCum:0,
+    brand:{ founded:false, name:'', color:'#e85d1f', mark:'⚡', price:1, lines:{jersey:1, scarf:1, shoe:0}, value:0, cum:0, lastNet:0, mktUntil:0, star:'', starUntil:0, lt:0 },
+    deal:null, dealCum:0, dealTitles:0,
+    cross:{}, crossCum:0, crossNet:0
+  };
+}
+function ensureBiz(){
+  if(!G) return;
+  if(!G.biz || typeof G.biz!=='object') G.biz=defaultBiz();
+  var bd=defaultBiz();
+  for(var k in bd){ if(G.biz[k]===undefined) G.biz[k]=bd[k]; }
+  if(!G.biz.brand || typeof G.biz.brand!=='object') G.biz.brand=bd.brand;
+  if(!G.biz.brand.lines) G.biz.brand.lines=bd.brand.lines;
+  if(!G.biz.overseas || typeof G.biz.overseas!=='object') G.biz.overseas={};
+  if(!G.biz.cross || typeof G.biz.cross!=='object') G.biz.cross={};
+}
+function bizValue(){
+  if(!G || !G.biz) return 0;
+  var b=G.biz, s=0;
+  Object.keys(b.overseas||{}).forEach(function(id){ var d=ovDef(id); if(d) s+=Math.round(d.cost*(0.6+0.45*(b.overseas[id].lv||1))); });
+  if(b.brand && b.brand.founded) s+=Math.round(b.brand.value||0);
+  Object.keys(b.cross||{}).forEach(function(id){ var c=b.cross[id]; s+=Math.round((c.invested||0)*(0.75+0.2*(c.lv||1))); });
+  return s;
+}
+/* ---------------- 成就门槛 ---------------- */
+function bizReqs(kind){
+  if(kind==='overseas') return [
+    {label:'集团阶段达到「豪门俱乐部」（站稳中超）', cur:groupStage(), need:2, curTxt:STAGES[groupStage()].name, needTxt:'豪门俱乐部'},
+    {label:'俱乐部估值达到 6,000万', cur:valuation(), need:6000, money:true},
+    {label:'声望达到 55', cur:G.rep, need:55}];
+  if(kind==='brand') return [
+    {label:'集团阶段达到「豪门俱乐部」（站稳中超）', cur:groupStage(), need:2, curTxt:STAGES[groupStage()].name, needTxt:'豪门俱乐部'},
+    {label:'球迷达到 30,000 人', cur:G.fans, need:30000, fans:true},
+    {label:'声望达到 40', cur:G.rep, need:40}];
+  if(kind==='deals') return [
+    {label:'声望达到 45', cur:G.rep, need:45},
+    {label:'球迷达到 40,000 人', cur:G.fans, need:40000, fans:true},
+    {label:'集团阶段达到「豪门俱乐部」（站稳中超）', cur:groupStage(), need:2, curTxt:STAGES[groupStage()].name, needTxt:'豪门俱乐部'}];
+  return [
+    {label:'集团阶段达到「体育集团」', cur:groupStage(), need:3, curTxt:STAGES[groupStage()].name, needTxt:'体育集团'},
+    {label:'俱乐部估值达到 1亿', cur:valuation(), need:10000, money:true}];
+}
+function gateOK(kind){ return bizReqs(kind).every(function(r){ return r.cur>=r.need; }); }
+function lockHTML(icon, title, kind, desc){
+  var rows=bizReqs(kind).map(function(r){
+    var pct=clamp(Math.round(r.cur/r.need*100),0,100), ok=r.cur>=r.need;
+    var curTxt=r.money? fmt(r.cur) : (r.fans? fmtFans(r.cur) : (r.curTxt!==undefined? r.curTxt : r.cur));
+    var needTxt=r.money? fmt(r.need) : (r.fans? r.need.toLocaleString('zh-CN')+' 人' : (r.needTxt!==undefined? r.needTxt : r.need));
+    return '<div class="item"><div class="grow"><div class="nm">'+(ok?'✅ ':'🔒 ')+r.label+'</div><div class="meta">当前 '+curTxt+' / 需要 '+needTxt+'</div><div style="height:6px;background:#e8eef2;border-radius:3px;margin-top:5px;overflow:hidden;"><div style="height:6px;width:'+pct+'%;background:'+(ok?'var(--green)':'var(--orange)')+';"></div></div></div><span class="pill '+(ok?'up':'')+'">'+pct+'%</span></div>';
+  }).join('');
+  return '<div class="card"><h3>'+icon+' '+title+'<span class="hint">成就解锁 · 全部达成后开放经营</span></h3><p class="desc">'+desc+'</p>'+rows
+  +'<p class="mini" style="margin-top:8px;">进度随联赛成绩、声望和估值自动更新——正常踢几个赛季就能达成。先去把比赛踢好、把集团做大，达成了回来这里开业。</p><div class="acts" style="margin-top:10px;"><button class="btn" onclick="go(\'empire\')">← 回集团扩张</button><button class="btn" onclick="go(\'home\')">回大厅</button></div></div>';
+}
+function bizHubHTML(){
+  ensureBiz(); var b=G.biz;
+  function card(icon,title,kind,page,desc,stat){
+    var ok=gateOK(kind);
+    var miss=bizReqs(kind).filter(function(r){ return r.cur<r.need; })[0];
+    return '<div class="rel-card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="nm">'+icon+' '+title+'</span><span class="pill '+(ok?'up':'')+'">'+(ok?'已解锁':'🔒 未解锁')+'</span></div>'
+    +'<div class="ben">'+desc+'</div><div class="mini">'+stat+'</div>'
+    +'<div class="acts">'+(ok? '<button class="btn pri sm" onclick="go(\''+page+'\')">进入经营 →</button>' : '<button class="btn sm" onclick="go(\''+page+'\')">查看解锁条件</button><span class="mini">还差：'+miss.label+'</span>')+'</div></div>';
+  }
+  return '<div class="card"><h3><span class="no">进阶</span>深度经营 · 成就解锁<span class="hint">在跨界板块之上做深：海外建队、自创品牌、品牌赞助合同、跨行业投资，都要先达成成就</span></h3>'
+  +'<p class="desc">集团板块是「买了就每月自动结算」；下面这四摊是能真正下场经营的生意——每摊都有成就门槛，达成了才能进，进了就能投钱、升级、签约、定价、看账，盈亏每月进俱乐部账目，资产计入俱乐部估值。</p>'
+  +'<div class="rel-grid">'
+  + card('🌍','海外俱乐部','overseas','overseas','在葡萄牙、西班牙、英格兰、巴西、日本、荷兰收购俱乐部：独立阵容、独立联赛、独立账目，青训小将能输送回主队，成绩好还能给母队涨声望。','已拥有 '+Object.keys(b.overseas).length+' 家海外俱乐部 · 累计净收益 '+((b.ovCum||0)>=0?'+':'')+fmt(b.ovCum||0))
+  + card('👕','自有品牌','brand','brand','给品牌起名、选配色和标志，卖球衣、周边和联名球鞋：定价、扩产品线、投广告、签球星代言，品牌价值随球队成绩和曝光一起涨。', b.brand.founded? '品牌「'+esc(b.brand.name)+'」价值 '+fmt(b.brand.value||0)+' · 累计净收入 '+((b.brand.cum||0)>=0?'+':'')+fmt(b.brand.cum||0) : '尚未创立 · 创立费 '+(hasVent('brand')?'300万（已有板块「自有运动品牌」，半价）':'500万'))
+  + card('🤝','品牌合作','deals','deals','和耐克、阿迪达斯、安踏、李宁、彪马、新百伦等真实品牌签装备赞助：年费按月到账，夺冠有奖金；声望越高，能谈到的品牌越大、合同越肥。', b.deal? '当前合同：'+(dealDef(b.deal.id)? dealDef(b.deal.id).name : '')+' · 年费 '+fmt(b.deal.annual)+' · 剩 '+b.deal.left+' 个月' : '当前没有生效合同 · 累计赞助收入 '+fmt(b.dealCum||0))
+  + card('🏭','跨行业经营','cross','cross','餐饮连锁、房地产、影视娱乐、电竞酒店、体育科技、健身连锁：每个行业独立经营，投钱、扩店、看月度盈亏，行情有涨有跌。','已投 '+Object.keys(b.cross).length+' 个行业 · 累计净收益 '+((b.crossCum||0)>=0?'+':'')+fmt(b.crossCum||0))
+  +'</div></div>';
+}
+/* ---------------- 海外俱乐部 ---------------- */
+var OVERSEAS_DEFS=[
+  {id:'lisbon', flag:'🇵🇹', country:'葡萄牙', city:'里斯本', club:'里斯本之星', league:'葡萄牙二级联赛', cost:1200, upkeep:55, inc:[25,85], names:['若昂·费雷拉','蒂亚戈·莫雷拉','鲁本·科斯塔','贡萨洛·阿尔维斯','迪奥戈·佩雷拉','拉斐尔·戈麦斯','努诺·席尔瓦','安德烈·桑托斯','布鲁诺·罗德里格斯','马特奥·里贝罗']},
+  {id:'sevilla', flag:'🇪🇸', country:'西班牙', city:'塞维利亚', club:'塞维利亚城', league:'西班牙三级联赛', cost:1500, upkeep:65, inc:[30,95], names:['巴勃罗·加西亚','阿尔瓦罗·费尔南德斯','乌奈·洛佩斯','马科斯·阿隆索','伊克尔·马丁内斯','豪尔赫·鲁伊斯','塞尔吉奥·埃雷拉','丹尼尔·维达尔','鲁本·卡斯特罗','阿德里安·索拉']},
+  {id:'london', flag:'🇬🇧', country:'英格兰', city:'伦敦', club:'伦敦流浪者', league:'英格兰三级联赛', cost:2400, upkeep:95, inc:[45,140], names:['杰克·威尔逊','哈里·史密斯','奥利·约翰逊','梅森·克拉克','德克兰·赖特','布卡约·福斯特','贾马尔·刘易斯','伊森·布朗','利亚姆·戴维斯','诺亚·泰勒']},
+  {id:'saopaulo', flag:'🇧🇷', country:'巴西', city:'圣保罗', club:'圣保罗竞技', league:'巴西乙级联赛', cost:1400, upkeep:60, inc:[28,100], names:['卢卡斯·席尔瓦','加布里埃尔·桑托斯','马特乌斯·奥利维拉','拉斐尔·科斯塔','蒂亚戈·阿尔梅达','费利佩·罗查','布鲁诺·费雷拉','安德烈·佩雷拉','卡约·戈麦斯','维尼修斯·里贝罗']},
+  {id:'osaka', flag:'🇯🇵', country:'日本', city:'大阪', club:'大阪樱花城', league:'日本 J2 联赛', cost:1100, upkeep:50, inc:[22,75], names:['佐藤翔太','铃木健太','高桥悠真','田中莲','伊藤大辉','渡边飒太','山本翼','中村航','小林庆','加藤树']},
+  {id:'amsterdam', flag:'🇳🇱', country:'荷兰', city:'阿姆斯特丹', club:'阿姆斯特丹青年', league:'荷兰乙级联赛', cost:1800, upkeep:75, inc:[35,110], names:['斯文·德容','卢克·范德伯格','蒂姆·科普迈纳斯','达恩·里根斯','尤里安·蒂尔','马茨·维弗','诺亚·朗','科迪·斯赫拉德','瑞安·弗林蓬','约雷尔·哈托']}
+];
+function ovDef(id){ return OVERSEAS_DEFS.filter(function(d){ return d.id===id; })[0]; }
+var OV_SEL=null;
+function ovAvgAb(c){ if(!c.squad || !c.squad.length) return 55; return c.squad.reduce(function(s,p){ return s+p.ab; },0)/c.squad.length; }
+function buyOverseas(id){
+  ensureBiz();
+  if(!gateOK('overseas')){ toast('还没解锁海外俱乐部，先达成解锁条件'); return; }
+  var d=ovDef(id); if(!d || G.biz.overseas[id]) return;
+  var cost=d.cost, disc=false;
+  if(hasVent('overseas') && !Object.keys(G.biz.overseas).length){ cost=Math.round(cost*0.8); disc=true; }
+  if(G.cash<cost){ toast('现金不够，还差 '+fmt(cost-G.cash)); return; }
+  G.cash-=cost;
+  var poss=['门将','后卫','后卫','后卫','中场','中场','中场','前锋','前锋'];
+  var used={}, squad=[];
+  for(var i=0;i<9;i++){ var nm=pick(d.names); var guard=0; while(used[nm] && guard<8){ nm=pick(d.names); guard++; } used[nm]=1; squad.push({name:nm, pos:poss[i], ab:ri(52,63), age:ri(18,29)}); }
+  G.biz.overseas[id]={lv:1, invested:cost, w:0, d:0, l:0, rank:ri(4,7), cumNet:0, lastNet:0, youth:[], results:[], squad:squad};
+  log('🌍 海外俱乐部收购完成：'+d.flag+' '+d.club+'（'+d.city+' · '+d.league+'）正式成为 '+esc(G.club)+' 的海外俱乐部！投入 '+fmt(cost)+(disc?'（板块「海外卫星俱乐部」联动，首家八折）':'')+'。它有自己的阵容、联赛和账目，青训出苗子能输送回主队。','good');
+  toast(d.club+' 收购完成！'); OV_SEL=id; render();
+}
+function upgradeOverseas(id){
+  ensureBiz(); var d=ovDef(id), c=G.biz.overseas[id]; if(!d || !c || c.lv>=3) return;
+  var cost=Math.round(d.cost*0.7*c.lv);
+  if(G.cash<cost){ toast('现金不够，还差 '+fmt(cost-G.cash)); return; }
+  G.cash-=cost; c.lv++; c.invested+=cost;
+  c.squad.forEach(function(p){ p.ab=Math.min(88, p.ab+2); });
+  log('🌍 '+d.club+' 追加投资 '+fmt(cost)+'：规模升到 '+c.lv+' 级，训练基地和球探网络升级，全队能力 +2，收入盘子更大了。','good');
+  toast(d.club+' 升到 '+c.lv+' 级'); render();
+}
+function sellOverseas(id){
+  ensureBiz(); var d=ovDef(id), c=G.biz.overseas[id]; if(!d || !c) return;
+  var back=Math.round(c.invested*(0.65+0.15*c.lv));
+  G.cash+=back; delete G.biz.overseas[id]; if(OV_SEL===id) OV_SEL=null;
+  log('🌍 已出售 '+d.club+'，回款 '+fmt(back)+'（累计投入 '+fmt(c.invested)+'）。海外版图收缩，钱落袋为安。','');
+  toast('出售回款 '+fmt(back)); render();
+}
+function recallOvYouth(cid, idx){
+  ensureBiz(); var c=G.biz.overseas[cid]; if(!c) return;
+  var p=c.youth[idx]; if(!p) return;
+  if(G.squad.length>=22){ toast('一线队满员（22 人），先卖掉或解约一名球员'); return; }
+  c.youth.splice(idx,1);
+  p.cost=0; p.signNote=ovDef(cid).city+'青训输送';
+  G.squad.push(p);
+  log('🌍 青训输送：'+ovDef(cid).club+' 的小将 '+p.name+'（'+p.pos+'，能力 '+p.ab+'，潜力 '+p.pot+'）免费加盟一线队，签约价 0。海外建队开始反哺主队了。','good');
+  toast(p.name+' 加盟一线队！'); render();
+}
+function sellOvYouth(cid, idx){
+  ensureBiz(); var c=G.biz.overseas[cid]; if(!c) return;
+  var p=c.youth[idx]; if(!p) return;
+  c.youth.splice(idx,1);
+  var pr=Math.max(20, Math.round(p.value||40));
+  G.cash+=pr;
+  log('🌍 '+ovDef(cid).club+' 把青训小将 '+p.name+' 卖给当地球队，收入 '+fmt(pr)+' 直接进账。','');
+  toast('出售小将 +'+fmt(pr)); render();
+}
+function pageOverseas(){
+  ensureBiz();
+  if(!gateOK('overseas')) return lockHTML('🌍','海外俱乐部','overseas','把俱乐部开到海外去：在六个国家收购现成俱乐部，独立打当地联赛、独立算账，青训营出的好苗子直接输送回主队免签入队；海外球队成绩好，母俱乐部的声望和收入都跟着涨。');
+  var b=G.biz;
+  if(OV_SEL && b.overseas[OV_SEL]) return ovDetailHTML(OV_SEL);
+  OV_SEL=null;
+  var ownedN=Object.keys(b.overseas).length;
+  var cards=OVERSEAS_DEFS.map(function(d){
+    var c=b.overseas[d.id];
+    if(c){
+      return '<div class="rel-card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="nm">'+d.flag+' '+d.club+'</span><span class="pill up">运营中 · '+c.lv+' 级</span></div>'
+      +'<div class="ben">'+d.country+' · '+d.city+' · '+d.league+' · 当前第 '+c.rank+' 名（'+c.w+'胜 '+c.d+'平 '+c.l+'负）</div>'
+      +'<div class="mini">累计投入 '+fmt(c.invested)+' · 累计净收益 '+(c.cumNet>=0?'+':'')+fmt(c.cumNet)+' · 上月净 '+(c.lastNet>=0?'+':'')+fmt(c.lastNet)+' · 待输送青训 '+(c.youth? c.youth.length:0)+' 人</div>'
+      +'<div class="acts"><button class="btn pri sm" onclick="OV_SEL=\''+d.id+'\';render();window.scrollTo(0,0);">进入俱乐部 →</button>'+(c.lv>=3?'<span class="pill">已顶级规模</span>':'<button class="btn sm" onclick="upgradeOverseas(\''+d.id+'\')">追加投资升 '+(c.lv+1)+' 级 · '+fmt(Math.round(d.cost*0.7*c.lv))+'</button>')+'</div></div>';
+    }
+    var cost=d.cost, disc=hasVent('overseas') && !ownedN;
+    if(disc) cost=Math.round(cost*0.8);
+    return '<div class="rel-card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="nm">'+d.flag+' '+d.club+'</span><span class="pill">'+d.league+'</span></div>'
+    +'<div class="ben">'+d.country+' · '+d.city+' · 收购后独立运营：自己的阵容打当地联赛，青训出苗子输送主队，排名靠前给母队涨声望。</div>'
+    +'<div class="mini">收购价 '+fmt(cost)+(disc?'（板块「海外卫星俱乐部」联动，首家八折）':'')+' · 月支出约 '+fmt(d.upkeep)+' · 月收入约 '+fmt(d.inc[0])+'~'+fmt(d.inc[1])+'（随名次浮动）</div>'
+    +'<div class="acts"><button class="btn pri sm" onclick="buyOverseas(\''+d.id+'\')">收购 · '+fmt(cost)+'</button><span class="mini">现金 '+fmt(G.cash)+'</span></div></div>';
+  }).join('');
+  return '<div class="kpis">'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--orange)"></span>海外俱乐部</div><div class="vl num">'+ownedN+' <span style="font-size:14px;color:var(--ink3)">/ '+OVERSEAS_DEFS.length+'</span></div><div class="sub">六国可选 · 各有独立页面</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--green)"></span>海外累计净收益</div><div class="vl num" style="'+((b.ovCum||0)<0?'color:var(--red)':'')+'">'+((b.ovCum||0)>=0?'+':'')+fmt(b.ovCum||0)+'</div><div class="sub">每月随主账一起结算</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--blue)"></span>海外资产估值</div><div class="vl num">'+fmt(Object.keys(b.overseas).reduce(function(s,id){ var d=ovDef(id); return s+(d? Math.round(d.cost*(0.6+0.45*b.overseas[id].lv)):0); },0))+'</div><div class="sub">已计入俱乐部总估值</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--gold)"></span>联动板块</div><div class="vl" style="font-size:16px;">'+(hasVent('overseas')?'✅ 海外卫星俱乐部':'未成立')+'</div><div class="sub">集团扩张里成立它，首家收购八折</div></div>'
+  +'</div>'
+  +'<div class="card"><h3><span class="no">海外</span>海外俱乐部<span class="hint">点「进入俱乐部」看它自己的阵容、比赛、财务和青训输送</span></h3><div class="rel-grid">'+cards+'</div></div>';
+}
+function ovDetailHTML(id){
+  var d=ovDef(id), c=G.biz.overseas[id]; if(!d || !c) return '';
+  var squadRows=c.squad.slice().sort(function(a,b2){ return b2.ab-a.ab; }).map(function(p){
+    return '<div class="item"><span class="pill">'+p.pos+'</span><div class="grow"><div class="nm" style="font-weight:600;">'+esc(p.name)+'</div><div class="meta">'+p.age+' 岁</div></div><b class="num">'+p.ab+'</b></div>';
+  }).join('');
+  var resRows=(c.results&&c.results.length)? c.results.map(function(r){ return '<div class="item"><div class="grow"><div class="nm" style="font-weight:600;">'+r+'</div></div></div>'; }).join('') : '<p class="desc">还没有比赛记录——推进月份后，这里会记下每个月的战绩。</p>';
+  var youthRows=(c.youth&&c.youth.length)? c.youth.map(function(p,i){
+    return '<div class="item"><div class="grow"><div class="nm" style="font-weight:700;">'+esc(p.name)+' <span class="mini">'+p.pos+' · '+p.age+' 岁 · 能力 '+p.ab+' · 潜力 '+p.pot+'</span></div><div class="meta">本地估价 '+fmt(Math.max(20, Math.round(p.value||40)))+' · 输送回主队免费（签约价 0）</div></div><button class="btn pri sm" onclick="recallOvYouth(\''+id+'\','+i+')">输送主队</button><button class="btn sm" onclick="sellOvYouth(\''+id+'\','+i+')">本地出售</button></div>';
+  }).join('') : '<p class="desc">青训营暂时没有可输送的苗子。每个月都有机会冒出新人，俱乐部规模越大、概率越高。</p>';
+  var upCost=Math.round(d.cost*0.7*c.lv);
+  return '<div style="margin-bottom:10px;"><button class="btn sm" onclick="OV_SEL=null;render();window.scrollTo(0,0);">← 全部海外俱乐部</button></div>'
+  +'<div class="card"><h3>'+d.flag+' '+d.club+'<span class="hint">'+d.country+' · '+d.city+' · '+d.league+' · '+c.lv+' 级规模</span></h3>'
+  +'<div class="kpis" style="margin:0 0 6px;">'
+  +'<div class="kpi"><div class="lb">联赛排名</div><div class="vl num">第 '+c.rank+' 名</div><div class="sub">'+c.w+'胜 '+c.d+'平 '+c.l+'负 · 阵容均能 '+Math.round(ovAvgAb(c))+'</div></div>'
+  +'<div class="kpi"><div class="lb">累计投入</div><div class="vl num">'+fmt(c.invested)+'</div><div class="sub">收购 + 历次追加投资</div></div>'
+  +'<div class="kpi"><div class="lb">累计净收益</div><div class="vl num" style="'+(c.cumNet<0?'color:var(--red)':'')+'">'+(c.cumNet>=0?'+':'')+fmt(c.cumNet)+'</div><div class="sub">上月净 '+(c.lastNet>=0?'+':'')+fmt(c.lastNet)+'</div></div>'
+  +'<div class="kpi"><div class="lb">出售回款价</div><div class="vl num">'+fmt(Math.round(c.invested*(0.65+0.15*c.lv)))+'</div><div class="sub">不玩了可以整家卖掉</div></div>'
+  +'</div>'
+  +'<div class="acts">'+(c.lv>=3?'<span class="pill up">已顶级规模</span>':'<button class="btn pri sm" onclick="upgradeOverseas(\''+id+'\')">追加投资升 '+(c.lv+1)+' 级 · '+fmt(upCost)+'</button>')+'<button class="btn sm" onclick="sellOverseas(\''+id+'\')">出售俱乐部</button></div>'
+  +'<p class="mini" style="margin-top:8px;">经营要点：排名前 3 收入 +25%，还有机会给母队 +1 声望；排名垫底收入打八折。追加投资能升规模、涨全队能力、抬收入盘子。</p></div>'
+  +'<div class="card"><h3><span class="no">阵容</span>一线队阵容<span class="hint">能力每月随联赛磨炼，追加投资 +2</span></h3>'+squadRows+'</div>'
+  +'<div class="card"><h3><span class="no">比赛</span>近期战绩<span class="hint">每月 3 场联赛，月末结算时更新</span></h3>'+resRows+'</div>'
+  +'<div class="card"><h3><span class="no">输送</span>青训输送<span class="hint">苗子归你处置：回主队免签，或在当地卖掉换钱</span></h3>'+youthRows+'</div>';
+}
+/* ---------------- 自有品牌 ---------------- */
+var BRAND_COLORS=['#e85d1f','#1d6fb8','#c8102e','#0f7a4d','#7a3ea8','#14181d','#d4a017','#0e7c86'];
+var BRAND_MARKS=['⚡','🔥','🦁','⭐','👑','🐉','💎','🚀'];
+var BRAND_LINES=[['jersey','👕','球衣产品线','主场/客场/训练服，销量的基本盘'],['scarf','🧣','周边产品线','围巾、帽子、纪念品，球迷人手一件'],['shoe','👟','联名球鞋线','和球星联名的限量款，单价高、要品牌够响才卖得动']];
+window._bColor='#e85d1f'; window._bMark='⚡';
+function brandPickColor(c){
+  window._bColor=c;
+  var els=document.querySelectorAll('.bsw');
+  for(var i=0;i<els.length;i++){ els[i].style.boxShadow = els[i].getAttribute('data-c')===c? '0 0 0 3px #fff, 0 0 0 6px '+c : '0 0 0 1px #d5dee5'; }
+  var pv=document.getElementById('brandPrev'); if(pv) pv.style.background=c;
+}
+function brandPickMark(m){
+  window._bMark=m;
+  var els=document.querySelectorAll('.bmk');
+  for(var i=0;i<els.length;i++){ els[i].style.boxShadow = els[i].textContent===m? '0 0 0 3px #fff, 0 0 0 6px var(--orange)' : '0 0 0 1px #d5dee5'; }
+  var pv=document.getElementById('brandPrevMark'); if(pv) pv.textContent=m;
+}
+function foundBrand(){
+  ensureBiz();
+  if(!gateOK('brand')){ toast('还没解锁自有品牌'); return; }
+  var inp=document.getElementById('brandNameInp');
+  var name=inp? String(inp.value).replace(/\s+/g,' ').trim() : '';
+  if(!name){ toast('先给品牌起个名字'); return; }
+  if(name.length>10){ toast('名字太长了，最多 10 个字'); return; }
+  var cost=hasVent('brand')?300:500;
+  if(G.cash<cost){ toast('创立费不够，还差 '+fmt(cost-G.cash)); return; }
+  G.cash-=cost;
+  var br=G.biz.brand;
+  br.founded=true; br.name=name; br.color=window._bColor||'#e85d1f'; br.mark=window._bMark||'⚡'; br.value=260; br.lt=G.titles||0;
+  log('👕 自有品牌「'+esc(name)+'」正式创立！创立费 '+fmt(cost)+(hasVent('brand')?'（板块「自有运动品牌」联动，半价）':'')+'。球衣和周边从此自己卖，品牌价值随球队成绩、球星和曝光一起涨，收入每月进账。','good');
+  toast('品牌「'+name+'」创立！'); render();
+}
+function brandSetPrice(i){ ensureBiz(); G.biz.brand.price=i; log('👕 品牌「'+esc(G.biz.brand.name)+'」定价改为「'+['亲民价','标准价','高端价'][i]+'」：'+['走量，卖得多、单件赚得少','量价均衡','单件利润高，但销量打折'][i]+'。',''); render(); }
+function brandLineCost(lv){ return Math.round(130*Math.pow(lv+1,1.35)); }
+function brandUpgradeLine(line){
+  ensureBiz(); var br=G.biz.brand; if(!br.founded) return;
+  var lv=br.lines[line]||0; if(lv>=5){ toast('这条线已经满级'); return; }
+  if(line==='shoe' && lv===0 && !(br.value>=1500 || br.lines.jersey>=3)){ toast('联名球鞋线要品牌价值 ≥1500万，或球衣线先升到 3 级'); return; }
+  var cost=brandLineCost(lv);
+  if(G.cash<cost){ toast('现金不够，还差 '+fmt(cost-G.cash)); return; }
+  G.cash-=cost; br.lines[line]=lv+1;
+  var nm=BRAND_LINES.filter(function(x){ return x[0]===line; })[0][2];
+  log('👕 '+nm+' 扩到 '+(lv+1)+' 级，投入 '+fmt(cost)+'：产能和款式都上来了，月销量跟着涨。','good');
+  toast(nm+' 升到 '+(lv+1)+' 级'); render();
+}
+function brandMarketing(){
+  ensureBiz(); var br=G.biz.brand; if(!br.founded) return;
+  if(br.mktUntil>=G.month){ toast('广告投放还在生效期（到第 '+br.mktUntil+' 个月），不用重复砸钱'); return; }
+  if(G.cash<80){ toast('广告投放 80万，现金不够'); return; }
+  G.cash-=80; br.mktUntil=G.month+2;
+  log('👕 品牌「'+esc(br.name)+'」投放广告 80万：接下来 3 个月销量 +50%，品牌价值涨得更快。','good');
+  toast('广告投放生效 3 个月'); render();
+}
+function brandSignStar(){
+  ensureBiz(); var br=G.biz.brand; if(!br.founded) return;
+  if(!G.squad.length){ toast('一线队没人可签'); return; }
+  var best=G.squad.slice().sort(function(a,b){ return b.ab-a.ab; })[0];
+  var cost=Math.round(best.wage*12)+60;
+  if(G.cash<cost){ toast('代言费不够，还差 '+fmt(cost-G.cash)); return; }
+  G.cash-=cost; br.star=best.name; br.starUntil=G.month+12;
+  log('👕 '+best.name+'（能力 '+best.ab+'）签约成为品牌「'+esc(br.name)+'」代言人，代言费 '+fmt(cost)+'，合约 12 个月：有球星站台，曝光和品牌价值都涨得快。','good');
+  toast(best.name+' 成为品牌代言人'); render();
+}
+function pageBrand(){
+  ensureBiz();
+  if(!gateOK('brand')) return lockHTML('👕','自有品牌','brand','把球衣和周边握在自己手里卖：起名、选配色和标志，定价、扩产品线、投广告、签球星代言——品牌价值随球队成绩、球星和曝光增长，卖货的钱每月进账，品牌本身还计入俱乐部估值。');
+  var br=G.biz.brand;
+  if(!br.founded){
+    var sw=BRAND_COLORS.map(function(c){ return '<button type="button" class="bsw" data-c="'+c+'" onclick="brandPickColor(\''+c+'\')" aria-label="选择配色" style="width:38px;height:38px;border:none;border-radius:10px;background:'+c+';cursor:pointer;box-shadow:'+(c===window._bColor?'0 0 0 3px #fff, 0 0 0 6px '+c:'0 0 0 1px #d5dee5')+';"></button>'; }).join('');
+    var mk=BRAND_MARKS.map(function(m){ return '<button type="button" class="bmk" onclick="brandPickMark(\''+m+'\')" aria-label="选择标志" style="width:38px;height:38px;border:none;border-radius:10px;background:#eef4f8;font-size:19px;cursor:pointer;box-shadow:'+(m===window._bMark?'0 0 0 3px #fff, 0 0 0 6px var(--orange)':'0 0 0 1px #d5dee5')+';">'+m+'</button>'; }).join('');
+    return '<div class="card"><h3>👕 创立你的品牌<span class="hint">起名 · 选配色 · 选标志，创立后就能卖货赚钱</span></h3>'
+    +'<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;">'
+    +'<div id="brandPrev" style="width:120px;height:120px;border-radius:18px;background:'+window._bColor+';display:flex;align-items:center;justify-content:center;flex:0 0 120px;"><span id="brandPrevMark" style="font-size:52px;">'+window._bMark+'</span></div>'
+    +'<div style="flex:1;min-width:240px;">'
+    +'<div style="font-weight:800;margin-bottom:6px;">品牌名字</div><input id="brandNameInp" type="text" maxlength="10" placeholder="例如：江州风暴 / DYY SPORT" style="width:100%;max-width:340px;padding:10px 12px;border:1px solid #cfdce5;border-radius:10px;font-size:15px;">'
+    +'<div style="font-weight:800;margin:12px 0 6px;">品牌配色</div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+sw+'</div>'
+    +'<div style="font-weight:800;margin:12px 0 6px;">品牌标志</div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+mk+'</div>'
+    +'</div></div>'
+    +'<p class="desc" style="margin-top:12px;">创立费 '+(hasVent('brand')?'300万（已有集团板块「自有运动品牌」，半价联动）':'500万')+' · 当前现金 '+fmt(G.cash)+'。创立即带球衣线和周边线各 1 级开卖；品牌价值从 260万 起步，卖得越好、球队成绩越好，涨得越快。</p>'
+    +'<div class="acts"><button class="btn pri" onclick="foundBrand()">创立品牌 · '+(hasVent('brand')?'300万':'500万')+'</button><button class="btn" onclick="go(\'empire\')">← 回集团扩张</button></div></div>';
+  }
+  var starIn=G.squad.some(function(p){ return p.name===br.star; });
+  var starOn=br.star && br.starUntil>=G.month && starIn;
+  var lineRows=BRAND_LINES.map(function(L){
+    var lv=br.lines[L[0]]||0;
+    var locked=(L[0]==='shoe' && lv===0 && !(br.value>=1500 || br.lines.jersey>=3));
+    var dots=''; for(var i=0;i<5;i++) dots+='<span class="'+(i<lv?'':'off')+'">●</span>';
+    return '<div class="fac"><div class="ic">'+L[1]+'</div><div class="grow"><div class="nm" style="font-weight:800;">'+L[2]+' <span class="lv-dots">'+dots+'</span> <span class="mini">'+lv+' 级</span></div><div class="meta" style="font-size:12px;color:var(--ink2);">'+L[3]+'</div></div>'
+    +(locked? '<span class="pill">需品牌价值 1500万 或球衣线 3 级</span>' : (lv>=5? '<span class="pill up">满级</span>' : '<button class="btn sm" onclick="brandUpgradeLine(\''+L[0]+'\')">扩产 · '+fmt(brandLineCost(lv))+'</button>'))+'</div>';
+  }).join('');
+  var priceBtns=['亲民价','标准价','高端价'].map(function(t,i){ return '<button class="btn sm'+(br.price===i?' pri':'')+'" onclick="brandSetPrice('+i+')">'+t+'</button>'; }).join('');
+  return '<div class="kpis">'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--orange)"></span>品牌价值</div><div class="vl num">'+fmt(br.value||0)+'</div><div class="sub">计入俱乐部总估值</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--green)"></span>上月净收入</div><div class="vl num" style="'+((br.lastNet||0)<0?'color:var(--red)':'')+'">'+((br.lastNet||0)>=0?'+':'')+fmt(br.lastNet||0)+'</div><div class="sub">卖货收入 − 运营成本</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--blue)"></span>累计净收入</div><div class="vl num">'+((br.cum||0)>=0?'+':'')+fmt(br.cum||0)+'</div><div class="sub">创立以来一共赚了多少</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--gold)"></span>代言球星</div><div class="vl" style="font-size:16px;">'+(starOn? esc(br.star)+'（到第 '+br.starUntil+' 个月）' : '暂无')+'</div><div class="sub">'+(starOn?'曝光加成生效中':'签个头牌代言，价值涨更快')+'</div></div>'
+  +'</div>'
+  +'<div class="card"><h3><span style="display:inline-flex;width:34px;height:34px;border-radius:9px;background:'+br.color+';align-items:center;justify-content:center;font-size:18px;vertical-align:-8px;margin-right:8px;">'+br.mark+'</span>'+esc(br.name)+'<span class="hint">你的自有品牌 · '+(br.mktUntil>=G.month?'📣 广告投放中（到第 '+br.mktUntil+' 个月，销量 +50%）':'')+'</span></h3>'
+  +'<p class="desc">销量由四件事决定：球迷基数、俱乐部声望、头牌球星的能力、三条产品线的等级。夺冠的赛季品牌价值会跳涨；集团板块里的「自有运动品牌」和这里联动——有板块时价值涨幅 +30%。</p>'
+  +'<div style="font-weight:800;margin:6px 0;">产品线（扩产 = 提销量）</div>'+lineRows
+  +'<div style="font-weight:800;margin:14px 0 6px;">定价策略</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'+priceBtns+'<span class="mini">亲民价走量 · 标准价均衡 · 高端价单件利润高但销量打折</span></div>'
+  +'<div style="font-weight:800;margin:14px 0 6px;">市场动作</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn sm" onclick="brandMarketing()">📣 投放广告 · 80万（3 个月销量 +50%）</button><button class="btn sm" onclick="brandSignStar()">⭐ 签头牌球星代言（按球星身价计费）</button></div>'
+  +'</div>';
+}
+/* ---------------- 品牌合作（装备赞助） ---------------- */
+var DEAL_BRANDS=[
+  {id:'nike', name:'耐克 Nike', rep:75, annual:950, years:3, bonus:650, signFee:320, note:'全球顶级：只跟豪门谈，夺冠奖金最厚，年费也最高。'},
+  {id:'adidas', name:'阿迪达斯 Adidas', rep:70, annual:850, years:3, bonus:550, signFee:280, note:'全球顶级：合同一签三年，续约优先权写进条款。'},
+  {id:'puma', name:'彪马 Puma', rep:60, annual:620, years:3, bonus:420, signFee:200, note:'国际大牌：主打年轻球迷和潮流联名。'},
+  {id:'nb', name:'新百伦 New Balance', rep:55, annual:520, years:2, bonus:350, signFee:170, note:'国际品牌：跑鞋渠道强，周边联名好谈。'},
+  {id:'lining', name:'李宁', rep:45, annual:430, years:2, bonus:280, signFee:130, note:'国货头部：国潮联名曝光足，国内球迷认。'},
+  {id:'anta', name:'安踏', rep:40, annual:390, years:2, bonus:250, signFee:120, note:'国货头部：渠道下沉无敌，卖货能力一流。'},
+  {id:'xtep', name:'特步', rep:30, annual:260, years:2, bonus:150, signFee:80, note:'国产品牌：跑步圈层口碑好，谈判不端着。'},
+  {id:'peak', name:'匹克', rep:22, annual:190, years:2, bonus:110, signFee:55, note:'国产品牌：门槛最低，起步先拿一笔稳的。'}
+];
+function dealDef(id){ return DEAL_BRANDS.filter(function(d){ return d.id===id; })[0]; }
+function signDeal(id){
+  ensureBiz();
+  if(!gateOK('deals')){ toast('还没解锁品牌合作'); return; }
+  var d=dealDef(id); if(!d) return;
+  if(G.biz.deal){ toast('已有合同在身：先等到期，或解约后再签新的'); return; }
+  if(G.rep<d.rep){ toast(d.name+' 要求声望 ≥ '+d.rep+'（当前 '+G.rep+'），先把声望打上去'); return; }
+  G.cash+=d.signFee;
+  G.biz.deal={id:id, annual:d.annual, bonus:d.bonus, years:d.years, left:d.years*12};
+  G.biz.dealTitles=G.titles||0;
+  log('🤝 装备赞助签约：'+d.name+' 成为俱乐部装备赞助商！签约费 +'+fmt(d.signFee)+' 先到账；合同 '+d.years+' 年，年费 '+fmt(d.annual)+' 按月发放，夺得中超冠军另有奖金 '+fmt(d.bonus)+'。','good');
+  toast('签约 '+d.name+'：签约费 +'+fmt(d.signFee)); render();
+}
+function renewDeal(){
+  ensureBiz(); var dl=G.biz.deal; if(!dl) return;
+  var d=dealDef(dl.id); if(!d) return;
+  var fee=Math.round(d.signFee/2);
+  var bump=(G.rep>=d.rep+15)? 0.15 : 0;
+  G.cash+=fee;
+  dl.annual=Math.round(d.annual*(1+bump)); dl.left+=d.years*12; dl.years+=d.years;
+  log('🤝 与 '+d.name+' 续约 '+d.years+' 年：续约费 +'+fmt(fee)+(bump?'，声望涨了，年费上浮 15% 到 '+fmt(dl.annual):'，年费维持 '+fmt(dl.annual))+'，合同期延长到还剩 '+dl.left+' 个月。','good');
+  toast('续约成功：+'+fmt(fee)); render();
+}
+function endDeal(){
+  ensureBiz(); var dl=G.biz.deal; if(!dl) return;
+  var d=dealDef(dl.id);
+  var pen=Math.round(dl.annual*0.3);
+  if(G.cash<pen){ toast('解约违约金 '+fmt(pen)+'，现金不够'); return; }
+  G.cash-=pen; G.biz.deal=null;
+  log('🤝 与 '+(d? d.name : '赞助商')+' 提前解约，支付违约金 '+fmt(pen)+'。自由身了，可以去谈更大的牌子。','bad');
+  toast('已解约，违约金 '+fmt(pen)); render();
+}
+function pageDeals(){
+  ensureBiz();
+  if(!gateOK('deals')) return lockHTML('🤝','品牌合作','deals','球衣胸前和装备赞助是豪门的印钞机：耐克、阿迪达斯、安踏、李宁……每家报价、年限、夺冠奖金和声望门槛都不同。声望越高，能谈到的牌子越大、合同越肥；签约费先到账，年费按月发，夺冠奖金另算。');
+  var b=G.biz, dl=b.deal;
+  var cur='';
+  if(dl){
+    var d=dealDef(dl.id);
+    cur='<div class="card" style="border:2px solid var(--green);"><h3>🤝 当前合同 · '+(d? d.name : '')+'<span class="hint">生效中 · 还剩 '+dl.left+' 个月</span></h3>'
+    +'<div class="kpis" style="margin:0 0 6px;">'
+    +'<div class="kpi"><div class="lb">年费（按月发）</div><div class="vl num">'+fmt(dl.annual)+'</div><div class="sub">每月到账约 '+fmt(Math.round(dl.annual/12))+'</div></div>'
+    +'<div class="kpi"><div class="lb">夺冠奖金</div><div class="vl num">'+fmt(dl.bonus)+'</div><div class="sub">每夺一次中超冠军发一次</div></div>'
+    +'<div class="kpi"><div class="lb">累计已收赞助</div><div class="vl num">'+fmt(b.dealCum||0)+'</div><div class="sub">含签约费、年费与奖金</div></div>'
+    +'<div class="kpi"><div class="lb">提前解约违约金</div><div class="vl num">'+fmt(Math.round(dl.annual*0.3))+'</div><div class="sub">年费的 30%</div></div>'
+    +'</div>'
+    +'<div class="acts"><button class="btn pri sm" onclick="renewDeal()">续约 '+(d? d.years : 2)+' 年（续约费 +'+fmt(d? Math.round(d.signFee/2):0)+(G.rep>=(d? d.rep+15:999)?'，年费 +15%':'')+')</button><button class="btn sm" onclick="endDeal()">提前解约</button></div>'
+    +'<p class="mini" style="margin-top:8px;">合同到期会自动结束，到期前续约最划算；声望比签约时高出 15 点以上，续约年费自动上浮 15%。</p></div>';
+  } else {
+    cur='<div class="card"><h3>🤝 当前没有装备赞助合同</h3><p class="desc">从下面挑一家签：签约费立刻到账，年费按月发，夺冠有奖金。同一时间只能有一家——先想好要「现在就拿钱」还是「等声望涨了谈大牌」。</p><div class="mini">累计已收赞助 '+fmt(b.dealCum||0)+'</div></div>';
+  }
+  var offers=DEAL_BRANDS.map(function(d){
+    var ok=G.rep>=d.rep;
+    var isCur=dl && dl.id===d.id;
+    return '<div class="rel-card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="nm">'+d.name+'</span><span class="pill '+(isCur?'up':'')+'">'+(isCur?'合作中':'声望门槛 '+d.rep)+'</span></div>'
+    +'<div class="ben">'+d.note+'</div>'
+    +'<div class="mini">年费 '+fmt(d.annual)+' · 合同 '+d.years+' 年 · 签约费 '+fmt(d.signFee)+' · 夺冠奖金 '+fmt(d.bonus)+'</div>'
+    +'<div class="acts">'+(isCur? '<span class="pill up">合同生效中</span>' : (dl? '<button class="btn sm" disabled>已有合同在身</button>' : (ok? '<button class="btn pri sm" onclick="signDeal(\''+d.id+'\')">签约 · 先拿 '+fmt(d.signFee)+'</button>' : '<button class="btn sm" disabled>🔒 声望还差 '+(d.rep-G.rep)+'</button><span class="mini">当前声望 '+G.rep+' / 需要 '+d.rep+'</span>')))+'</div></div>';
+  }).join('');
+  return cur+'<div class="card"><h3><span class="no">报价</span>品牌报价单<span class="hint">声望越高，解锁的牌子越大</span></h3><div class="rel-grid">'+offers+'</div></div>';
+}
+/* ---------------- 跨行业经营 ---------------- */
+var CROSS_DEFS=[
+  {id:'food', icon:'🍜', name:'餐饮连锁', desc:'球队主题餐厅 + 预制菜品牌，比赛日爆满、平时靠外卖。稳当，现金流细水长流。', cost:800, up:35, inc:[30,115]},
+  {id:'gym', icon:'💪', name:'健身连锁', desc:'借球队体能团队的口碑开健身房，会员制预付费，回款快。', cost:700, up:30, inc:[25,95]},
+  {id:'ehotel', icon:'🎮', name:'电竞酒店', desc:'电竞房 + 观赛大厅，年轻球迷周末包夜看球，入住率看球队成绩脸色。', cost:1000, up:40, inc:[35,125]},
+  {id:'tech', icon:'⌚', name:'体育科技', desc:'运动手环、训练数据 SaaS，卖设备也卖订阅，毛利高但研发烧钱。', cost:1200, up:50, inc:[20,155]},
+  {id:'film', icon:'🎬', name:'影视娱乐', desc:'拍球队纪录片、投体育题材影视：扑了赔租金，爆了吃十年。波动最大。', cost:1500, up:45, inc:[-30,230]},
+  {id:'estate', icon:'🏠', name:'房地产开发', desc:'球场周边地块开发，盘子最大、周期最长，行情好一年顶三年，行情差能套住现金。需要俱乐部估值 ≥2亿 才能入场。', cost:3200, up:60, inc:[-50,330], needVal:20000}
+];
+function crossDef(id){ return CROSS_DEFS.filter(function(d){ return d.id===id; })[0]; }
+var CROSS_SEL=null;
+function buyCross(id){
+  ensureBiz();
+  if(!gateOK('cross')){ toast('还没解锁跨行业经营'); return; }
+  var d=crossDef(id); if(!d || G.biz.cross[id]) return;
+  if(d.needVal && valuation()<d.needVal){ toast(d.name+' 需要俱乐部估值 ≥ '+fmt(d.needVal)+'（当前 '+fmt(valuation())+'）'); return; }
+  if(G.cash<d.cost){ toast('现金不够，还差 '+fmt(d.cost-G.cash)); return; }
+  G.cash-=d.cost;
+  G.biz.cross[id]={lv:1, invested:d.cost, cum:0, lastNet:0, hist:[]};
+  log('🏭 跨行业入场：'+d.icon+' '+d.name+' 正式开业！投入 '+fmt(d.cost)+'。每月单独算盈亏，赚赔都进俱乐部账目——行情有波动，别把现金全压在一个行业上。','good');
+  toast(d.name+' 开业！'); CROSS_SEL=id; render();
+}
+function upgradeCross(id){
+  ensureBiz(); var d=crossDef(id), c=G.biz.cross[id]; if(!d || !c || c.lv>=3) return;
+  var cost=Math.round(d.cost*0.75*c.lv);
+  if(G.cash<cost){ toast('现金不够，还差 '+fmt(cost-G.cash)); return; }
+  G.cash-=cost; c.lv++; c.invested+=cost;
+  log('🏭 '+d.name+' 扩到 '+c.lv+' 级规模，追加投入 '+fmt(cost)+'：门店/产能翻倍，月收入盘子更大，固定支出也更高。','good');
+  toast(d.name+' 升到 '+c.lv+' 级'); render();
+}
+function sellCross(id){
+  ensureBiz(); var d=crossDef(id), c=G.biz.cross[id]; if(!d || !c) return;
+  var back=Math.round(c.invested*0.8 + Math.max(0,c.cum)*0.3);
+  G.cash+=back; delete G.biz.cross[id]; if(CROSS_SEL===id) CROSS_SEL=null;
+  log('🏭 已退出 '+d.name+'，回款 '+fmt(back)+'（累计投入 '+fmt(c.invested)+'，经营期累计净收益 '+(c.cum>=0?'+':'')+fmt(c.cum)+'）。','');
+  toast('退出回款 '+fmt(back)); render();
+}
+function pageCross(){
+  ensureBiz();
+  if(!gateOK('cross')) return lockHTML('🏭','跨行业经营','cross','球队之外再造几个现金牛：餐饮、房地产、影视、电竞酒店、体育科技、健身连锁，每个行业独立开店、独立算账。投钱、扩店、盯月度盈亏，行情有涨有跌——像真实做生意一样，有赚有赔。');
+  var b=G.biz;
+  if(CROSS_SEL && b.cross[CROSS_SEL]) return crossDetailHTML(CROSS_SEL);
+  CROSS_SEL=null;
+  var cards=CROSS_DEFS.map(function(d){
+    var c=b.cross[d.id];
+    if(c){
+      return '<div class="rel-card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="nm">'+d.icon+' '+d.name+'</span><span class="pill up">经营中 · '+c.lv+' 级</span></div>'
+      +'<div class="ben">'+d.desc+'</div>'
+      +'<div class="mini">累计投入 '+fmt(c.invested)+' · 累计净收益 '+(c.cum>=0?'+':'')+fmt(c.cum)+' · 上月净 '+(c.lastNet>=0?'+':'')+fmt(c.lastNet)+'</div>'
+      +'<div class="acts"><button class="btn pri sm" onclick="CROSS_SEL=\''+d.id+'\';render();window.scrollTo(0,0);">进入经营 →</button>'+(c.lv>=3?'<span class="pill">已顶级规模</span>':'<button class="btn sm" onclick="upgradeCross(\''+d.id+'\')">扩店升 '+(c.lv+1)+' 级 · '+fmt(Math.round(d.cost*0.75*c.lv))+'</button>')+'</div></div>';
+    }
+    var locked=d.needVal && valuation()<d.needVal;
+    return '<div class="rel-card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="nm">'+d.icon+' '+d.name+'</span><span class="pill">入场 '+fmt(d.cost)+'</span></div>'
+    +'<div class="ben">'+d.desc+'</div>'
+    +'<div class="mini">月固定支出约 '+fmt(d.up)+' · 月毛收入区间 '+fmt(d.inc[0])+'~'+fmt(d.inc[1])+'（随行情和规模浮动）'+(d.needVal?' · 需估值 ≥ '+fmt(d.needVal):'')+'</div>'
+    +'<div class="acts">'+(locked? '<button class="btn sm" disabled>🔒 估值还差 '+fmt(d.needVal-valuation())+'</button>' : '<button class="btn pri sm" onclick="buyCross(\''+d.id+'\')">开业 · '+fmt(d.cost)+'</button><span class="mini">现金 '+fmt(G.cash)+'</span>')+'</div></div>';
+  }).join('');
+  return '<div class="kpis">'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--orange)"></span>已投行业</div><div class="vl num">'+Object.keys(b.cross).length+' <span style="font-size:14px;color:var(--ink3)">/ '+CROSS_DEFS.length+'</span></div><div class="sub">每个行业独立页面经营</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--green)"></span>跨行业累计净收益</div><div class="vl num" style="'+((b.crossCum||0)<0?'color:var(--red)':'')+'">'+((b.crossCum||0)>=0?'+':'')+fmt(b.crossCum||0)+'</div><div class="sub">赚赔都已进俱乐部账目</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--blue)"></span>上月合计净额</div><div class="vl num" style="'+((b.crossNet||0)<0?'color:var(--red)':'')+'">'+((b.crossNet||0)>=0?'+':'')+fmt(b.crossNet||0)+'</div><div class="sub">全部行业上月盈亏合计</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--gold)"></span>跨行业资产估值</div><div class="vl num">'+fmt(Object.keys(b.cross).reduce(function(s,id){ var c=b.cross[id]; return s+Math.round((c.invested||0)*(0.75+0.2*c.lv)); },0))+'</div><div class="sub">已计入俱乐部总估值</div></div>'
+  +'</div>'
+  +'<div class="card"><h3><span class="no">跨界</span>跨行业经营<span class="hint">点「进入经营」看单个行业的月度账本</span></h3><div class="rel-grid">'+cards+'</div></div>';
+}
+function crossDetailHTML(id){
+  var d=crossDef(id), c=G.biz.cross[id]; if(!d || !c) return '';
+  var back=Math.round(c.invested*0.8 + Math.max(0,c.cum)*0.3);
+  var hist=(c.hist&&c.hist.length)? c.hist.map(function(h){ return '<div class="item"><div class="grow"><div class="nm" style="font-weight:600;">'+h.m+'</div></div><b class="num" style="color:'+(h.net>=0?'var(--green-d)':'var(--red)')+'">'+(h.net>=0?'+':'')+fmt(h.net)+'</b></div>'; }).join('') : '<p class="desc">还没有月度账目——推进一个月后，这里会逐月记下这个行业的盈亏。</p>';
+  var upCost=Math.round(d.cost*0.75*c.lv);
+  return '<div style="margin-bottom:10px;"><button class="btn sm" onclick="CROSS_SEL=null;render();window.scrollTo(0,0);">← 全部行业</button></div>'
+  +'<div class="card"><h3>'+d.icon+' '+d.name+'<span class="hint">'+c.lv+' 级规模 · 独立核算</span></h3><p class="desc">'+d.desc+'</p>'
+  +'<div class="kpis" style="margin:0 0 6px;">'
+  +'<div class="kpi"><div class="lb">累计投入</div><div class="vl num">'+fmt(c.invested)+'</div><div class="sub">开业 + 历次扩店</div></div>'
+  +'<div class="kpi"><div class="lb">累计净收益</div><div class="vl num" style="'+(c.cum<0?'color:var(--red)':'')+'">'+(c.cum>=0?'+':'')+fmt(c.cum)+'</div><div class="sub">开业以来赚赔总账</div></div>'
+  +'<div class="kpi"><div class="lb">上月净额</div><div class="vl num" style="'+(c.lastNet<0?'color:var(--red)':'')+'">'+(c.lastNet>=0?'+':'')+fmt(c.lastNet)+'</div><div class="sub">月固定支出约 '+fmt(Math.round(d.up*(1+0.3*(c.lv-1))))+'</div></div>'
+  +'<div class="kpi"><div class="lb">退出回款价</div><div class="vl num">'+fmt(back)+'</div><div class="sub">随时可卖，落袋为安</div></div>'
+  +'</div>'
+  +'<div class="acts">'+(c.lv>=3?'<span class="pill up">已顶级规模</span>':'<button class="btn pri sm" onclick="upgradeCross(\''+id+'\')">扩店升 '+(c.lv+1)+' 级 · '+fmt(upCost)+'</button>')+'<button class="btn sm" onclick="sellCross(\''+id+'\')">退出这个行业</button></div>'
+  +'<p class="mini" style="margin-top:8px;">经营要点：扩店能放大收入盘子，也放大固定支出；行情差的月份可能亏钱，连亏时可以退出止损，盈利的行业退出时还能按累计利润加价回款。</p></div>'
+  +'<div class="card"><h3><span class="no">账本</span>月度盈亏<span class="hint">每月结算后自动记账，最多保留近 8 个月</span></h3>'+hist+'</div>';
+}
+/* ---------------- 深度经营月度结算（月末随主账一起走） ---------------- */
+function processBiz(){
+  if(!G || !G.biz) return;
+  var b=G.biz, notes=[], bizNet=0;
+  /* 海外俱乐部：每月 3 场联赛 + 收入支出 + 青训出苗 */
+  Object.keys(b.overseas||{}).forEach(function(id){
+    var d=ovDef(id), c=b.overseas[id]; if(!d || !c) return;
+    if(!c.squad) c.squad=[]; if(!c.youth) c.youth=[]; if(!c.results) c.results=[];
+    var avg=ovAvgAb(c), w=0, dr=0, l=0, res=[];
+    for(var i=0;i<3;i++){
+      var pWin=clamp(0.34+(c.lv-1)*0.09+(avg-58)*0.012, 0.12, 0.72), r=Math.random();
+      if(r<pWin){ res.push('胜'); w++; } else if(r<pWin+0.27){ res.push('平'); dr++; } else { res.push('负'); l++; }
+      c.squad.forEach(function(p){ if(p.age<=24 && Math.random()<0.10 && p.ab<85) p.ab++; });
+    }
+    c.w+=w; c.d+=dr; c.l+=l;
+    c.rank=clamp(c.rank + (l>=2? ri(0,2):0) - (w>=2? ri(0,2):0), 1, 10);
+    c.results.unshift(G.year+'年'+G.mon+'月 · '+res.join(' ')+' · 第 '+c.rank+' 名');
+    if(c.results.length>8) c.results.length=8;
+    var inc=Math.round(ri(d.inc[0],d.inc[1])*(1+0.55*(c.lv-1))*(c.rank<=3?1.25:(c.rank>=8?0.8:1)));
+    var up=Math.round(d.upkeep*(1+0.35*(c.lv-1)));
+    var net=inc-up; c.lastNet=net; c.cumNet=(c.cumNet||0)+net; b.ovCum=(b.ovCum||0)+net; bizNet+=net;
+    if(c.rank<=2 && Math.random()<0.3){ G.rep=clamp(G.rep+1,0,100); notes.push('🌍 '+d.club+' 在'+d.league+'高居第 '+c.rank+' 名，当地媒体报道母队 '+G.club+'，声望 +1。'); }
+    if(c.youth.length<3 && Math.random()<0.30+0.06*c.lv){
+      var yp=mkPlayer(pick(d.names), pick(POS), ri(50,60), ri(16,19), true);
+      yp.pot=ri(74,90); yp.cost=0; yp.signNote=d.city+'青训输送';
+      c.youth.push(yp);
+      notes.push('🌍 '+d.club+' 青训营冒出苗子：'+yp.name+'（'+yp.pos+'，'+yp.age+' 岁，潜力 '+yp.pot+'），去海外俱乐部页可以把他输送回主队免签。');
+    }
+  });
+  /* 自有品牌：销量与品牌价值 */
+  var br=b.brand;
+  if(br && br.founded){
+    var bestAb=G.squad.length? G.squad.slice().sort(function(a2,b2){ return b2.ab-a2.ab; })[0].ab : 60;
+    var starIn=br.star && G.squad.some(function(p){ return p.name===br.star; });
+    var starOn=starIn && br.starUntil>=G.month;
+    var expo=0.45 + G.fans/70000 + G.rep/130 + Math.max(0,(bestAb-60))/55 + (starOn?0.28:0);
+    var vol=[1.35,1,0.6][br.price]||1, rev=[0.85,1.35,2.3][br.price]||1.35;
+    var units=(br.lines.jersey*26 + br.lines.scarf*14 + br.lines.shoe*34);
+    var sales=Math.round(units*expo*vol*rev*(br.mktUntil>=G.month?1.5:1));
+    var bcost=Math.round(22 + (br.lines.jersey+br.lines.scarf+br.lines.shoe)*9 + (starOn?15:0));
+    var bnet=sales-bcost;
+    br.lastNet=bnet; br.cum=(br.cum||0)+bnet; bizNet+=bnet;
+    var newTitle=(G.titles||0)>(br.lt||0);
+    var growth=Math.round(bnet*0.5 + expo*22 + (newTitle?300:0));
+    if(hasVent('brand')) growth=Math.round(growth*1.3);
+    br.value=Math.max(50, Math.round((br.value||0)+growth));
+    if(newTitle) notes.push('👕 球队夺冠，品牌「'+br.name+'」价值跳涨 +'+fmt(300)+'：冠军同款球衣卖断货了。');
+    br.lt=G.titles||0;
+  }
+  /* 品牌合作：年费按月发 + 夺冠奖金 + 到期 */
+  if(b.deal){
+    var fee=Math.round(b.deal.annual/12);
+    bizNet+=fee; b.dealCum=(b.dealCum||0)+fee;
+    b.deal.left--;
+    if(b.deal.left<=0){ var dn=dealDef(b.deal.id); notes.push('🤝 与 '+(dn? dn.name : '赞助商')+' 的合同到期结束。去品牌合作页续约或换一家更大的。'); b.deal=null; }
+  }
+  if((G.titles||0)>(b.dealTitles||0) && b.deal){
+    var nb=(G.titles||0)-(b.dealTitles||0);
+    var bonus=b.deal.bonus*nb;
+    bizNet+=bonus; b.dealCum=(b.dealCum||0)+bonus;
+    var dd=dealDef(b.deal.id);
+    notes.push('🤝 夺冠奖金到账：'+(dd? dd.name : '赞助商')+' 按合同支付 '+fmt(bonus)+'，大字标题都帮你想好了。');
+  }
+  b.dealTitles=G.titles||0;
+  /* 跨行业：逐个行业算月度盈亏，行情有波动 */
+  var crossSum=0;
+  Object.keys(b.cross||{}).forEach(function(id){
+    var d=crossDef(id), c=b.cross[id]; if(!d || !c) return;
+    if(!c.hist) c.hist=[];
+    var net=Math.round(ri(d.inc[0],d.inc[1])*(1+0.55*(c.lv-1)) - d.up*(1+0.3*(c.lv-1)));
+    if(Math.random()<0.07){ var wind=ri(150,400); net+=wind; notes.push('🏭 '+d.name+' 撞上风口：单月额外 +'+fmt(wind)+'，账面一下就好看了。'); }
+    else if(Math.random()<0.05){ var loss=ri(80,200); net-=loss; notes.push('🏭 '+d.name+' 踩了个坑：单月额外 -'+fmt(loss)+'，做生意就是有赚有赔。'); }
+    c.lastNet=net; c.cum=(c.cum||0)+net; b.crossCum=(b.crossCum||0)+net; crossSum+=net; bizNet+=net;
+    c.hist.unshift({m:G.year+'年'+G.mon+'月', net:net});
+    if(c.hist.length>8) c.hist.length=8;
+  });
+  b.crossNet=crossSum;
+  if(bizNet!==0) G.cash+=bizNet;
+  var hasBiz=Object.keys(b.overseas||{}).length || (br && br.founded) || b.deal || Object.keys(b.cross||{}).length;
+  if(hasBiz) log('🏢 深度经营本月合计：'+(bizNet>=0?'+':'')+fmt(bizNet)+'（海外俱乐部 / 自有品牌 / 品牌合作 / 跨行业，明细在各自页面）。', bizNet>=0?'good':'bad');
+  notes.forEach(function(n){ log(n,'good'); });
 }
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});}</script></body>
