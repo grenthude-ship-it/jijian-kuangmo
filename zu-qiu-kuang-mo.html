@@ -218,7 +218,10 @@
    玩法移植自《基建狂魔》：月度回合 / 转会招标 / 教练组 / 人脉关系 /
    灰色账本 / 银行授信 / 全自动模拟 / 充值中心。无限生涯：赛季无限
    循环，没有强制结局，夺冠、杯赛、成就与王朝评级一直累计。
-   进度只保存在本次打开内（可用存档码续档）。 */
+   自动存档：进入游戏自动读取上次存档，每步操作自动保存到本机，
+   退出重开接着玩（另保留存档码导出/导入作备份）。
+   青训体系：梯队招生、候选苗子签约、个性化培养方案、月度成长、
+   梯队比赛、提拔一线队与出售苗子，青训营等级/投入/教练共同影响成材率。 */
 var $app = document.getElementById('app');
 var $modal = document.getElementById('modal-root');
 function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.className='show'; setTimeout(function(){ t.className=''; },2600); }
@@ -229,6 +232,39 @@ function rnd(a,b){ return a+Math.random()*(b-a); }
 function ri(a,b){ return Math.floor(rnd(a,b+1)); }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+/* ---------------- 自动存档（本机） ---------------- */
+var SAVE_KEY='zuqiu-km-autosave-v1';
+var lastSaveAt=null, saveAvailable=true;
+function autoSave(){
+  if(typeof G==='undefined' || !G || !G.started) return;
+  try{
+    lastSaveAt=new Date();
+    localStorage.setItem(SAVE_KEY, JSON.stringify({v:1, savedAt:lastSaveAt.getTime(), data:G}));
+    saveAvailable=true;
+  }catch(e){ saveAvailable=false; }
+}
+function loadAutoSave(){
+  try{
+    var raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    var obj=JSON.parse(raw);
+    if(!obj || !obj.data || !obj.data.club || !obj.data.started) return false;
+    G=obj.data;
+    lastSaveAt= obj.savedAt? new Date(obj.savedAt) : null;
+    return true;
+  }catch(e){ return false; }
+}
+function clearAutoSave(){
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  lastSaveAt=null;
+}
+function saveTimeText(){
+  if(!saveAvailable) return '本机不可用';
+  if(!lastSaveAt) return '已开启';
+  var p=function(n){ return (n<10?'0':'')+n; };
+  return p(lastSaveAt.getHours())+':'+p(lastSaveAt.getMinutes())+':'+p(lastSaveAt.getSeconds());
+}
+window.addEventListener('beforeunload', function(){ autoSave(); });
 </script>
 <script>
 "use strict";
@@ -349,9 +385,14 @@ function newGame(clubName, origin, diff){
     grayWinBoost:0, seasonRank:0, negMonths:0,
     ventures:{}, ventureNet:0,
     tactic:'均衡攻守', titles:0, cupWins:0, seasonsPlayed:0, totalWins:0,
-    boardTarget:null, achClaimed:{}, opsUsed:{}
+    boardTarget:null, achClaimed:{}, opsUsed:{},
+    youth:[], youthCandidates:[], youthBudget:30, youthPromoted:0, youthSold:0, youthSoldIncome:0, youthLog:[]
   };
   buildTable(); refreshMarket(true); refreshOffers();
+  // 青训开局：梯队里先有 4 名小将，候选名单刷出 3 人
+  for(var yi=0; yi<4; yi++){ G.youth.push(genYouthPlayer('梯队在训')); }
+  refreshYouthCandidates();
+  youthLog('🌱 青训营开营：首批 '+G.youth.length+' 名梯队小将在训。把他们练出来提拔进一线队，比买人便宜得多。');
   G.boardTarget=mkBoardTarget();
   log('🏟️ '+G.club+'正式接手球队：'+o.note+' 现金 '+fmt(G.cash)+'，从中乙开踢。无限生涯，没有强制结局——夺冠不是终点，王朝才刚刚开始。','good');
   render();
@@ -407,6 +448,92 @@ function refreshOffers(){
     G.offers.push({player:p, price:Math.round(p.value*rnd(0.9,1.5)), from:pick(['中超豪门球探','中甲竞争对手','海外低级别联赛','同城死敌'])});
   }
   if(hasVent('agency')) G.offers.forEach(function(o){ o.price=Math.round(o.price*1.2); });
+}
+/* ---------------- 青训体系：数据与生成 ---------------- */
+var YOUTH_TRAITS=['勤奋自律','天赋异禀','大心脏','玻璃人','团队型','独狼型','领袖气质','慢热型'];
+var YOUTH_PLANS=['均衡培养','技术打磨','体能强化','战术意识'];
+function youthCap(){ return 10 + (G? G.fac.academy*3 : 0); }
+function youthLog(msg){ if(!G) return; if(!G.youthLog) G.youthLog=[]; G.youthLog.unshift({m:G.year+'/'+G.mon, t:msg}); if(G.youthLog.length>30) G.youthLog.length=30; }
+function genYouthPlayer(source){
+  var pot= ri(66,86); if(Math.random()<0.12) pot=ri(87,93);
+  var age= ri(14,17);
+  var ab= clamp(pot - ri(20,34) + Math.max(0, age-14)*2, 36, 60);
+  var p={ name:randName(), pos:pick(POS), age:age, ageM:ri(0,11), ab:ab, pot:pot,
+    trait:pick(YOUTH_TRAITS), plan:'均衡培养', months:0, inj:0, source:source||'公开选拔', id:Date.now()+''+ri(1000,9999)+Math.floor(Math.random()*999) };
+  return p;
+}
+function youthSignFee(p){ return Math.round(Math.max(5,(p.pot-58)*2.2 + p.ab*0.4)); }
+function youthSellPrice(p){ return Math.round(Math.max(8, Math.pow(Math.max(p.ab-36,2),2)*0.11 + (p.pot-p.ab)*2.4) * (p.age<=16?1.1:1)); }
+function refreshYouthCandidates(){
+  if(!G) return; G.youthCandidates=[];
+  var n=3;
+  for(var i=0;i<n;i++){ var p=genYouthPlayer(Math.random()<0.5?'校园联赛':'地区选拔'); p.fee=youthSignFee(p); G.youthCandidates.push(p); }
+}
+function youthByName(name){ if(!G||!G.youth) return null; var f=null; G.youth.forEach(function(p){ if(p.name===name) f=p; }); return f; }
+function youthGrowthChance(p){
+  var ch=0.26 + G.fac.academy*0.055 + (G.rel.youth>=60?0.08:0) + (G.coach.spec==='青训提拔'?0.10:0)
+    + (hasVent('school')?0.05:0) + (hasVent('satellite')?0.04:0)
+    + ((G.youthBudget||0)>=60?0.12 : (G.youthBudget||0)>=30?0.07 : (G.youthBudget||0)>=15?0.03 : 0);
+  if(p.trait==='勤奋自律') ch+=0.10;
+  if(p.trait==='天赋异禀') ch+=0.07;
+  if(p.trait==='慢热型') ch-=0.05;
+  if(p.plan==='技术打磨') ch+=0.02;
+  return clamp(ch,0.05,0.85);
+}
+function processYouth(){
+  if(!G.youth) G.youth=[];
+  if(!G.youthCandidates || !G.youthCandidates.length) refreshYouthCandidates();
+  var budget=G.youthBudget||0;
+  if(budget>0){
+    if(G.cash>=budget){ G.cash-=budget; }
+    else { log('🌱 青训投入 '+fmt(budget)+' 本月没扣成：现金不够，成材率按无投入计算。去青训页把投入调低一点。','bad'); budget=0; G.youthBudget=0; }
+  }
+  var grown=[];
+  G.youth.forEach(function(p){
+    p.months++;
+    p.ageM++; if(p.ageM>=12){ p.ageM=0; p.age++; }
+    if(p.inj>0){ p.inj--; return; }
+    if(p.trait==='玻璃人' && Math.random()<0.05){ p.inj=ri(1,2); youthLog('🚑 青训小将 '+p.name+' 受伤休养 '+p.inj+' 个月（特质：玻璃人）。'); return; }
+    if(Math.random()<youthGrowthChance(p) && p.ab<p.pot){
+      p.ab++;
+      if(p.trait==='天赋异禀' && Math.random()<0.06 && p.pot<95){ p.pot++; }
+      if(p.ab>=55 || p.ab>=p.pot-2) grown.push(p.name+' → '+p.ab);
+    }
+  });
+  if(grown.length) youthLog('📈 本月成长：'+grown.join('、')+'。');
+  // 梯队比赛：每 3 个月一场
+  if(G.mon%3===0 && G.youth.length>=5){
+    var avg=G.youth.reduce(function(s,p){ return s+p.ab; },0)/G.youth.length;
+    var win= Math.random() < clamp(0.35 + (avg-48)*0.03 + G.fac.academy*0.03, 0.15, 0.85);
+    if(win){ G.fans+=600; G.rep=clamp(G.rep+1,0,100); youthLog('🏆 梯队比赛获胜！青年队平均能力 '+avg.toFixed(1)+'，小将们士气大涨，声望 +1、球迷 +600。'); var star=G.youth.slice().sort(function(a,b){return b.pot-a.pot;})[0]; if(star && star.ab<star.pot){ star.ab++; youthLog('⭐ 本场最佳 '+star.name+' 能力 +1 → '+star.ab+'（潜力 '+star.pot+'）。'); } }
+    else youthLog('🏟️ 梯队比赛惜败。输球也是学费——青训营等级和投入越高，赢面越大。');
+  }
+  // 超龄处理：19 岁还没提拔，自动评估去留
+  var keep=[];
+  G.youth.forEach(function(p){
+    if(p.age>=19){
+      if(p.ab>=58 && G.squad.length<22){ var np=promoteYouthSilent(p); youthLog('🎓 '+p.name+' 满 19 岁，能力 '+p.ab+' 达标，自动提拔进一线队。'); if(np) G.youthPromoted=(G.youthPromoted||0)+1; }
+      else if(p.ab>=50){ var pr=youthSellPrice(p); G.cash+=pr; G.youthSold=(G.youthSold||0)+1; G.youthSoldIncome=(G.youthSoldIncome||0)+pr; youthLog('💸 '+p.name+' 满 19 岁未获提拔，以 '+fmt(pr)+' 转会去其他球队梯队，青训回了一口血。'); }
+      else youthLog('👋 '+p.name+' 满 19 岁，能力 '+p.ab+' 未达职业门槛，离队另谋出路。青训就是这样，大浪淘沙。');
+    } else keep.push(p);
+  });
+  G.youth=keep;
+  // 每月候选名单小刷新：有空位时补 1 名新人
+  if(G.youthCandidates.length<3) { var nc=genYouthPlayer('球探推荐'); nc.fee=youthSignFee(nc); G.youthCandidates.push(nc); }
+}
+function promoteYouthSilent(p){
+  var wage=Math.round(Math.max(0.4,Math.pow(Math.max(p.ab-40,2),2)*0.016)*10)/10;
+  var val=Math.round(Math.max(5,Math.pow(Math.max(p.ab-38,2),2)*0.16));
+  var np={name:p.name,pos:p.pos,ab:p.ab,age:p.age,wage:wage,value:val,foreign:false,inj:0,cost:0,signNote:'青训提拔',pot:p.pot};
+  G.squad.push(np); return np;
+}
+function youthIntake(){
+  if(!G.youth) G.youth=[];
+  var room=youthCap()-G.youth.length; if(room<=0){ youthLog('🌱 新赛季招生：梯队已满员（'+youthCap()+' 人），本期没有招新。先提拔或出售几名小将腾位置。'); return; }
+  var n=Math.min(room, ri(2,3)); var names=[];
+  for(var i=0;i<n;i++){ var p=genYouthPlayer('年度招生'); G.youth.push(p); names.push(p.name+'（潜力 '+p.pot+'）'); }
+  youthLog('🌱 新赛季青训招生：'+n+' 名小将入营——'+names.join('、')+'。');
+  log('🌱 新赛季青训招生 '+n+' 人入营，梯队现有 '+G.youth.length+'/'+youthCap()+' 人。去「青训体系」页看他们的潜力和培养方案。','good');
 }
 </script>
 <script>
@@ -557,6 +684,7 @@ function seasonSettle(){
   else if(rank>=7 && G.div<2){ G.div++; moved='⬇️ 不幸降级，下赛季去 '+DIVS[G.div].short+'。别灰心，降级不是结局，打回来就是。'; G.rep=clamp(G.rep-8,0,100); G.fans=Math.round(G.fans*0.8); }
   log(msg+(moved?' '+moved:''), rank<=2?'good':(rank>=7?'bad':''));
   buildTable(); refreshMarket(true);
+  youthIntake();
   G.boardTarget=mkBoardTarget();
   log('📋 新赛季董事会目标：「'+G.boardTarget.desc+'」，达成奖金 '+fmt(G.boardTarget.bonus)+'。赛季无限循环，想玩多久玩多久。','');
 }
@@ -591,6 +719,8 @@ function endMonth(auto){
   G.fans=Math.max(800, Math.min(fanCap, Math.round(G.fans*(1 + clamp((wins-losses)*0.02,-0.03,0.025) + 0.004) + (G.rel.fans>=60?300:0))));
   G.rep=clamp(G.rep + (myRank()<=2?2: myRank()>=7?-2:0) + (G.rel.media>=60?1:0), 0, 100);
   growPlayers();
+  processYouth();
+  refreshYouthCandidates();
   G.heat=clamp(G.heat-Math.max(3, Math.round(G.heat*0.12)),0,100); // 热度按比例消退：偶尔操作能凉下来，长期滥用必爆
   Object.keys(G.rel).forEach(function(k){ G.rel[k]=clamp(G.rel[k]-2,0,100); });
   if(G.grayWinBoost>0) G.grayWinBoost--;
@@ -799,6 +929,51 @@ function trainPlayer(name){
   }
   render();
 }
+/* ---- 青训操作 ---- */
+function setYouthBudget(amt){ G.youthBudget=amt; log('🌱 青训月度投入调整为 '+fmt(amt)+'/月。投入越高，小将成长越快；现金紧张时记得调低。',''); toast('青训投入：'+fmt(amt)+'/月'); render(); }
+function signYouth(i){
+  var p=G.youthCandidates[i]; if(!p) return;
+  if(G.youth.length>=youthCap()){ toast('梯队满员了（'+youthCap()+' 人），先提拔或放走几名小将'); return; }
+  var fee=p.fee||youthSignFee(p);
+  if(G.cash<fee){ toast('签约费不够，还差 '+fmt(fee-G.cash)); return; }
+  G.cash-=fee; G.youthCandidates.splice(i,1);
+  G.youth.push({name:p.name,pos:p.pos,age:p.age,ageM:p.ageM||0,ab:p.ab,pot:p.pot,trait:p.trait,plan:'均衡培养',months:0,inj:0,source:p.source,id:p.id});
+  youthLog('✍️ 签下青训小将 '+p.name+'（'+p.pos+'，'+p.age+' 岁，潜力 '+p.pot+'），培养费 '+fmt(fee)+'。来源：'+p.source+'。');
+  log('🌱 青训签约：'+p.name+' 入营（潜力 '+p.pot+'），培养费 '+fmt(fee)+'。','good');
+  toast('签下青训小将 '+p.name); render();
+}
+function cycleYouthPlan(name){
+  var p=youthByName(name); if(!p) return;
+  var idx=YOUTH_PLANS.indexOf(p.plan); p.plan=YOUTH_PLANS[(idx+1)%YOUTH_PLANS.length];
+  toast(p.name+' 培养方案：'+p.plan); render();
+}
+function promoteYouth(name){
+  var p=youthByName(name); if(!p) return;
+  if(p.age<16){ toast(p.name+' 才 '+p.age+' 岁，16 岁才能签职业合同提拔'); return; }
+  if(p.ab<50){ toast(p.name+' 能力 '+p.ab+' 还不够一线队门槛（≥50），再练练'); return; }
+  if(G.squad.length>=22){ toast('一线队满员（22 人），先卖掉或解约一名球员'); return; }
+  G.youth=G.youth.filter(function(q){ return q!==p; });
+  var np=promoteYouthSilent(p);
+  G.youthPromoted=(G.youthPromoted||0)+1;
+  youthLog('🎓 '+p.name+' 提拔进一线队！能力 '+np.ab+'、潜力 '+np.pot+'，签约价 0——自己练出来的，纯赚。');
+  log('🎓 青训提拔：'+p.name+'（'+p.pos+'，能力 '+p.ab+'，潜力 '+p.pot+'）升入一线队，签约价 0。累计提拔 '+(G.youthPromoted)+' 人。','good');
+  toast(p.name+' 提拔进一线队！'); render();
+}
+function sellYouth(name){
+  var p=youthByName(name); if(!p) return;
+  var pr=youthSellPrice(p);
+  G.youth=G.youth.filter(function(q){ return q!==p; });
+  G.cash+=pr; G.youthSold=(G.youthSold||0)+1; G.youthSoldIncome=(G.youthSoldIncome||0)+pr;
+  youthLog('💸 青训小将 '+p.name+' 以 '+fmt(pr)+' 转出（能力 '+p.ab+'、潜力 '+p.pot+'）。青训出售累计收入 '+fmt(G.youthSoldIncome)+'。');
+  log('💸 青训出售：'+p.name+' 转出 +'+fmt(pr)+'。练出来卖掉，也是小球队的活法。','');
+  toast('出售 '+p.name+' +'+fmt(pr)); render();
+}
+function releaseYouth(name){
+  var p=youthByName(name); if(!p) return;
+  G.youth=G.youth.filter(function(q){ return q!==p; });
+  youthLog('👋 '+p.name+' 离开青训营。位置腾出来了，候选名单里再挑好的。');
+  toast(p.name+' 已离队'); render();
+}
 function dynastyGrade(){
   var v=valuation();
   var score=(G.titles||0)*30 + (G.cupWins||0)*6 + groupStage()*12 + Math.min(30, v/800) + G.rep*0.25 + Math.min(10,(G.seasonsPlayed||0)*1.5) + Math.min(8,(G.totalWins||0)/25);
@@ -818,7 +993,10 @@ var ACHS=[
   {id:'vent5', nm:'多元帝国', ds:'旗下跨界板块达到 5 个', rw:150, chk:function(){ return ventCount()>=5; }},
   {id:'stage4', nm:'跨国帝国', ds:'集团升格为「跨国体育帝国」', rw:200, chk:function(){ return groupStage()>=4; }},
   {id:'rep85', nm:'声名远播', ds:'声望达到 85', rw:100, chk:function(){ return G.rep>=85; }},
-  {id:'wins100', nm:'百胜俱乐部', ds:'累计赢下 100 场比赛', rw:150, chk:function(){ return (G.totalWins||0)>=100; }}
+  {id:'wins100', nm:'百胜俱乐部', ds:'累计赢下 100 场比赛', rw:150, chk:function(){ return (G.totalWins||0)>=100; }},
+  {id:'youth1', nm:'自家孩子', ds:'提拔 1 名青训小将进一线队', rw:60, chk:function(){ return (G.youthPromoted||0)>=1; }},
+  {id:'youth3', nm:'青训出品', ds:'累计提拔 3 名青训小将进一线队', rw:120, chk:function(){ return (G.youthPromoted||0)>=3; }},
+  {id:'youthsell', nm:'苗子变现', ds:'青训出售累计收入达到 200万', rw:80, chk:function(){ return (G.youthSoldIncome||0)>=200; }}
 ];
 function claimAch(id){
   var a=null; ACHS.forEach(function(x){ if(x.id===id) a=x; }); if(!a) return;
@@ -869,6 +1047,15 @@ function autoStep(){
     if(p.ab>=weakest+4 && G.cash>p.price+300 && G.squad.length<20){ buyPlayerSilent(i); break; }
   }
   if(G.rel.sponsor<40 && G.cash>200) relActSilent('sponsor');
+  // 青训托管：达标小将自动提拔，梯队有空位且现金宽裕时自动签潜力最高的候选
+  if(G.youth && G.squad.length<20){
+    var ready=G.youth.filter(function(p){ return p.age>=16 && p.ab>=52; }).sort(function(a,b){ return b.ab-a.ab; })[0];
+    if(ready){ G.youth=G.youth.filter(function(q){ return q!==ready; }); promoteYouthSilent(ready); G.youthPromoted=(G.youthPromoted||0)+1; youthLog('🎓 自动经营：'+ready.name+' 达标，提拔进一线队。'); log('🤖 自动经营：青训小将 '+ready.name+'（能力 '+ready.ab+'）提拔进一线队。',''); }
+  }
+  if(G.youth && G.youthCandidates && G.youth.length<youthCap()-2 && G.cash>400){
+    var cand=G.youthCandidates.slice().sort(function(a,b){ return b.pot-a.pot; })[0];
+    if(cand && cand.pot>=78){ var cfee=cand.fee||youthSignFee(cand); if(G.cash>cfee+300){ G.cash-=cfee; G.youthCandidates.splice(G.youthCandidates.indexOf(cand),1); G.youth.push({name:cand.name,pos:cand.pos,age:cand.age,ageM:cand.ageM||0,ab:cand.ab,pot:cand.pot,trait:cand.trait,plan:'均衡培养',months:0,inj:0,source:cand.source,id:cand.id}); log('🤖 自动经营：签下青训苗子 '+cand.name+'（潜力 '+cand.pot+'），培养费 '+fmt(cfee)+'。',''); } }
+  }
   if(ventCount()<9){
     for(var vi=0; vi<VENTURES.length; vi++){
       var vd=VENTURES[vi];
@@ -886,16 +1073,17 @@ function stopAuto(){ autoOn=false; if(autoTimer){ clearInterval(autoTimer); auto
 function toggleAuto(){ if(autoOn){ stopAuto(); render(); } else startAuto(); }
 function endThree(){ if(!G||G.ended) return; for(var i=0;i<3 && !G.ended;i++) endMonth(true); render(); toast('已连推三个月'); }
 function endYear(){ if(!G||G.ended) return; for(var i=0;i<12 && !G.ended;i++) endMonth(true); render(); toast('已连推一整年（12 个月）· 当前第 '+G.month+' 个月，赛季无限循环，想玩多久玩多久'); }
-function restart(){ stopAuto(); G=null; PAGE='home'; showStart(); render(); }
+function restart(){ stopAuto(); clearAutoSave(); G=null; PAGE='home'; showStart(); render(); }
 </script>
 <script>
 "use strict";
 /* ---------------- 渲染 ---------------- */
-var NAV=[['home','经营','📋'],['market','转会市场','🔁'],['ops','运营活动','🎪'],['squad','阵容教练','👕'],['rel','人脉关系','🤝'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['empire','集团扩张','🏢'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
+var NAV=[['home','经营','📋'],['market','转会市场','🔁'],['ops','运营活动','🎪'],['squad','阵容教练','👕'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['empire','集团扩张','🏢'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
 function navBtns(cls){
   return NAV.map(function(n){
     var bdg='';
     if(n[0]==='market' && G && G.market.length) bdg='<span class="bdg">'+G.market.length+'</span>';
+    if(n[0]==='youth' && G && G.youth){ var pr=G.youth.filter(function(p){ return p.age>=16 && p.ab>=50; }).length; if(pr) bdg='<span class="bdg">可提拔 '+pr+'</span>'; }
     if(n[0]==='gray' && G && G.heat>=60) bdg='<span class="bdg">热度'+G.heat+'</span>';
     return '<button class="'+(PAGE===n[0]?'on':'')+'" onclick="go(\''+n[0]+'\')"><span class="ic">'+n[2]+'</span>'+n[1]+bdg+'</button>';
   }).join('');
@@ -911,6 +1099,13 @@ function render(){
   if(G.totalWins===undefined) G.totalWins=0;
   if(G.seasonsPlayed===undefined) G.seasonsPlayed=Math.floor((G.month-1)/12);
   if(!G.boardTarget) G.boardTarget=mkBoardTarget();
+  if(!G.youth) G.youth=[];
+  if(!G.youthCandidates) G.youthCandidates=[];
+  if(G.youthBudget===undefined) G.youthBudget=30;
+  if(G.youthPromoted===undefined) G.youthPromoted=0;
+  if(G.youthSold===undefined) G.youthSold=0;
+  if(G.youthSoldIncome===undefined) G.youthSoldIncome=0;
+  if(!G.youthLog) G.youthLog=[];
   var d=DIVS[G.div];
   var side=''
   +'<div><span class="brand-tag">足球狂魔</span></div>'
@@ -925,6 +1120,7 @@ function render(){
   +'<div class="row"><span>球迷</span><b class="num">'+fmtFans(G.fans)+'</b></div>'
   +'<div class="row"><span>纪检热度</span><b style="color:'+heatColor(G.heat)+'">'+G.heat+' / 100</b></div>'
   +'<div class="row"><span>钻石</span><b class="num">💎 '+G.diamonds+'</b></div>'
+  +'<div class="row"><span>自动存档</span><b style="color:#9fe8bb;">💾 '+saveTimeText()+'</b></div>'
   +'</div>'
   +'<div class="side-btns">'
   +'<button class="btn-end" onclick="endMonth(false)" '+(G.ended?'disabled style="opacity:.5"':'')+'>结束本月 →</button>'
@@ -933,7 +1129,7 @@ function render(){
   +'<button class="btn-ghost" onclick="restart()">重新开局</button>'
   +'<div class="credit">创作人：邓元元</div>'
   +'</div>';
-  var top='<div class="topbar"><div class="r1"><span class="brand-tag">足球狂魔</span><span class="cn">'+esc(G.club)+'</span><span class="mm"><b class="num">'+G.mon+'月</b> '+G.year+' · '+d.short+'第'+myRank()+'</span></div>'
+  var top='<div class="topbar"><div class="r1"><span class="brand-tag">足球狂魔</span><span class="cn">'+esc(G.club)+'</span><span class="mm"><b class="num">'+G.mon+'月</b> '+G.year+' · '+d.short+'第'+myRank()+' · 💾 '+saveTimeText()+'</span></div>'
   +'<nav>'+NAV.map(function(n){ return '<button class="'+(PAGE===n[0]?'on':'')+'" onclick="go(\''+n[0]+'\')">'+n[2]+' '+n[1]+'</button>'; }).join('')+'</nav>'
   +'<div class="r3"><button class="btn-end" onclick="endMonth(false)" '+(G.ended?'disabled style="opacity:.5"':'')+'>结束本月 →</button><button class="btn-ghost" onclick="endThree()">连推三月</button></div></div>';
   var body='';
@@ -942,6 +1138,7 @@ function render(){
   else if(PAGE==='market') body+=pageMarket();
   else if(PAGE==='ops') body+=pageOps();
   else if(PAGE==='squad') body+=pageSquad();
+  else if(PAGE==='youth') body+=pageYouth();
   else if(PAGE==='rel') body+=pageRel();
   else if(PAGE==='gray') body+=pageGray();
   else if(PAGE==='club') body+=pageClub();
@@ -949,6 +1146,7 @@ function render(){
   else if(PAGE==='pay') body+=pagePay();
   else if(PAGE==='auto') body+=pageAuto();
   $app.innerHTML='<div class="layout"><aside>'+side+'</aside><div style="flex:1;min-width:0;">'+top+'<main>'+body+'</main></div></div>';
+  autoSave();
 }
 function endingBanner(){
   var e=G.ending;
@@ -1048,6 +1246,7 @@ function pageHome(){
   var warn='';
   if(G.heat>=60) warn+='<div class="warn-strip">🚨 纪检热度已达 '+G.heat+'：随时可能被调查，罚款、扣分甚至取消资格。去灰色账本收手，或者到充值中心找危机公关。</div>';
   if(G.cash<300) warn+='<div class="warn-strip">💸 现金只剩 '+fmt(G.cash)+'：工资快发不出来了。可以卖球员、去俱乐部页借银行授信，或到转会市场回血。</div>';
+  if(G.youth){ var prY=G.youth.filter(function(p){ return p.age>=16 && p.ab>=50; }); if(prY.length) warn+='<div class="ok-strip">🌱 青训提醒：'+prY.length+' 名小将已达提拔门槛（'+prY.map(function(p){return p.name+' '+p.ab;}).join('、')+'），去「青训体系」页把他们提拔进一线队，签约价 0。梯队现有 '+G.youth.length+' 人。</div>'; }
   var goal='';
   if(G.div===2) goal='当前目标：赛季结束冲进前 2，升上中甲。';
   else if(G.div===1) goal='当前目标：赛季结束冲进前 2，升上中超。';
@@ -1122,6 +1321,46 @@ function pageSquad(){
   +'<div class="tbl-wrap"><table><tr><th>球员</th><th>位置</th><th>年龄</th><th>能力</th><th>潜力</th><th>月薪</th><th>当前身价</th><th>签约价</th><th>操作</th></tr>'+rows+'</table></div><p class="mini" style="margin-top:8px;">「签约价」= 当初签下他花的钱（免签/青训会注明来源）；卖出时拿报价减签约价就是这笔交易的盈亏。「特训」每月每人限 1 次：30万，有概率能力 +1（训练基地等级和教练风格会影响成功率）。</p></div>'
   +'<div class="grid2"><div class="card"><h3>主教练市场</h3>'+coachCands+'</div><div class="card"><h3>教练组与职员</h3>'+staffHTML+'</div></div>';
 }
+function pageYouth(){
+  var cap=youthCap();
+  var budgets=[0,15,30,60];
+  var budgetHTML=budgets.map(function(b){
+    var on=(G.youthBudget||0)===b;
+    return '<button class="btn sm '+(on?'pri':'')+'" onclick="setYouthBudget('+b+')">'+(b===0?'不投入':fmt(b)+'/月')+(on?' · 当前':'')+'</button>';
+  }).join('');
+  var cands=(G.youthCandidates||[]).map(function(p,i){
+    var fee=p.fee||youthSignFee(p);
+    return '<div class="item"><div class="grow"><div class="nm">'+esc(p.name)+' '+posPill(p.pos)+' <span class="pill">'+p.trait+'</span></div><div class="meta">'+p.age+' 岁 · 当前能力 '+p.ab+' · 潜力 '+p.pot+' · 来源：'+p.source+' · 培养费 '+fmt(fee)+'</div></div><button class="btn pri sm" onclick="signYouth('+i+')">签入梯队</button></div>';
+  }).join('') || '<p class="desc">本月候选名单已空，下个月刷新——球探每月都会带新苗子来试训。</p>';
+  var sorted=(G.youth||[]).slice().sort(function(a,b){ return (b.pot-b.ab)-(a.pot-a.ab) || b.pot-a.pot; });
+  var rows=sorted.map(function(p){
+    var pct= p.pot>40? Math.round(clamp((p.ab-35)/(p.pot-35),0,1)*100):0;
+    var ready= p.age>=16 && p.ab>=50;
+    var sellPr=youthSellPrice(p);
+    return '<div class="item" style="align-items:flex-start;"><div class="grow"><div class="nm">'+esc(p.name)+' '+posPill(p.pos)+' <span class="pill">'+p.trait+'</span>'+(p.inj>0?' <span class="pill dn">伤停'+p.inj+'月</span>':'')+(ready?' <span class="pill up">可提拔</span>':'')+'</div>'
+    +'<div class="meta">'+p.age+' 岁 · 在营 '+p.months+' 个月 · 来源：'+p.source+' · 本月成长概率约 '+Math.round(youthGrowthChance(p)*100)+'%</div>'
+    +'<div class="ab-wrap" style="margin-top:5px;max-width:340px;"><span class="mini">能力 '+p.ab+'</span><div class="bar g"><i style="width:'+pct+'%"></i></div><span class="mini">潜力 '+p.pot+'</span></div>'
+    +'<div class="meta" style="margin-top:4px;">培养方案：<b>'+p.plan+'</b>（点「换方案」轮换：均衡培养 / 技术打磨 / 体能强化 / 战术意识）· 现在转出可卖 '+fmt(sellPr)+(ready?'':' · 提拔门槛：16 岁且能力 ≥50（当前 '+(p.age<16? '差 '+(16-p.age)+' 岁' : '能力差 '+(50-p.ab)+' 点')+'）')+'</div></div>'
+    +'<div style="display:flex;flex-direction:column;gap:6px;flex:0 0 auto;"><button class="btn sm" onclick="cycleYouthPlan(\''+esc(p.name)+'\')">换方案</button>'
+    +'<button class="btn '+(ready?'grn':'')+' sm" onclick="promoteYouth(\''+esc(p.name)+'\')">提拔一线队</button>'
+    +'<button class="btn sm" onclick="sellYouth(\''+esc(p.name)+'\')">出售 '+fmt(sellPr)+'</button>'
+    +'<button class="btn sm" onclick="releaseYouth(\''+esc(p.name)+'\')">放走</button></div></div>';
+  }).join('') || '<p class="desc">梯队暂时没人。先从上面的候选名单签几个苗子，或者等新赛季招生。</p>';
+  var ylog=(G.youthLog||[]).map(function(l){ return '<div class="it"><span class="dt num">'+l.m+'</span><span>'+l.t+'</span></div>'; }).join('') || '<p class="desc">暂无青训动态。</p>';
+  return '<div class="kpis">'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--green)"></span>梯队在训</div><div class="vl num">'+G.youth.length+' <span style="font-size:14px;color:var(--ink3)">/ '+cap+' 人</span></div><div class="sub">容量 = 10 + 青训营等级 ×3</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--blue)"></span>青训营等级</div><div class="vl num">'+G.fac.academy+' 级</div><div class="sub">在「俱乐部」页升级 · 等级越高成长越快</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--orange)"></span>累计提拔</div><div class="vl num">'+(G.youthPromoted||0)+' 人</div><div class="sub">提拔进一线队签约价 0，纯赚</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--gold)"></span>青训出售收入</div><div class="vl num">'+fmt(G.youthSoldIncome||0)+'</div><div class="sub">已转出 '+(G.youthSold||0)+' 名小将</div></div>'
+  +'</div>'
+  +'<div class="card"><h3><span class="no">体系</span>青训体系<span class="hint">自己练人，比买人便宜得多</span></h3>'
+  +'<p class="desc">完整链条：<b>候选签约 → 梯队培养 → 提拔一线队 / 出售变现</b>。小将每月按成长概率涨能力（涨到潜力为止），概率由青训营等级、月度投入、主教练风格（青训提拔型教练 +10%）、青训总监林育才关系（≥60 加成）、连锁足球学校和国内卫星球队板块共同决定。每 3 个月打一场梯队比赛，赢球涨声望；每个新赛季自动招生 2–3 人；满 19 岁自动评估去留：达标提拔、不达标转出或离队。16 岁且能力 ≥50 即可手动提拔，提拔后签约价记为 0，卖出全是利润。</p>'
+  +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span class="mini">月度青训投入（每月结算时自动扣除）：</span>'+budgetHTML+'</div>'
+  +'<p class="mini" style="margin-top:8px;">当前关系加成：林育才（青训总监）关系 '+G.rel.youth+(G.rel.youth>=60?' · 已解锁成材率加成':' · 到 60 解锁成材率加成，去人脉页打点')+' · 主教练 '+esc(G.coach.name)+'（'+G.coach.spec+(G.coach.spec==='青训提拔'?' · 成长加成中':'')+'）</p></div>'
+  +'<div class="card"><h3><span class="no">招生</span>候选苗子<span class="hint">每月刷新 · 现金 '+fmt(G.cash)+' · 梯队 '+G.youth.length+'/'+cap+'</span></h3>'+cands+'</div>'
+  +'<div class="card"><h3><span class="no">梯队</span>在训小将<span class="hint">按成长空间排序</span></h3>'+rows+'</div>'
+  +'<div class="card"><h3><span class="no">战报</span>青训动态</h3><div class="log">'+ylog+'</div></div>';
+}
 function pageRel(){
   var cards=RELS.map(function(r){
     var v=G.rel[r.id]; var used=G.relUsed[r.id];
@@ -1183,13 +1422,19 @@ function pageClub(){
   +'<div class="card"><h3>👑 王朝评级（实时）</h3><p class="desc">没有强制结局，评级随经营一直涨：夺冠次数、杯赛、集团阶段、估值、声望、资历和胜场都算分。</p><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;"><div class="end-grade">'+dynastyGrade().grade+'</div><div><b>'+dynastyGrade().title+'</b><div class="mini" style="margin-top:3px;">王朝积分 '+dynastyGrade().score+' · 中超冠军 '+(G.titles||0)+' 次 · 足协杯关键战 '+(G.cupWins||0)+' 胜 · 已运营 '+(G.seasonsPlayed||0)+' 个赛季 / '+G.month+' 个月 · 累计胜场 '+(G.totalWins||0)+'</div></div></div></div>'
   +'<div class="card"><h3>🏆 长期目标</h3>'+goalHTML+'</div>'
   +'<div class="card"><h3>🏅 成就墙<span class="hint">达成后点领取，钻石直接到账</span></h3>'+achHTML+'</div>'
-  +'<div class="card"><h3>💾 存档（导出 / 导入）</h3><p class="desc">进度只存在本次打开里。想留档就把下面这串存档码复制走，下次开局后粘贴回来。</p><textarea class="code" id="save-code" placeholder="点「导出存档」生成，或把存档码粘贴到这里再点「导入存档」"></textarea><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button class="btn sm" onclick="exportSave()">导出存档</button><button class="btn sm" onclick="importSave()">导入存档</button></div></div>'
+  +'<div class="card"><h3>💾 自动存档</h3><p class="desc">游戏已开启<b>自动存档</b>：进入游戏自动读取上次进度，每步操作（结束月份、买卖球员、青训签约提拔、充值等）都会自动保存到本机，退出重开接着玩，不用从头开始。最近一次存档：<b>'+saveTimeText()+'</b>（状态也显示在侧边栏）。自动存档只存在这台设备的这个浏览器里；换设备或想留备份，再用下面的存档码导出一份。</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"><button class="btn pri sm" onclick="autoSave();render();toast(\'已存档 · \'+saveTimeText())">立即存档</button><button class="btn sm" onclick="confirmClearSave(this)">清除存档 · 重新开局</button></div><textarea class="code" id="save-code" placeholder="备份用：点「导出存档码」生成，或把存档码粘贴到这里再点「导入存档码」"></textarea><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button class="btn sm" onclick="exportSave()">导出存档码</button><button class="btn sm" onclick="importSave()">导入存档码</button></div></div>'
   +'</div></div>';
+}
+function confirmClearSave(btn){
+  if(window._clearArm){ window._clearArm=false; restart(); return; }
+  window._clearArm=true; btn.textContent='再点一次确认清除（当前进度会被删掉）';
+  toast('再点一次「清除存档」确认，当前进度会被删掉');
+  setTimeout(function(){ window._clearArm=false; },4000);
 }
 function exportSave(){ var el=document.getElementById('save-code'); el.value=btoa(unescape(encodeURIComponent(JSON.stringify(G)))); el.select(); toast('存档码已生成，复制保存好'); }
 function importSave(){
   var el=document.getElementById('save-code');
-  try{ var obj=JSON.parse(decodeURIComponent(escape(atob(el.value.trim())))); if(!obj.club) throw 0; stopAuto(); G=obj; PAGE='home'; log('💾 存档导入成功，回到第 '+G.month+' 个月。','good'); render(); toast('导入成功'); }
+  try{ var obj=JSON.parse(decodeURIComponent(escape(atob(el.value.trim())))); if(!obj.club) throw 0; stopAuto(); G=obj; PAGE='home'; log('💾 存档导入成功，回到第 '+G.month+' 个月。此后会自动存档，退出重开接着玩。','good'); render(); autoSave(); toast('导入成功，已自动存档'); }
   catch(e){ toast('存档码不对，导入失败'); }
 }
 function pagePay(){
@@ -1216,7 +1461,7 @@ function pagePay(){
 }
 function pageAuto(){
   return '<div class="card"><h3><span class="no">自动</span>全自动模拟</h3>'
-  +'<p class="desc">托管经营：自动补强阵容（买比最弱首发强 4 点以上的球员）、自动维护赞助商关系、现金充裕时自动扩张集团板块，逐月无限推进，想停随时停；真出了事（破产/被查）会停下来等你处理，也可以注资续命接着玩。灰色操作不会自动碰。</p>'
+  +'<p class="desc">托管经营：自动补强阵容（买比最弱首发强 4 点以上的球员）、自动维护赞助商关系、现金充裕时自动扩张集团板块，还会自动经营青训（达标小将提拔进一线队、潜力 ≥78 的候选苗子自动签入梯队），逐月无限推进，想停随时停；每一步都会自动存档，关掉重开接着玩。真出了事（破产/被查）会停下来等你处理，也可以注资续命接着玩。灰色操作不会自动碰。</p>'
   +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;"><button class="btn '+(autoOn?'dark':'pri')+'" onclick="toggleAuto()">'+(autoOn?'⏸ 停止自动模拟':'▶ 开始自动模拟')+'</button>'
   +'<span class="mini">当前：第 '+G.month+' 个月 · '+DIVS[G.div].short+'第 '+myRank()+' 名 · 现金 '+fmt(G.cash)+' · 估值 '+fmt(valuation())+' · 冠军×'+(G.titles||0)+'</span></div>'
   +'<div class="log" style="margin-top:12px;">'+G.log.slice(0,14).map(function(l){ return '<div class="it '+l.cls+'"><span class="dt num">'+l.m+'</span><span>'+l.t+'</span></div>'; }).join('')+'</div></div>';
@@ -1250,7 +1495,7 @@ function showStart(keep){
   +'</div><label class="fl">难度</label><div class="opt-grid">'
   + diffs.map(function(o){ return '<button class="opt '+(selDiff===o.id?'on':'')+'" onclick="selOpt(\'d\',\''+o.id+'\')"><b>'+o.t+'</b><span>'+o.d+'</span></button>'; }).join('')
   +'</div>'
-  +'<p class="mini" style="margin-top:12px;">玩法：每月踢 3 场联赛、结算门票/赞助/转播与工资；转会补强、人脉打点、设施升级、银行授信都能用；赛季前 2 升级、后 2 降级。踢出名堂后还能像创业一样搞集团扩张：从草根俱乐部一步步升格到跨国体育帝国——办电竞战队、组职业篮球队、收购国内卫星球队和海外俱乐部、创自有运动品牌、开足球学校和经纪公司，板块收入每月结算、计入集团估值。没有强制结局：赛季无限循环，夺冠次数、足协杯、成就和王朝评级一直累计，破产/被查也能注资续命接着玩。新玩法：五套战术体系（全攻全守/防守反击/高压逼抢/青春风暴）、董事会赛季目标、每月运营活动（球迷开放日/商业友谊赛/周边大促/青训选拔）、球员特训、成就墙。转会卖人时会标出每名球员当初的签约价和这笔交易的盈亏。灰色账本能救命，也能送你进去。</p>'
+  +'<p class="mini" style="margin-top:12px;">玩法：每月踢 3 场联赛、结算门票/赞助/转播与工资；转会补强、人脉打点、设施升级、银行授信都能用；赛季前 2 升级、后 2 降级。踢出名堂后还能像创业一样搞集团扩张：从草根俱乐部一步步升格到跨国体育帝国——办电竞战队、组职业篮球队、收购国内卫星球队和海外俱乐部、创自有运动品牌、开足球学校和经纪公司，板块收入每月结算、计入集团估值。没有强制结局：赛季无限循环，夺冠次数、足协杯、成就和王朝评级一直累计，破产/被查也能注资续命接着玩。新玩法：五套战术体系（全攻全守/防守反击/高压逼抢/青春风暴）、董事会赛季目标、每月运营活动（球迷开放日/商业友谊赛/周边大促/青训选拔）、球员特训、成就墙。转会卖人时会标出每名球员当初的签约价和这笔交易的盈亏。灰色账本能救命，也能送你进去。<b>自动存档已开启</b>：进入游戏自动读取上次进度，每步操作自动保存到本机，退出重开接着玩，不用重新开始。新开局会覆盖旧存档。还有完整的<b>青训体系</b>：梯队招生、候选苗子签约、四种培养方案、每月成长、梯队比赛，练达标了提拔进一线队（签约价 0），练多了还能出售变现。</p>'
   +'</div>'
   +'<div class="foot"><button class="btn-start" onclick="beginGame()">开始经营</button></div>'
   +'</div></div>';
@@ -1279,9 +1524,15 @@ function resolveEvent(i){
   if(G.cash<0 && G.negMonths>=1){ /* 破产判定在下月结算 */ }
   render();
 }
-/* ---------------- 启动 ---------------- */
-render();
-showStart(false);
+/* ---------------- 启动：优先自动读档 ---------------- */
+if(loadAutoSave()){
+  PAGE='home';
+  render();
+  toast('💾 已自动读取上次存档：'+G.club+' · 第 '+G.month+' 个月，接着玩！');
+} else {
+  render();
+  showStart(false);
+}
 </script>
 </body>
 </html>
