@@ -1706,7 +1706,7 @@ function pageAuto(){
    福利=福利中心弹窗（签到/成就/VIP） 签到=每月签到领钻 活动=运营活动页 商城=充值中心
    任务=任务弹窗（董事会目标+长期目标） 排行=积分榜弹窗
    球员招募=转会市场 战术中心=运营页战术 我的球队=阵容页 开始比赛=结束本月踢比赛
-   底部五栏：首页=大厅 球队=阵容教练 阵容=战术（运营页） 生涯=俱乐部（王朝/成就） 联盟=联盟联赛页 */
+   底部五栏：首页=大厅 球队=阵容教练 阵容=阵容页（球队强度/一线队名单/主教练） 生涯=俱乐部（王朝/成就） 联盟=联盟联赛页 */
 function closeModal(){ $modal.innerHTML=''; }
 function managerLevel(){ return Math.min(99, 1+Math.floor((G.month-1)/3)); }
 function managerLevelPct(){ return Math.round(((G.month-1)%3)/3*100); }
@@ -1828,7 +1828,7 @@ function lobbyHTML(){
   +'<nav class="lobby-tabs">'
   +'<button class="ltab on" onclick="go(\'home\')"><span class="ti">🏠</span>首页</button>'
   +'<button class="ltab" onclick="go(\'squad\')"><span class="ti">👕</span>球队</button>'
-  +'<button class="ltab" onclick="go(\'ops\')"><span class="ti">🧭</span>阵容</button>'
+  +'<button class="ltab" onclick="go(\'squad\')"><span class="ti">🧭</span>阵容</button>'
   +'<button class="ltab" onclick="go(\'club\')"><span class="ti">🏆</span>生涯</button>'
   +'<button class="ltab" onclick="go(\'league\')"><span class="ti">🛡️</span>联盟</button>'
   +'</nav></section>';
