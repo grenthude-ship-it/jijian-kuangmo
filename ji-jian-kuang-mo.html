@@ -155,6 +155,11 @@ input.txt{width:100%;padding:10px 12px;border:1px solid #aaa;font-size:16px;font
 .polrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed #e2ddd0;font-size:13px;flex-wrap:wrap}
 .polrow select{padding:6px 8px;border:1px solid #bbb;background:#fff}
 .report{font-size:12.5px;line-height:1.9;background:#fbf6e9;border-left:3px solid var(--gold);padding:9px 12px}
+/* auto sim */
+.ipo-row{display:flex;justify-content:space-between;font-size:12.5px;margin-top:9px;gap:8px;flex-wrap:wrap}
+.ipo-row b{font-weight:900}
+#autoCard{border-color:var(--teal)}
+#autoLogBox{background:#f4f8f7;border:1px solid var(--line);padding:8px 11px}
 @media(max-width:860px){
   .wrap{flex-direction:column}
   .side{width:100%;flex:none;height:auto;position:static;padding:12px}
@@ -208,6 +213,9 @@ input.txt{width:100%;padding:10px 12px;border:1px solid #aaa;font-size:16px;font
     <div class="endmonth">
       <button class="btn primary block" id="btnEndMonth" style="min-height:46px;font-size:15px">结束本月 →</button>
       <button class="btn block" id="btnEnd3" style="margin-top:7px;background:transparent;color:#c8d3dc;border-color:#466176">连推三个月</button>
+      <button class="btn block" id="btnAutoSide" style="margin-top:7px;background:var(--teal);border-color:var(--teal);color:#fff;min-height:44px;font-size:14px">🤖 全自动模拟 · 直到上市</button>
+      <button class="btn block" id="btnAutoStopSide" style="margin-top:7px;background:transparent;color:#ffb38f;border-color:#c74312;display:none;min-height:44px">⏸ 停止自动模拟</button>
+      <div class="mini" id="autoSideStatus" style="color:#8fa2b1;margin-top:6px;line-height:1.65">自动模拟：董事长不用动手，系统自动投标、处关系、谈判、控热度，一路模拟到敲钟上市（或撑不住为止）。</div>
       <button class="btn block" id="btnRestart" style="margin-top:7px;background:transparent;color:#8fa2b1;border-color:#314657">重新开局</button>
     </div>
   </aside>
@@ -229,6 +237,29 @@ input.txt{width:100%;padding:10px 12px;border:1px solid #aaa;font-size:16px;font
 
     <!-- OPS VIEW -->
     <section class="view on" id="view-ops">
+      <div class="card" id="autoCard">
+        <h3>🤖 全自动模拟 · 上市直达车</h3>
+        <div class="sub">点一次，剩下的全交给系统：自动聘总经理托管、自动投标抢标、自动维护政商关系、自动谈判、自动兑现回扣、自动借款/还款、自动升资质拿地、自动控热度补声誉；突发事件、巡视、现金流告警弹窗都会自动按稳妥选项处理，你不用守着点。36 个月没冲上去<b>不结算</b>，自动进入「上市冲刺期」继续模拟，直到敲钟上市；只有破产、被查实或冲刺满 120 个月才会停。随时可点停止接管经营。</div>
+        <div class="ipo-row"><span>净资产（上市需 ≥ 8,000万）</span><b id="ipoNetTxt">—</b></div>
+        <div class="relbar"><i id="ipoNetBar" style="width:0%;background:var(--orange)"></i></div>
+        <div class="ipo-row"><span>企业声誉（上市需 ≥ 60）</span><b id="ipoRepTxt">—</b></div>
+        <div class="relbar"><i id="ipoRepBar" style="width:0%;background:var(--teal)"></i></div>
+        <div class="ipo-row"><span>监察热度（上市需 &lt; 60）</span><b id="ipoHeatTxt">—</b></div>
+        <div class="relbar"><i id="ipoHeatBar" style="width:0%;background:var(--heat)"></i></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;align-items:center">
+          <button class="btn teal" id="btnAutoStart" style="min-height:44px;font-size:14.5px">▶ 开始自动模拟 · 一直模拟到上市</button>
+          <button class="btn" id="btnAutoStop" style="display:none;min-height:44px">⏸ 停止自动模拟</button>
+          <span class="mini">速度</span>
+          <div class="seg" id="autoSpeedSeg">
+            <button class="btn sm" data-speed="1500">慢速</button>
+            <button class="btn sm on" data-speed="850">正常</button>
+            <button class="btn sm" data-speed="400">快速</button>
+            <button class="btn sm" data-speed="150">极速</button>
+          </div>
+          <span class="mini" id="autoStatus">尚未启动</span>
+        </div>
+        <div class="cmdlog" id="autoLogBox" style="margin-top:10px;max-height:190px"><span class="mini">自动模拟日志会写在这里：每个月干了什么、离上市还差多少，一目了然。</span></div>
+      </div>
       <div class="newsline" id="headline">📰 江州日报：滨江大道快速化改造将于年底招标，市里多位领导近期密集调研城建项目——人脉，有时候比标书更先到场。</div>
       <div class="newsline" id="cycleLine" style="border-left-color:var(--teal)">📈 行业周期：平稳期 —— 招标量与毛利正常。下行期开发商回款会传染性变慢，先保现金流。</div>
       <div class="warnbox" id="inspAlert" style="display:none"></div>
@@ -422,7 +453,7 @@ input.txt{width:100%;padding:10px 12px;border:1px solid #aaa;font-size:16px;font
       </div>
       <div class="card">
         <h3>36 个月结算 / 提前结局</h3>
-        <div class="sub">满 36 个月自动结算。净资产冲到 8,000万且声誉 ≥60、热度 &lt;60，可走上市之路；热度失控被查实，则直接落马结局。</div>
+        <div class="sub">满 36 个月自动结算。净资产冲到 8,000万且声誉 ≥60、热度 &lt;60，可走上市之路；热度失控被查实，则直接落马结局。例外：开启「全自动模拟 · 直到上市」后，36 个月未达标不会结算，会自动进入上市冲刺期继续模拟，直到上市达标、破产、被查或第 120 个月。</div>
         <button class="btn primary" id="btnSettle">现在就结算这一局 →</button>
       </div>
     </section>
@@ -461,6 +492,7 @@ input.txt{width:100%;padding:10px 12px;border:1px solid #aaa;font-size:16px;font
       <button class="pick" data-v="hard"><b>困难</b><span>对手压价狠，巡视频繁，一次失误就可能翻车。</span></button>
     </div>
     <button class="btn primary block" id="btnStart" style="min-height:46px;font-size:15px">开始经营 →</button>
+    <button class="btn block" id="btnStartAuto" style="min-height:46px;font-size:15px;margin-top:8px;background:var(--teal);border-color:var(--teal);color:#fff">🤖 开局并全自动模拟到上市（不用动手）</button>
     <div class="qr-start">
       <div class="qs-t">📱 浏览器二维码 · 扫码直接玩（国内无需 VPN）</div>
       <div class="qrbox" id="qrStart"></div>
@@ -542,6 +574,7 @@ var MGR_POOL=[
  {name:"马小军",skill:2,tag:"新手上路",salary:1.1,desc:"便宜，但项目容易出岔子"}
 ];
 var S, started=false;
+var AUTO={on:false,timer:null,speed:850,months:0,log:[]};
 
 function newGame(){
  var era=$("pickEra").querySelector(".on").dataset.v;
@@ -563,7 +596,7 @@ function newGame(){
   managers:[JSON.parse(JSON.stringify(MGR_POOL[0])),JSON.parse(JSON.stringify(MGR_POOL[1]))],
   hire:JSON.parse(JSON.stringify(pick(MGR_POOL))), supplier:null, subcon:null,
   supplierStreak:0, gameOver:false,
-  ceo:null, ceoOn:false, ceoTrust:70, negFeeMul:null, bankNegCD:0,
+  ceo:null, ceoOn:false, ceoTrust:70, negFeeMul:null, bankNegCD:0, ipoChase:false,
   policy:{style:"balanced",autoBid:true,bidScope:"all",bidMax:2,autoInsider:true,autoGov:true,govBudget:40,govTier:"gift",relTarget:60,autoNeg:true,negFocus:"supplier",payOwes:true,takeKick:false,heatCap:60,cashLine:120,autoLoan:true,autoLand:false,focusOfficial:null},
   cmdLog:[], negLog:[], mgrReport:[]
  };
@@ -946,7 +979,12 @@ function stepMonth(){
  managerAct();
  // bankruptcy
  if(S.cash< -200){ gameEnd("bankrupt"); return; }
- if(S.totalMonths>=36){ gameEnd("settle"); return; }
+ if(S.totalMonths>=36){
+   if(S.ipoChase && !ipoReady()){
+     if(S.totalMonths>=120){ log("上市冲刺到第 120 个月仍未达标，董事会决定按现状结算。"); gameEnd("settle"); return; }
+     if(S.totalMonths===36)log("📈 <b>36 个月期满仍未达上市门槛——自动模拟不结算，进入「上市冲刺期」</b>，继续经营，直到敲钟上市、破产或被查为止（最长冲刺到第 120 个月）。");
+   } else { gameEnd("settle"); return; }
+ }
  if(S.totalMonths%6===0)headline();
 }
 function headline(){
@@ -1036,6 +1074,7 @@ function showModal(kind,title,body,choices){
 /* ---------- endings ---------- */
 function gameEnd(kind){
  if(S.gameOver)return; S.gameOver=true;
+ if(AUTO.timer){clearTimeout(AUTO.timer);AUTO.timer=null;} AUTO.on=false;
  var net=netAssets(); var title,body,score;
  var stats="净资产 "+fmt(net)+" ｜ 完工 "+S.doneCount+" 个项目 ｜ 累计利润 "+fmt(S.totalProfit)+"<br>累计行贿 "+fmt(S.bribeOut)+" ｜ 已付回扣 "+fmt(S.kickPaid)+" ｜ 收受回扣 "+fmt(S.kickIn)+"<br>内定中标 "+S.insiderWins+" 次 ｜ 最高关系 "+Math.max.apply(null,S.officials.map(function(o){return o.relation}))+" ｜ 结算热度 "+S.heat+"<br>人情总账 "+totalFavor()+" ｜ 最高牵连 "+maxExposure()+" ｜ 过桥贷余额 "+fmt(S.bridge)+(S.ach["insp"]?" ｜ 🏆 挺过中央巡视":"");
  if(kind==="caught"){title="🚨 结局：东窗事发";score="F";body="专案组的车停在公司楼下那天，老周正在给你泡茶。你织了三年的网，最后把自己网了进去。江州的项目还在继续，只是中标名单上，再也不会有你的名字。";}
@@ -1372,6 +1411,146 @@ function renderCeo(){
  if(rb)rb.innerHTML=S.mgrReport.length?S.mgrReport.map(function(l){return "<div>"+l+"</div>"}).join(""):"尚未生成月报。开启托管后点「结束本月」，经理人会照单执行并在此汇报。";
 }
 
+/* ---------- full auto simulation until IPO ---------- */
+function ipoReady(){ if(!S)return false; return netAssets()>=8000 && S.reputation>=60 && S.heat<60; }
+function ipoGapText(){
+ var parts=[];
+ var net=netAssets();
+ if(net<8000)parts.push("净资产还差 "+fmt(8000-net));
+ if(S.reputation<60)parts.push("声誉还差 "+(60-S.reputation));
+ if(S.heat>=60)parts.push("热度需再降 "+(S.heat-59)+" 点到 59 以下");
+ return parts.length?parts.join(" · "):"三项门槛全部达标";
+}
+function autoLogPush(html){ AUTO.log.unshift({m:(S?S.year+"/"+S.month:"—"),html:html}); if(AUTO.log.length>30)AUTO.log.pop(); }
+function applyIpoPolicy(){
+ var P=S.policy;
+ P.style="balanced"; P.autoBid=true; P.bidScope="all"; P.bidMax=3;
+ P.autoInsider=!(S.ceo&&S.ceo.name==="林晚晴");
+ P.autoGov=true; P.govBudget=100; P.govTier="gift"; P.relTarget=60;
+ P.autoNeg=true; P.payOwes=true; P.takeKick=false; P.heatCap=55; P.cashLine=120; P.autoLoan=true; P.autoLand=true;
+}
+function autoHireCeo(){
+ if(S.ceo){ if(!S.ceoOn)S.ceoOn=true; return; }
+ var order=[0,2,1];
+ for(var k=0;k<order.length;k++){ var c=CEO_POOL[order[k]]; if(S.cash>=c.fee+100){ hireCeo(order[k]); autoLogPush("自动聘请总经理 <b>"+c.name+"</b>（"+c.style+"）托管经营，董事长只看月报和自动模拟日志。"); return; } }
+ autoLogPush("现金不足以聘总经理，自动模拟先以董事长直管模式推进（自动投标、政商、谈判照常执行）。");
+}
+function autoPilot(){
+ if(!S||S.gameOver)return;
+ // 资质升级：二级才能投大标，市政资质打开市政/交通盘子
+ if(S.qualF===3&&S.doneCount>=2&&netAssets()>=800&&S.cash>=170){S.cash-=60;S.qualF=2;log("<span class='good'>🤖 自动模拟：房建资质升至二级</span>，可投上限提到 8,000万。");ach("qual2","资质跃升：房建二级");}
+ if(!S.qualS&&netAssets()>=800&&S.cash>=190){S.cash-=80;S.qualS=3;log("🤖 自动模拟：<span class='good'>增项市政三级成功</span>，市政、交通项目全面开投。");}
+ // 法务顾问：长期压热度衰减
+ if(!S.lawyer&&S.heat>=35&&S.cash>=130){S.cash-=20;S.lawyer=true;addHeat(-8);log("🤖 自动模拟：聘请法务顾问坐镇，热度 -8，此后每月衰减加快。");}
+ // 热度逼近上市红线：捐赠降温
+ if(S.heat>55&&S.cash>=90){var hb=S.heat;S.cash-=30;addHeat(-12);S.reputation=clamp(S.reputation+3,0,100);log("🤖 自动模拟：热度 "+hb+" 逼近上市红线，向教育基金捐赠 30万降温（热度 -12，声誉 +3）。");}
+ // 声誉补强：上市要 ≥60
+ if(S.reputation<60&&S.cash>=90&&AUTO.months%2===0){S.cash-=10;addHeat(-4);S.reputation=clamp(S.reputation+2,0,100);log("🤖 自动模拟：做了一轮合规宣传补声誉（声誉 +2，热度 -4）。");}
+ // 用掉本月剩余政商行动（结束本月就会刷新，不用白不用）：补最弱的一条线
+ if(S.govActions>0&&S.heat<50){
+   var targets=S.officials.filter(function(o){return o.status==="在任"&&o.relation<60}).sort(function(a,b){return a.relation-b.relation});
+   if(targets.length){ var o=targets[0]; var kind=(S.cash>=220&&o.relation>=20)?"gift":(S.cash>=70?"dinner":"visit"); govAct(o.name,kind); }
+ }
+ // 兑现回扣承诺：留足保命钱才付
+ if(S.owes.length){ for(var i=S.owes.length-1;i>=0;i--){ if(S.owes[i]&&S.cash-S.owes[i].amount>=150)payOwe(i); } }
+ // 土地/旧改：现金留足 1.7 倍地价的安全垫才拿
+ if(S.landOpp){ var L=S.landOpp; var okL=!L.official||(off(L.official)&&off(L.official).status==="在任"&&off(L.official).relation>=50); if(okL&&S.cash>L.cost*1.7){ log("🤖 自动模拟：拿下土地/旧改机会《"+L.name+"》（土地款 "+fmt(L.cost)+"）。"); landAct("take"); } }
+ // 分包红包：声誉没到上市线时一律退回补声誉
+ if(S.subcon&&S.reputation<65){ takeSubcon(false); }
+ // 有大标时先谈联合投标抬胜率
+ if(!S.bizUsed&&!S.jointNext&&S.tenders.some(function(t){return t.value>=1700})){ S.bizUsed=true; S.jointNext=true; log("🤖 自动模拟：与恒通建设达成联合投标，下一次投标胜率 +18%。"); }
+ // 额外抢标：先把高价值高毛利的标锁一轮（经理人在月结时还会再投）
+ if(S.ceo&&S.tenders.length){
+   var R=[];
+   var cands=S.tenders.filter(function(t){return !canBid(t)}).sort(function(a,b){return (b.value*b.margin)-(a.value*a.margin)}).slice(0,2);
+   for(var bi=0;bi<cands.length;bi++){ if(S.cash<cands[bi].value*0.03+40)break; autoBid(cands[bi],R); }
+   R.forEach(function(r){log("🤖 自动抢标："+r);});
+ }
+ // 现金管理：太低自动借，充裕自动还
+ if(S.cash<70&&S.debt<S.creditLine){ var need=Math.min(300,S.creditLine-S.debt); if(need>0){S.debt+=need;S.cash+=need;log("🤖 自动模拟：现金告急，向银行借款 "+fmt(need)+" 周转。");} }
+ if(S.cash>650&&S.debt>0){ var pay=Math.min(S.debt,S.cash-450); if(pay>0){S.debt-=pay;S.cash-=pay;log("🤖 自动模拟：现金充裕，偿还银行借款 "+fmt(pay)+" 省利息。");} }
+}
+function autoTick(){
+ if(!AUTO.on)return;
+ if(!started||!S||S.gameOver){ stopAuto(S&&S.gameOver?"本局已结束":"尚未开局"); return; }
+ var focuses=["supplier","bank","insider","land"];
+ if(S.ceo)S.policy.negFocus=focuses[AUTO.months%focuses.length];
+ autoPilot();
+ if(S.gameOver){ stopAuto("本局已结束"); renderAuto(); return; }
+ endMonth(1);
+ AUTO.months++;
+ autoLogPush("第 "+S.totalMonths+" 个月：净资产 <b>"+fmt(netAssets())+"</b> / 8,000万 · 声誉 "+S.reputation+" / 60 · 热度 "+S.heat+"（需 <60）· 在建 "+S.projects.length+" 个 · 现金 "+fmt(S.cash)+" —— "+ipoGapText()+"。");
+ if(ipoReady()){
+   autoLogPush("🎉 <b>上市门槛全部达标！</b>净资产 "+fmt(netAssets())+"、声誉 "+S.reputation+"、热度 "+S.heat+" —— 敲钟上市！");
+   stopAuto("已达上市门槛，敲钟上市");
+   gameEnd("settle");
+   renderAuto();
+   return;
+ }
+ if(S.gameOver){ stopAuto("本局已结束"); renderAuto(); return; }
+ var em=$("eventModal");
+ if(em&&em.classList.contains("show")){
+   AUTO.timer=setTimeout(function(){
+     if(!AUTO.on)return;
+     var first=em.querySelector(".choices button");
+     if(first){ autoLogPush("自动处理弹窗事件：选择了「"+first.textContent.trim().slice(0,30)+"」"); first.click(); }
+     if(S.gameOver){ stopAuto("本局已结束"); renderAuto(); return; }
+     if(ipoReady()){ autoLogPush("🎉 <b>上市门槛全部达标 —— 敲钟上市！</b>"); stopAuto("已达上市门槛，敲钟上市"); gameEnd("settle"); renderAuto(); return; }
+     AUTO.timer=setTimeout(autoTick, Math.max(150, Math.round(AUTO.speed*0.6)));
+     renderAuto();
+   }, 380);
+   renderAuto();
+   return;
+ }
+ AUTO.timer=setTimeout(autoTick, AUTO.speed);
+ renderAuto();
+}
+function startAuto(){
+ if(!started||!S){ toast("先点「开始经营」开局，再启动自动模拟"); return; }
+ if(S.gameOver){ toast("本局已经结束，点「重新开局」再来"); return; }
+ if(AUTO.on)return;
+ S.ipoChase=true;
+ autoHireCeo();
+ applyIpoPolicy();
+ AUTO.on=true; AUTO.months=0;
+ autoLogPush("🚀 <b>全自动模拟启动</b>：目标敲钟上市（净资产 ≥8,000万 · 声誉 ≥60 · 热度 <60）。自动投标、处关系、谈判、还回扣、控热度，一路模拟到底；36 个月未达标自动进入上市冲刺期。当前差距："+ipoGapText()+"。");
+ toast("🤖 全自动模拟启动：一路模拟到上市");
+ renderAuto();
+ AUTO.timer=setTimeout(autoTick, 450);
+}
+function stopAuto(reason){
+ if(AUTO.timer){clearTimeout(AUTO.timer);AUTO.timer=null;}
+ if(AUTO.on&&reason)autoLogPush("⏸ 自动模拟停止："+reason+"。");
+ AUTO.on=false;
+ renderAuto();
+}
+function setBar(k,pct,txt){ var f=$(k+"Bar"), t=$(k+"Txt"); if(f)f.style.width=clamp(pct,0,100)+"%"; if(t)t.textContent=txt; }
+function renderAuto(){
+ var b1=$("btnAutoStart"), b2=$("btnAutoStop"), bs=$("btnAutoSide"), bst=$("btnAutoStopSide"), st=$("autoStatus"), ss=$("autoSideStatus");
+ if(!b1&&!bs)return;
+ var on=AUTO.on;
+ if(b1)b1.style.display=on?"none":"";
+ if(b2)b2.style.display=on?"":"none";
+ if(bs)bs.style.display=on?"none":"";
+ if(bst)bst.style.display=on?"":"none";
+ var txt;
+ if(!started||!S)txt="尚未开局";
+ else if(S.gameOver)txt="本局已结束";
+ else if(on)txt="运行中 · 已自动模拟 "+AUTO.months+" 个月"+(S.ipoChase&&S.totalMonths>=36?" · 上市冲刺期":"")+" · "+ipoGapText();
+ else txt=S.ipoChase?("已暂停 · 已进行到第 "+S.totalMonths+" 个月，点开始可继续冲刺上市 · "+ipoGapText()):"尚未启动";
+ if(st)st.textContent=txt;
+ if(ss)ss.textContent=on?("🤖 自动模拟运行中：已跑 "+AUTO.months+" 个月，净资产 "+(S?fmt(netAssets()):"—")+" / 8,000万，声誉 "+(S?S.reputation:"—")+" / 60，热度 "+(S?S.heat:"—")+"。点「停止自动模拟」可随时接管。"):"自动模拟：董事长不用动手，系统自动投标、处关系、谈判、控热度，一路模拟到敲钟上市（或撑不住为止）。";
+ if(started&&S){
+   var net=netAssets();
+   setBar("ipoNet", net/8000*100, fmt(net)+" / 8,000万"+(net>=8000?" ✔":""));
+   setBar("ipoRep", S.reputation/60*100, S.reputation+" / 60"+(S.reputation>=60?" ✔":""));
+   setBar("ipoHeat", S.heat, S.heat+"（需 <60）"+(S.heat<60?" ✔":""));
+ }
+ var lb=$("autoLogBox");
+ if(lb)lb.innerHTML=AUTO.log.length?AUTO.log.map(function(l){return "<div><span style='color:#999'>"+l.m+"</span>　"+l.html+"</div>"}).join(""):"<span class='mini'>自动模拟日志会写在这里：每个月干了什么、离上市还差多少，一目了然。</span>";
+ document.querySelectorAll("#autoSpeedSeg [data-speed]").forEach(function(b){b.classList.toggle("on", +b.getAttribute("data-speed")===AUTO.speed)});
+}
+
 /* ---------- render ---------- */
 function switchView(v){
  document.querySelectorAll(".view").forEach(function(el){el.classList.remove("on")});
@@ -1382,7 +1561,7 @@ function render(){
  if(!started)return;
  $("uiCo").textContent=S.co; $("uiEra").textContent=ERAS[S.era].label;
  $("uiMonth").textContent=S.month+"月"; $("uiYear").textContent=S.year+"年";
- $("uiSeason").textContent="第 "+(S.totalMonths+1)+" / 36 个月 · 目标：36个月后结算评级";
+ $("uiSeason").textContent=(S.ipoChase&&S.totalMonths>=36)?("上市冲刺期 · 第 "+(S.totalMonths+1)+" 个月 · 目标：敲钟上市"):("第 "+(S.totalMonths+1)+" / 36 个月 · "+(S.ipoChase?"自动模拟冲刺上市中":"目标：36个月后结算评级"));
  $("uiQualF").textContent="房建"+["","一级","二级","三级"][S.qualF]; $("uiQualS").textContent=S.qualS?"市政三级":"市政未取";
  $("sCash").textContent=fmt(S.cash); $("sCredit").textContent=fmt(Math.max(0,S.creditLine-S.debt));
  $("sContracts").textContent=fmt(S.projects.reduce(function(s,p){return s+p.value},0));
@@ -1502,7 +1681,7 @@ function render(){
  +"<div class='kv'><span>牵连最深的官员</span><b>"+(worstO?worstO.name+" · 牵连 "+(worstO.exposure||0):"—")+"</b></div>"
  +"<div class='kv'><span>中央巡视威胁值</span><b>"+centralThreat()+"（热度+累计打点+内定次数+牵连）</b></div>"
  +"<div class='kv'><span>巡视状态</span><b>"+inspName(S.inspStage)+"</b></div>";
- renderAch(); logRenderOnly(); renderCeo();
+ renderAch(); logRenderOnly(); renderCeo(); renderAuto();
 }
 function logRenderOnly(){var b=$("logBox");if(b&&S)b.innerHTML=S.logs.map(function(l){return "<div><span style='color:#999'>"+l.m+"</span>　"+l.html+"</div>"}).join("")}
 function renderAch(){
@@ -1535,8 +1714,14 @@ function pickWire(id){var box=$(id);box.querySelectorAll(".pick").forEach(functi
 pickWire("pickEra");pickWire("pickBg");pickWire("pickDiff");
 $("inCoName").addEventListener("input",function(){$("coFull").textContent=$("inCoName").value||"东大建筑"});
 $("btnStart").onclick=function(){$("startModal").classList.remove("show");newGame();toast("开局！先去招标里看看，再去政商关系拜码头")};
-$("btnRestart").onclick=function(){$("endModal").classList.remove("show");$("startModal").classList.add("show")};
-$("btnAgain").onclick=function(){$("endModal").classList.remove("show");$("startModal").classList.add("show")};
+$("btnRestart").onclick=function(){stopAuto("重新开局");$("endModal").classList.remove("show");$("startModal").classList.add("show")};
+$("btnAgain").onclick=function(){stopAuto("重新开局");$("endModal").classList.remove("show");$("startModal").classList.add("show")};
+$("btnAutoStart").onclick=startAuto;
+$("btnAutoStop").onclick=function(){stopAuto("董事长手动停止，接管经营");toast("自动模拟已停止，现在由你亲自经营")};
+$("btnAutoSide").onclick=startAuto;
+$("btnAutoStopSide").onclick=function(){stopAuto("董事长手动停止，接管经营");toast("自动模拟已停止，现在由你亲自经营")};
+document.querySelectorAll("#autoSpeedSeg [data-speed]").forEach(function(b){b.onclick=function(){AUTO.speed=+b.getAttribute("data-speed");renderAuto();toast("自动模拟速度已调整")}});
+$("btnStartAuto").onclick=function(){$("startModal").classList.remove("show");newGame();startAuto();toast("开局并启动全自动模拟：一路冲到上市")};
 $("btnEndMonth").onclick=function(){endMonth(1)};
 $("btnEnd3").onclick=function(){endMonth(3)};
 $("btnSettle").onclick=function(){gameEnd("settle")};
