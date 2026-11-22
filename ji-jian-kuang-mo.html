@@ -1,0 +1,1210 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:,">
+<title>基建狂魔 · 政商版 ｜ 创作人：邓元元</title>
+<!-- 国内直连优化：本页零境外资源请求。不加载境外网络字体、不调用境外脚本 CDN，字体用设备自带中文字体，二维码库已内嵌在本页中，中国境内网络打开即可玩，无需 VPN。 -->
+<script>/* QRCode.js 1.0.0 (MIT) — inlined at build time so the page makes no external request */
+var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this.parsedData=[];for(var b=[],d=0,e=this.data.length;e>d;d++){var f=this.data.charCodeAt(d);f>65536?(b[0]=240|(1835008&f)>>>18,b[1]=128|(258048&f)>>>12,b[2]=128|(4032&f)>>>6,b[3]=128|63&f):f>2048?(b[0]=224|(61440&f)>>>12,b[1]=128|(4032&f)>>>6,b[2]=128|63&f):f>128?(b[0]=192|(1984&f)>>>6,b[1]=128|63&f):b[0]=f,this.parsedData=this.parsedData.concat(b)}this.parsedData.length!=this.data.length&&(this.parsedData.unshift(191),this.parsedData.unshift(187),this.parsedData.unshift(239))}function b(a,b){this.typeNumber=a,this.errorCorrectLevel=b,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]}function i(a,b){if(void 0==a.length)throw new Error(a.length+"/"+b);for(var c=0;c<a.length&&0==a[c];)c++;this.num=new Array(a.length-c+b);for(var d=0;d<a.length-c;d++)this.num[d]=a[d+c]}function j(a,b){this.totalCount=a,this.dataCount=b}function k(){this.buffer=[],this.length=0}function m(){return"undefined"!=typeof CanvasRenderingContext2D}function n(){var a=!1,b=navigator.userAgent;return/android/i.test(b)&&(a=!0,aMat=b.toString().match(/android ([0-9]\.[0-9])/i),aMat&&aMat[1]&&(a=parseFloat(aMat[1]))),a}function r(a,b){for(var c=1,e=s(a),f=0,g=l.length;g>=f;f++){var h=0;switch(b){case d.L:h=l[f][0];break;case d.M:h=l[f][1];break;case d.Q:h=l[f][2];break;case d.H:h=l[f][3]}if(h>=e)break;c++}if(c>l.length)throw new Error("Too long data");return c}function s(a){var b=encodeURI(a).toString().replace(/\%[0-9a-fA-F]{2}/g,"a");return b.length+(b.length!=a?3:0)}a.prototype={getLength:function(){return this.parsedData.length},write:function(a){for(var b=0,c=this.parsedData.length;c>b;b++)a.put(this.parsedData[b],8)}},b.prototype={addData:function(b){var c=new a(b);this.dataList.push(c),this.dataCache=null},isDark:function(a,b){if(0>a||this.moduleCount<=a||0>b||this.moduleCount<=b)throw new Error(a+","+b);return this.modules[a][b]},getModuleCount:function(){return this.moduleCount},make:function(){this.makeImpl(!1,this.getBestMaskPattern())},makeImpl:function(a,c){this.moduleCount=4*this.typeNumber+17,this.modules=new Array(this.moduleCount);for(var d=0;d<this.moduleCount;d++){this.modules[d]=new Array(this.moduleCount);for(var e=0;e<this.moduleCount;e++)this.modules[d][e]=null}this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.setupPositionAdjustPattern(),this.setupTimingPattern(),this.setupTypeInfo(a,c),this.typeNumber>=7&&this.setupTypeNumber(a),null==this.dataCache&&(this.dataCache=b.createData(this.typeNumber,this.errorCorrectLevel,this.dataList)),this.mapData(this.dataCache,c)},setupPositionProbePattern:function(a,b){for(var c=-1;7>=c;c++)if(!(-1>=a+c||this.moduleCount<=a+c))for(var d=-1;7>=d;d++)-1>=b+d||this.moduleCount<=b+d||(this.modules[a+c][b+d]=c>=0&&6>=c&&(0==d||6==d)||d>=0&&6>=d&&(0==c||6==c)||c>=2&&4>=c&&d>=2&&4>=d?!0:!1)},getBestMaskPattern:function(){for(var a=0,b=0,c=0;8>c;c++){this.makeImpl(!0,c);var d=f.getLostPoint(this);(0==c||a>d)&&(a=d,b=c)}return b},createMovieClip:function(a,b,c){var d=a.createEmptyMovieClip(b,c),e=1;this.make();for(var f=0;f<this.modules.length;f++)for(var g=f*e,h=0;h<this.modules[f].length;h++){var i=h*e,j=this.modules[f][h];j&&(d.beginFill(0,100),d.moveTo(i,g),d.lineTo(i+e,g),d.lineTo(i+e,g+e),d.lineTo(i,g+e),d.endFill())}return d},setupTimingPattern:function(){for(var a=8;a<this.moduleCount-8;a++)null==this.modules[a][6]&&(this.modules[a][6]=0==a%2);for(var b=8;b<this.moduleCount-8;b++)null==this.modules[6][b]&&(this.modules[6][b]=0==b%2)},setupPositionAdjustPattern:function(){for(var a=f.getPatternPosition(this.typeNumber),b=0;b<a.length;b++)for(var c=0;c<a.length;c++){var d=a[b],e=a[c];if(null==this.modules[d][e])for(var g=-2;2>=g;g++)for(var h=-2;2>=h;h++)this.modules[d+g][e+h]=-2==g||2==g||-2==h||2==h||0==g&&0==h?!0:!1}},setupTypeNumber:function(a){for(var b=f.getBCHTypeNumber(this.typeNumber),c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[Math.floor(c/3)][c%3+this.moduleCount-8-3]=d}for(var c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[c%3+this.moduleCount-8-3][Math.floor(c/3)]=d}},setupTypeInfo:function(a,b){for(var c=this.errorCorrectLevel<<3|b,d=f.getBCHTypeInfo(c),e=0;15>e;e++){var g=!a&&1==(1&d>>e);6>e?this.modules[e][8]=g:8>e?this.modules[e+1][8]=g:this.modules[this.moduleCount-15+e][8]=g}for(var e=0;15>e;e++){var g=!a&&1==(1&d>>e);8>e?this.modules[8][this.moduleCount-e-1]=g:9>e?this.modules[8][15-e-1+1]=g:this.modules[8][15-e-1]=g}this.modules[this.moduleCount-8][8]=!a},mapData:function(a,b){for(var c=-1,d=this.moduleCount-1,e=7,g=0,h=this.moduleCount-1;h>0;h-=2)for(6==h&&h--;;){for(var i=0;2>i;i++)if(null==this.modules[d][h-i]){var j=!1;g<a.length&&(j=1==(1&a[g]>>>e));var k=f.getMask(b,d,h-i);k&&(j=!j),this.modules[d][h-i]=j,e--,-1==e&&(g++,e=7)}if(d+=c,0>d||this.moduleCount<=d){d-=c,c=-c;break}}}},b.PAD0=236,b.PAD1=17,b.createData=function(a,c,d){for(var e=j.getRSBlocks(a,c),g=new k,h=0;h<d.length;h++){var i=d[h];g.put(i.mode,4),g.put(i.getLength(),f.getLengthInBits(i.mode,a)),i.write(g)}for(var l=0,h=0;h<e.length;h++)l+=e[h].dataCount;if(g.getLengthInBits()>8*l)throw new Error("code length overflow. ("+g.getLengthInBits()+">"+8*l+")");for(g.getLengthInBits()+4<=8*l&&g.put(0,4);0!=g.getLengthInBits()%8;)g.putBit(!1);for(;;){if(g.getLengthInBits()>=8*l)break;if(g.put(b.PAD0,8),g.getLengthInBits()>=8*l)break;g.put(b.PAD1,8)}return b.createBytes(g,e)},b.createBytes=function(a,b){for(var c=0,d=0,e=0,g=new Array(b.length),h=new Array(b.length),j=0;j<b.length;j++){var k=b[j].dataCount,l=b[j].totalCount-k;d=Math.max(d,k),e=Math.max(e,l),g[j]=new Array(k);for(var m=0;m<g[j].length;m++)g[j][m]=255&a.buffer[m+c];c+=k;var n=f.getErrorCorrectPolynomial(l),o=new i(g[j],n.getLength()-1),p=o.mod(n);h[j]=new Array(n.getLength()-1);for(var m=0;m<h[j].length;m++){var q=m+p.getLength()-h[j].length;h[j][m]=q>=0?p.get(q):0}}for(var r=0,m=0;m<b.length;m++)r+=b[m].totalCount;for(var s=new Array(r),t=0,m=0;d>m;m++)for(var j=0;j<b.length;j++)m<g[j].length&&(s[t++]=g[j][m]);for(var m=0;e>m;m++)for(var j=0;j<b.length;j++)m<h[j].length&&(s[t++]=h[j][m]);return s};for(var c={MODE_NUMBER:1,MODE_ALPHA_NUM:2,MODE_8BIT_BYTE:4,MODE_KANJI:8},d={L:1,M:0,Q:3,H:2},e={PATTERN000:0,PATTERN001:1,PATTERN010:2,PATTERN011:3,PATTERN100:4,PATTERN101:5,PATTERN110:6,PATTERN111:7},f={PATTERN_POSITION_TABLE:[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],G15:1335,G18:7973,G15_MASK:21522,getBCHTypeInfo:function(a){for(var b=a<<10;f.getBCHDigit(b)-f.getBCHDigit(f.G15)>=0;)b^=f.G15<<f.getBCHDigit(b)-f.getBCHDigit(f.G15);return(a<<10|b)^f.G15_MASK},getBCHTypeNumber:function(a){for(var b=a<<12;f.getBCHDigit(b)-f.getBCHDigit(f.G18)>=0;)b^=f.G18<<f.getBCHDigit(b)-f.getBCHDigit(f.G18);return a<<12|b},getBCHDigit:function(a){for(var b=0;0!=a;)b++,a>>>=1;return b},getPatternPosition:function(a){return f.PATTERN_POSITION_TABLE[a-1]},getMask:function(a,b,c){switch(a){case e.PATTERN000:return 0==(b+c)%2;case e.PATTERN001:return 0==b%2;case e.PATTERN010:return 0==c%3;case e.PATTERN011:return 0==(b+c)%3;case e.PATTERN100:return 0==(Math.floor(b/2)+Math.floor(c/3))%2;case e.PATTERN101:return 0==b*c%2+b*c%3;case e.PATTERN110:return 0==(b*c%2+b*c%3)%2;case e.PATTERN111:return 0==(b*c%3+(b+c)%2)%2;default:throw new Error("bad maskPattern:"+a)}},getErrorCorrectPolynomial:function(a){for(var b=new i([1],0),c=0;a>c;c++)b=b.multiply(new i([1,g.gexp(c)],0));return b},getLengthInBits:function(a,b){if(b>=1&&10>b)switch(a){case c.MODE_NUMBER:return 10;case c.MODE_ALPHA_NUM:return 9;case c.MODE_8BIT_BYTE:return 8;case c.MODE_KANJI:return 8;default:throw new Error("mode:"+a)}else if(27>b)switch(a){case c.MODE_NUMBER:return 12;case c.MODE_ALPHA_NUM:return 11;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 10;default:throw new Error("mode:"+a)}else{if(!(41>b))throw new Error("type:"+b);switch(a){case c.MODE_NUMBER:return 14;case c.MODE_ALPHA_NUM:return 13;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 12;default:throw new Error("mode:"+a)}}},getLostPoint:function(a){for(var b=a.getModuleCount(),c=0,d=0;b>d;d++)for(var e=0;b>e;e++){for(var f=0,g=a.isDark(d,e),h=-1;1>=h;h++)if(!(0>d+h||d+h>=b))for(var i=-1;1>=i;i++)0>e+i||e+i>=b||(0!=h||0!=i)&&g==a.isDark(d+h,e+i)&&f++;f>5&&(c+=3+f-5)}for(var d=0;b-1>d;d++)for(var e=0;b-1>e;e++){var j=0;a.isDark(d,e)&&j++,a.isDark(d+1,e)&&j++,a.isDark(d,e+1)&&j++,a.isDark(d+1,e+1)&&j++,(0==j||4==j)&&(c+=3)}for(var d=0;b>d;d++)for(var e=0;b-6>e;e++)a.isDark(d,e)&&!a.isDark(d,e+1)&&a.isDark(d,e+2)&&a.isDark(d,e+3)&&a.isDark(d,e+4)&&!a.isDark(d,e+5)&&a.isDark(d,e+6)&&(c+=40);for(var e=0;b>e;e++)for(var d=0;b-6>d;d++)a.isDark(d,e)&&!a.isDark(d+1,e)&&a.isDark(d+2,e)&&a.isDark(d+3,e)&&a.isDark(d+4,e)&&!a.isDark(d+5,e)&&a.isDark(d+6,e)&&(c+=40);for(var k=0,e=0;b>e;e++)for(var d=0;b>d;d++)a.isDark(d,e)&&k++;var l=Math.abs(100*k/b/b-50)/5;return c+=10*l}},g={glog:function(a){if(1>a)throw new Error("glog("+a+")");return g.LOG_TABLE[a]},gexp:function(a){for(;0>a;)a+=255;for(;a>=256;)a-=255;return g.EXP_TABLE[a]},EXP_TABLE:new Array(256),LOG_TABLE:new Array(256)},h=0;8>h;h++)g.EXP_TABLE[h]=1<<h;for(var h=8;256>h;h++)g.EXP_TABLE[h]=g.EXP_TABLE[h-4]^g.EXP_TABLE[h-5]^g.EXP_TABLE[h-6]^g.EXP_TABLE[h-8];for(var h=0;255>h;h++)g.LOG_TABLE[g.EXP_TABLE[h]]=h;i.prototype={get:function(a){return this.num[a]},getLength:function(){return this.num.length},multiply:function(a){for(var b=new Array(this.getLength()+a.getLength()-1),c=0;c<this.getLength();c++)for(var d=0;d<a.getLength();d++)b[c+d]^=g.gexp(g.glog(this.get(c))+g.glog(a.get(d)));return new i(b,0)},mod:function(a){if(this.getLength()-a.getLength()<0)return this;for(var b=g.glog(this.get(0))-g.glog(a.get(0)),c=new Array(this.getLength()),d=0;d<this.getLength();d++)c[d]=this.get(d);for(var d=0;d<a.getLength();d++)c[d]^=g.gexp(g.glog(a.get(d))+b);return new i(c,0).mod(a)}},j.RS_BLOCK_TABLE=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],j.getRSBlocks=function(a,b){var c=j.getRsBlockTable(a,b);if(void 0==c)throw new Error("bad rs block @ typeNumber:"+a+"/errorCorrectLevel:"+b);for(var d=c.length/3,e=[],f=0;d>f;f++)for(var g=c[3*f+0],h=c[3*f+1],i=c[3*f+2],k=0;g>k;k++)e.push(new j(h,i));return e},j.getRsBlockTable=function(a,b){switch(b){case d.L:return j.RS_BLOCK_TABLE[4*(a-1)+0];case d.M:return j.RS_BLOCK_TABLE[4*(a-1)+1];case d.Q:return j.RS_BLOCK_TABLE[4*(a-1)+2];case d.H:return j.RS_BLOCK_TABLE[4*(a-1)+3];default:return void 0}},k.prototype={get:function(a){var b=Math.floor(a/8);return 1==(1&this.buffer[b]>>>7-a%8)},put:function(a,b){for(var c=0;b>c;c++)this.putBit(1==(1&a>>>b-c-1))},getLengthInBits:function(){return this.length},putBit:function(a){var b=Math.floor(this.length/8);this.buffer.length<=b&&this.buffer.push(0),a&&(this.buffer[b]|=128>>>this.length%8),this.length++}};var l=[[17,14,11,7],[32,26,20,14],[53,42,32,24],[78,62,46,34],[106,84,60,44],[134,106,74,58],[154,122,86,64],[192,152,108,84],[230,180,130,98],[271,213,151,119],[321,251,177,137],[367,287,203,155],[425,331,241,177],[458,362,258,194],[520,412,292,220],[586,450,322,250],[644,504,364,280],[718,560,394,310],[792,624,442,338],[858,666,482,382],[929,711,509,403],[1003,779,565,439],[1091,857,611,461],[1171,911,661,511],[1273,997,715,535],[1367,1059,751,593],[1465,1125,805,625],[1528,1190,868,658],[1628,1264,908,698],[1732,1370,982,742],[1840,1452,1030,790],[1952,1538,1112,842],[2068,1628,1168,898],[2188,1722,1228,958],[2303,1809,1283,983],[2431,1911,1351,1051],[2563,1989,1423,1093],[2699,2099,1499,1139],[2809,2213,1579,1219],[2953,2331,1663,1273]],o=function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){function g(a,b){var c=document.createElementNS("http://www.w3.org/2000/svg",a);for(var d in b)b.hasOwnProperty(d)&&c.setAttribute(d,b[d]);return c}var b=this._htOption,c=this._el,d=a.getModuleCount();Math.floor(b.width/d),Math.floor(b.height/d),this.clear();var h=g("svg",{viewBox:"0 0 "+String(d)+" "+String(d),width:"100%",height:"100%",fill:b.colorLight});h.setAttributeNS("http://www.w3.org/2000/xmlns/","xmlns:xlink","http://www.w3.org/1999/xlink"),c.appendChild(h),h.appendChild(g("rect",{fill:b.colorDark,width:"1",height:"1",id:"template"}));for(var i=0;d>i;i++)for(var j=0;d>j;j++)if(a.isDark(i,j)){var k=g("use",{x:String(i),y:String(j)});k.setAttributeNS("http://www.w3.org/1999/xlink","href","#template"),h.appendChild(k)}},a.prototype.clear=function(){for(;this._el.hasChildNodes();)this._el.removeChild(this._el.lastChild)},a}(),p="svg"===document.documentElement.tagName.toLowerCase(),q=p?o:m()?function(){function a(){this._elImage.src=this._elCanvas.toDataURL("image/png"),this._elImage.style.display="block",this._elCanvas.style.display="none"}function d(a,b){var c=this;if(c._fFail=b,c._fSuccess=a,null===c._bSupportDataURI){var d=document.createElement("img"),e=function(){c._bSupportDataURI=!1,c._fFail&&_fFail.call(c)},f=function(){c._bSupportDataURI=!0,c._fSuccess&&c._fSuccess.call(c)};return d.onabort=e,d.onerror=e,d.onload=f,d.src="data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==",void 0}c._bSupportDataURI===!0&&c._fSuccess?c._fSuccess.call(c):c._bSupportDataURI===!1&&c._fFail&&c._fFail.call(c)}if(this._android&&this._android<=2.1){var b=1/window.devicePixelRatio,c=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(a,d,e,f,g,h,i,j){if("nodeName"in a&&/img/i.test(a.nodeName))for(var l=arguments.length-1;l>=1;l--)arguments[l]=arguments[l]*b;else"undefined"==typeof j&&(arguments[1]*=b,arguments[2]*=b,arguments[3]*=b,arguments[4]*=b);c.apply(this,arguments)}}var e=function(a,b){this._bIsPainted=!1,this._android=n(),this._htOption=b,this._elCanvas=document.createElement("canvas"),this._elCanvas.width=b.width,this._elCanvas.height=b.height,a.appendChild(this._elCanvas),this._el=a,this._oContext=this._elCanvas.getContext("2d"),this._bIsPainted=!1,this._elImage=document.createElement("img"),this._elImage.style.display="none",this._el.appendChild(this._elImage),this._bSupportDataURI=null};return e.prototype.draw=function(a){var b=this._elImage,c=this._oContext,d=this._htOption,e=a.getModuleCount(),f=d.width/e,g=d.height/e,h=Math.round(f),i=Math.round(g);b.style.display="none",this.clear();for(var j=0;e>j;j++)for(var k=0;e>k;k++){var l=a.isDark(j,k),m=k*f,n=j*g;c.strokeStyle=l?d.colorDark:d.colorLight,c.lineWidth=1,c.fillStyle=l?d.colorDark:d.colorLight,c.fillRect(m,n,f,g),c.strokeRect(Math.floor(m)+.5,Math.floor(n)+.5,h,i),c.strokeRect(Math.ceil(m)-.5,Math.ceil(n)-.5,h,i)}this._bIsPainted=!0},e.prototype.makeImage=function(){this._bIsPainted&&d.call(this,a)},e.prototype.isPainted=function(){return this._bIsPainted},e.prototype.clear=function(){this._oContext.clearRect(0,0,this._elCanvas.width,this._elCanvas.height),this._bIsPainted=!1},e.prototype.round=function(a){return a?Math.floor(1e3*a)/1e3:a},e}():function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){for(var b=this._htOption,c=this._el,d=a.getModuleCount(),e=Math.floor(b.width/d),f=Math.floor(b.height/d),g=['<table style="border:0;border-collapse:collapse;">'],h=0;d>h;h++){g.push("<tr>");for(var i=0;d>i;i++)g.push('<td style="border:0;border-collapse:collapse;padding:0;margin:0;width:'+e+"px;height:"+f+"px;background-color:"+(a.isDark(h,i)?b.colorDark:b.colorLight)+';"></td>');g.push("</tr>")}g.push("</table>"),c.innerHTML=g.join("");var j=c.childNodes[0],k=(b.width-j.offsetWidth)/2,l=(b.height-j.offsetHeight)/2;k>0&&l>0&&(j.style.margin=l+"px "+k+"px")},a.prototype.clear=function(){this._el.innerHTML=""},a}();QRCode=function(a,b){if(this._htOption={width:256,height:256,typeNumber:4,colorDark:"#000000",colorLight:"#ffffff",correctLevel:d.H},"string"==typeof b&&(b={text:b}),b)for(var c in b)this._htOption[c]=b[c];"string"==typeof a&&(a=document.getElementById(a)),this._android=n(),this._el=a,this._oQRCode=null,this._oDrawing=new q(this._el,this._htOption),this._htOption.text&&this.makeCode(this._htOption.text)},QRCode.prototype.makeCode=function(a){this._oQRCode=new b(r(a,this._htOption.correctLevel),this._htOption.correctLevel),this._oQRCode.addData(a),this._oQRCode.make(),this._el.title=a,this._oDrawing.draw(this._oQRCode),this.makeImage()},QRCode.prototype.makeImage=function(){"function"==typeof this._oDrawing.makeImage&&(!this._android||this._android>=3)&&this._oDrawing.makeImage()},QRCode.prototype.clear=function(){this._oDrawing.clear()},QRCode.CorrectLevel=d}();
+</script>
+<style>
+:root{
+  --ink:#17242f; --ink2:#22384a; --paper:#f1efe9; --card:#fbfaf7; --line:#d8d3c6;
+  --orange:#e4571d; --orange-d:#c74312; --teal:#17635a; --gold:#b8862e; --red:#b3261e;
+  --muted:#6b7280; --green:#1d7a3a; --heat:#c0271a;
+  --shadow:0 10px 30px rgba(20,30,40,.14);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC","Noto Sans SC",system-ui,sans-serif;background:var(--paper);color:#1c2733;background-image:linear-gradient(rgba(23,36,47,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(23,36,47,.045) 1px,transparent 1px);background-size:28px 28px}
+button,input,select{font-family:inherit;min-height:38px}
+button{cursor:pointer}
+h1,h2,h3{font-family:"Songti SC","STSong","SimSun","Source Han Serif SC","Noto Serif SC",serif;margin:0}
+.wrap{display:flex;min-height:100vh}
+/* sidebar */
+.side{width:228px;flex:0 0 228px;background:var(--ink);color:#e8e4da;padding:18px 14px;display:flex;flex-direction:column;gap:14px;position:sticky;top:0;height:100vh;overflow:auto}
+.logo-badge{border:1px solid var(--orange);color:#ff8a52;display:inline-block;padding:3px 8px;font-size:12px;letter-spacing:.2em;font-weight:700}
+.co-name{font-family:"Songti SC","STSong","SimSun","Source Han Serif SC","Noto Serif SC",serif;font-size:26px;font-weight:900;color:#fff;line-height:1.15}
+.co-sub{font-size:12px;color:#9fb0bd}
+.datebox{border:1px solid #3a4f61;padding:10px 12px}
+.datebox b{font-size:28px;color:#fff}
+.qual-tags span{border:1px solid #466176;padding:3px 7px;font-size:11px;margin-right:5px;color:#cfe0ea}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav button{background:transparent;border:0;color:#c8d3dc;text-align:left;padding:10px 10px;font-size:14px;border-left:3px solid transparent;display:flex;justify-content:space-between;align-items:center}
+.nav button.on{background:#0f1a23;border-left-color:var(--orange);color:#fff;font-weight:700}
+.nav .pill{background:var(--orange);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px}
+.side-stats{font-size:12.5px;color:#aebfcc;border-top:1px solid #314657;padding-top:10px;line-height:2}
+.side-stats b{float:right;color:#fff}
+.endmonth{margin-top:auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--ink);background:#fff;padding:8px 14px;font-weight:700;font-size:13.5px;color:var(--ink)}
+.btn.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn.primary:hover{background:var(--orange-d)}
+.btn.teal{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn.ghost{border-color:var(--line);color:#444}
+.btn.danger{background:var(--red);border-color:var(--red);color:#fff}
+.btn.sm{min-height:34px;padding:5px 10px;font-size:12.5px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.block{width:100%}
+/* main */
+.main{flex:1;min-width:0;padding:16px 18px 90px;max-width:1180px;margin:0 auto;width:100%}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--line);padding:10px 12px;position:relative}
+.stat label{font-size:11.5px;color:var(--muted)}
+.stat .v{font-size:21px;font-weight:900}
+.stat .s{font-size:11.5px;color:var(--muted)}
+.bar{height:7px;background:#e7e2d4;margin-top:6px}
+.bar i{display:block;height:100%}
+.heatbar i{background:linear-gradient(90deg,#d99a26,var(--heat))}
+.card{background:var(--card);border:1px solid var(--line);padding:14px;margin-bottom:12px;position:relative}
+.card::before{content:"";position:absolute;left:-1px;top:-1px;width:14px;height:14px;border-left:2px solid var(--ink);border-top:2px solid var(--ink)}
+.card::after{content:"";position:absolute;right:-1px;bottom:-1px;width:14px;height:14px;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+.card h3{font-size:17px;margin-bottom:4px}
+.card .sub{font-size:12px;color:var(--muted);margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+/* tenders */
+.tender{border:1px solid var(--line);background:#fff;padding:11px 12px;margin-bottom:9px}
+.tender .top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.tag{font-size:11px;border:1px solid var(--teal);color:var(--teal);padding:1px 6px;font-weight:700}
+.tag.gov{border-color:var(--gold);color:var(--gold)}
+.tag.insider{border-color:var(--red);color:var(--red);background:#fdf0ee}
+.tname{font-weight:900;font-size:15px}
+.tmeta{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.7}
+.bidrow{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;align-items:center}
+.bidrow select,.bidrow input{padding:6px 8px;border:1px solid #bbb;background:#fff}
+.switch{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;background:#f4f1e8;border:1px solid var(--line);padding:6px 9px;min-height:38px}
+.switch input{width:18px;height:18px;min-height:0}
+/* officials */
+.off{border:1px solid var(--line);background:#fff;padding:13px;display:flex;flex-direction:column;gap:8px}
+.avatar{width:46px;height:46px;border-radius:50%;background:var(--ink2);color:#fff;display:flex;align-items:center;justify-content:center;font-family:"Songti SC","STSong","SimSun","Source Han Serif SC","Noto Serif SC",serif;font-weight:900;font-size:19px;flex:0 0 46px}
+.off-head{display:flex;gap:10px;align-items:center}
+.off-name{font-weight:900;font-size:15.5px}
+.off-role{font-size:12px;color:var(--teal);font-weight:700}
+.off-desc{font-size:12px;color:#555;line-height:1.6}
+.relbar{height:8px;background:#e9e4d6}.relbar i{display:block;height:100%;background:var(--teal)}
+.off-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mini{font-size:11.5px;color:var(--muted)}
+/* log */
+.log{font-size:12.5px;line-height:1.9;max-height:300px;overflow:auto}
+.log b{color:var(--orange-d)}
+.log .bad{color:var(--red);font-weight:700}
+.log .good{color:var(--green);font-weight:700}
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(15,22,30,.62);display:none;align-items:flex-start;justify-content:center;padding:18px 12px;z-index:50;overflow:auto}
+.overlay.show{display:flex}
+.modal{background:#fdfcf9;max-width:560px;width:100%;border:1px solid var(--ink);box-shadow:var(--shadow);padding:20px;margin:auto}
+.modal h2{font-size:22px;margin-bottom:6px}
+.choices{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.choices button{text-align:left;padding:11px 13px;background:#fff;border:1px solid var(--line);font-size:13.5px;line-height:1.55}
+.choices button:hover{border-color:var(--orange)}
+.choices b{color:var(--orange-d)}
+.pickgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 14px}
+.pick{border:1px solid var(--line);background:#fff;padding:10px 12px;text-align:left}
+.pick.on{border:2px solid var(--orange);background:#fff7f1}
+.pick b{display:block;font-size:14.5px;margin-bottom:3px}
+.pick span{font-size:12px;color:#555;line-height:1.55;display:block}
+input.txt{width:100%;padding:10px 12px;border:1px solid #aaa;font-size:16px;font-weight:700}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:var(--ink);color:#fff;padding:11px 18px;font-size:13.5px;z-index:80;display:none;max-width:92vw;text-align:center;box-shadow:var(--shadow)}
+.newsline{border-left:3px solid var(--gold);background:#fbf6e9;padding:8px 11px;font-size:12.5px;margin-bottom:7px;line-height:1.6}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px dashed #e2ddd0}
+.proj{border:1px solid var(--line);background:#fff;padding:11px 12px;margin-bottom:9px}
+.pbar{height:8px;background:#e9e4d6;margin-top:6px}.pbar i{display:block;height:100%;background:var(--orange)}
+.ach{display:inline-block;background:#fdf3e3;border:1px solid var(--gold);color:#7a5510;font-size:11.5px;padding:3px 9px;margin:0 6px 6px 0;font-weight:700}
+.view{display:none}.view.on{display:block}
+.tabnote{font-size:12px;color:var(--muted)}
+.ending-score{font-size:44px;font-weight:900;color:var(--orange-d);font-family:"Songti SC","STSong","SimSun","Source Han Serif SC","Noto Serif SC",serif}
+#startModal .modal{max-height:calc(100dvh - 16px);overflow:auto}
+#startModal #btnStart{position:sticky;bottom:0;box-shadow:0 -8px 18px rgba(20,30,40,.25);z-index:3}
+.stage{font-size:11px;border:1px solid var(--teal);color:var(--teal);padding:1px 6px;font-weight:700;white-space:nowrap}
+.stage.hot{border-color:var(--red);color:var(--red);background:#fdf0ee}
+.fav-pos{color:var(--green);font-weight:700}.fav-neg{color:var(--red);font-weight:700}
+.expbar{height:6px;background:#e9e4d6;margin-top:3px}.expbar i{display:block;height:100%;background:var(--heat)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg .btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.warnbox{border:1px solid var(--red);background:#fdf0ee;padding:9px 11px;font-size:12.5px;line-height:1.7;margin-bottom:10px}
+.creator-line{font-size:12.5px;color:#ffb38f;font-weight:700;letter-spacing:.06em;margin-top:2px}
+.playbar{display:flex;gap:14px;align-items:center;background:var(--ink);color:#e8e4da;border:1px solid var(--ink);padding:12px 14px;margin-bottom:12px;flex-wrap:wrap}
+.playbar .pb-txt{flex:1;min-width:210px}
+.playbar .pb-title{font-family:"Songti SC","STSong","SimSun","Source Han Serif SC","Noto Serif SC",serif;font-weight:900;font-size:16px;color:#fff;line-height:1.4}
+.playbar .pb-sub{font-size:12.5px;color:#b9c7d1;line-height:1.7;margin-top:2px}
+.playbar .pb-sub b{color:#ffb38f}
+.qrbox{background:#fff;padding:6px;line-height:0;flex:0 0 auto}
+.qrbox img,.qrbox canvas{display:block}
+.qrcard{border:1px solid #3a4f61;padding:12px;text-align:center}
+.qrcard .qrbox{display:inline-block}
+.qrcard .qc-t{font-size:13px;font-weight:900;color:#fff;margin-bottom:3px}
+.qrcard .qc-s{font-size:11.5px;color:#9fb0bd;line-height:1.6}
+.qr-fallback{font-size:11.5px;color:#9fb0bd;line-height:1.6;word-break:break-all}
+.qr-start{border:1px solid var(--line);background:#fff;padding:14px;text-align:center;margin-top:12px}
+.qr-start .qrbox{display:inline-block;border:1px solid var(--line)}
+.qr-start .qs-t{font-weight:900;font-size:14px;margin-bottom:3px}
+.qr-start .qs-s{font-size:12px;color:var(--muted);line-height:1.7}
+@media(max-width:860px){
+  .wrap{flex-direction:column}
+  .side{width:100%;flex:none;height:auto;position:static;padding:12px}
+  .side .hide-m{display:none}
+  .nav{flex-direction:row;flex-wrap:wrap}
+  .nav button{border-left:0;border-bottom:3px solid transparent;padding:9px 10px}
+  .nav button.on{border-bottom-color:var(--orange)}
+  .stats{grid-template-columns:1fr 1fr}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .pickgrid{grid-template-columns:1fr}
+  .main{padding:12px 10px 80px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside class="side">
+    <div><span class="logo-badge">基 建 狂 魔 · 政 商 版</span></div>
+    <div class="creator-line">创作人：邓元元</div>
+    <div>
+      <div class="co-name" id="uiCo">东大建筑</div>
+      <div class="co-sub">江州 · 施工总承包 ｜ <span id="uiEra">2026 当下</span></div>
+    </div>
+    <div class="datebox"><b id="uiMonth">1月</b> <span id="uiYear" style="color:#c8d3dc">2026年</span>
+      <div class="mini" style="color:#8fa2b1" id="uiSeason">第 1 / 36 个月 · 目标：36个月后结算评级</div>
+    </div>
+    <div class="qual-tags"><span id="uiQualF">房建三级</span><span id="uiQualS">市政未取</span></div>
+    <nav class="nav" id="mainNav">
+      <button data-view="ops" class="on">▦ 经营 <span class="pill" id="navTenderCt">0</span></button>
+      <button data-view="gov">🏛 政商关系 <span class="pill" id="navRelAvg">0</span></button>
+      <button data-view="grey">🧾 灰色账本 <span class="pill" id="navOwe">0</span></button>
+      <button data-view="co">▤ 公司与结局</button>
+    </nav>
+    <div class="side-stats hide-m">
+      现金 <b id="sCash">900万</b><br>
+      授信可用 <b id="sCredit">700万</b><br>
+      在手合同 <b id="sContracts">0万</b><br>
+      信用分 <b id="sCreditScore">70</b><br>
+      监察风险 <b id="sHeat">0</b><br>
+      中央巡视 <b id="sInsp">暂无风声</b><br>
+      人情总账 <b id="sFavor">0</b><br>
+      行业周期 <b id="sCycle">平稳期</b>
+    </div>
+    <div class="qrcard">
+      <div class="qc-t">📱 手机扫码 · 国内直接玩（无需 VPN）</div>
+      <div class="qrbox" id="qrSide"></div>
+      <div class="qc-s" style="margin-top:8px">用手机相机或浏览器扫一扫，<br>在国内网络打开即可直接游玩，<br>无需下载、无需安装、无需 VPN。</div>
+      <div class="qr-fallback" id="qrSideFallback" style="display:none;margin-top:6px"></div>
+    </div>
+    <div class="endmonth">
+      <button class="btn primary block" id="btnEndMonth" style="min-height:46px;font-size:15px">结束本月 →</button>
+      <button class="btn block" id="btnEnd3" style="margin-top:7px;background:transparent;color:#c8d3dc;border-color:#466176">连推三个月</button>
+      <button class="btn block" id="btnRestart" style="margin-top:7px;background:transparent;color:#8fa2b1;border-color:#314657">重新开局</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="playbar">
+      <div class="qrbox" id="qrMain"></div>
+      <div class="pb-txt">
+        <div class="pb-title">🇨🇳 国内网络直接玩 · 无需 VPN · 扫码就能玩</div>
+        <div class="pb-sub">本游戏是网页版：<b>在中国境内联网、浏览器里打开本页就能直接玩</b>，不用下载、不用安装，<b>不需要挂 VPN</b>。本页不加载 Google 字体、不调用任何境外 CDN，所有资源都在页面内，国内手机和电脑网络打开即玩。用手机扫左侧二维码，即可在手机浏览器打开同一页面继续游玩。创作人：<b>邓元元</b></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><label>现金</label><div class="v" id="stCash">900万</div><div class="s" id="stCashSub">月固定支出约 6.3万</div></div>
+      <div class="stat"><label>净资产 / 企业估值</label><div class="v" id="stNet">900万</div><div class="s" id="stRank">同行第 7 / 7</div></div>
+      <div class="stat"><label>政商关系总评</label><div class="v" id="stRel">0</div><div class="s">≥30 解锁内部消息 · ≥60 可谈内定</div></div>
+      <div class="stat"><label>监察风险（热度）</label><div class="v" id="stHeat">0</div><div class="bar heatbar"><i id="heatFill" style="width:0%"></i></div><div class="s" id="stHeatSub">≥70 地方巡视预警 · 中央巡视组可能随时进驻</div></div>
+    </div>
+
+    <!-- OPS VIEW -->
+    <section class="view on" id="view-ops">
+      <div class="newsline" id="headline">📰 江州日报：滨江大道快速化改造将于年底招标，市里多位领导近期密集调研城建项目——人脉，有时候比标书更先到场。</div>
+      <div class="newsline" id="cycleLine" style="border-left-color:var(--teal)">📈 行业周期：平稳期 —— 招标量与毛利正常。下行期开发商回款会传染性变慢，先保现金流。</div>
+      <div class="warnbox" id="inspAlert" style="display:none"></div>
+      <div class="card">
+        <h3>招标信息 <span class="mini" id="tenderInfo"></span></h3>
+        <div class="sub">选报价策略后点「投标」。政府/城投项目可叠加政商手段：内部消息看底价，内定中标大幅提胜率——但要付打点费，事后还要兑现回扣。</div>
+        <div id="tenderList"></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h3>土地 · 勾地 · 旧改</h3>
+          <div class="sub">每月刷新一个机会。拍卖拼钱，勾地拼关系（热度涨、人情欠），旧改利润最厚——但拆迁和钉子户随时给你上新闻。</div>
+          <div id="landList"></div>
+        </div>
+        <div class="card">
+          <h3>同行商战</h3>
+          <div class="sub">每月可出手一次：联合投标分利润换胜率，并购小公司买资质和项目，举报同行是双刃剑——审计的目光也会扫到你。</div>
+          <div id="rivalList"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">
+            <button class="btn sm teal" id="btnJoint">🤝 联合投标（下次胜率大增，毛利 -4%）</button>
+            <button class="btn sm" id="btnMerge">🏢 并购小公司（需净资产≥1500万、现金 260万）</button>
+            <button class="btn sm" id="btnReport" style="border-color:var(--red);color:var(--red)">⚠ 举报同行围标（热度 +7）</button>
+          </div>
+          <div class="mini" id="jointNote" style="margin-top:6px"></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h3>在建项目</h3><div class="sub">每月自动推进。材料吃回扣会省成本，但质量与安全事故概率上升。</div>
+          <div id="projList"></div>
+        </div>
+        <div>
+          <div class="card">
+            <h3>银行与项目经理</h3><div class="sub">缺钱先借款，别让现金断裂。经理能力影响中标与进度。</div>
+            <div class="kv"><span>银行授信额度</span><b id="bankLine">700万</b></div>
+            <div class="kv"><span>已借款 / 月息</span><b id="bankDebt">0万 / 0万</b></div>
+            <div class="kv"><span>过桥贷（月息 2.5%）</span><b id="bankBridge">0万</b></div>
+            <div class="kv"><span>杠杆率（总负债 / 净资产）</span><b id="bankLev">0%</b></div>
+            <div class="mini" style="margin-top:6px">现金流抢救（每月限用一次，现金转负时会自动弹出）：</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px">
+              <button class="btn sm danger" id="btnBridge">🌉 紧急过桥贷 +200万</button>
+              <button class="btn sm" id="btnSellProj">💰 打折出售一个在建项目</button>
+              <button class="btn sm" id="btnDelayPay">🧾 拖欠供应商货款 +35万（下月要还 45万）</button>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0">
+              <button class="btn sm" data-loan="100">借 100万</button>
+              <button class="btn sm" data-loan="300">借 300万</button>
+              <button class="btn sm" data-loan="-100">还 100万</button>
+              <button class="btn sm" data-loan="-9999">全部还清</button>
+            </div>
+            <div id="mgrList"></div>
+            <div style="margin-top:8px"><span class="mini">人才市场（每月刷新一人）</span><div id="hireList"></div></div>
+          </div>
+          <div class="card">
+            <h3>经营动态</h3>
+            <div class="log" id="logBox"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GOV VIEW -->
+    <section class="view" id="view-gov">
+      <div class="card">
+        <h3>政商关系网 · 江州</h3>
+        <div class="sub">每月有 <b>3 次政商行动</b>（随结束本月刷新）。关系分四档：点头之交 → 消息灵通（≥30）→ 内定盟友（≥60）→ 铁杆（≥85）。每段关系都记着一本<b>人情账</b>：你送出去的是情，他帮你办的是债；请托办事要耗人情，欠多了不还，人家会冷脸。送的钱越多，你和他之间的<b>牵连</b>越深——他落马，你就上名单。更要命的是<b>中央巡视组</b>：不打招呼、随时进驻，风声 → 进驻 → 约谈，一步比一步险。</div>
+        <div class="kv"><span>本月剩余政商行动</span><b id="govActions">3 次</b></div>
+        <div class="kv"><span>累计打点支出（账外）</span><b id="govSpent">0万</b></div>
+        <div class="kv"><span>靠内定拿下的项目</span><b id="govInsiderWins">0 个</b></div>
+        <div class="kv"><span>人情总账（正=别人欠你，负=你欠别人）</span><b id="govFavor">0</b></div>
+        <div class="kv"><span>最高牵连（某官员落马时的引爆点）</span><b id="govExposure">0</b></div>
+        <div class="kv"><span>中央巡视状态</span><b id="govInsp">暂无风声</b></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn sm teal" id="btnDonate">🎗 公益捐赠 30万（降热度 -12，声誉 +3）</button>
+          <button class="btn sm" id="btnLawyer">⚖ 聘法务顾问 20万（降热度 -8，此后每月热度衰减加快）</button>
+          <button class="btn sm" id="btnPr">📣 做合规宣传 10万（声誉 +2，降热度 -4）</button>
+          <button class="btn sm" id="btnSelfAudit">🧾 主动迎审自查 15万（降热度 -10、牵连 -12，但可能查出旧账）</button>
+        </div>
+      </div>
+      <div class="grid2" id="officialList"></div>
+      <div class="card">
+        <h3>老周（办公室主任）耳语</h3>
+        <div id="laozhou" style="font-size:13.5px;line-height:1.9"></div>
+        <button class="btn sm" id="btnAskZhou" style="margin-top:8px">向老周打听打听（免费，每月一次）</button>
+      </div>
+    </section>
+
+    <!-- GREY VIEW -->
+    <section class="view" id="view-grey">
+      <div class="card">
+        <h3>灰色账本（只有你和老周知道）</h3>
+        <div class="sub">行贿打点、待兑现的回扣、从材料商和分包商手里收的回扣，都记在这本账上。账越厚，钱越快，脖子上的绳也越紧。</div>
+        <div class="kv"><span>累计行贿 / 打点</span><b id="gBribeOut">0万</b></div>
+        <div class="kv"><span>累计已付回扣（给官员/中间人）</span><b id="gKickPaid">0万</b></div>
+        <div class="kv"><span>累计收受回扣（材料商/分包商）</span><b id="gKickIn">0万</b></div>
+        <div class="kv"><span>内定中标次数</span><b id="gInsider">0</b></div>
+        <div class="kv"><span>当前监察热度</span><b id="gHeat">0</b></div>
+      </div>
+      <div class="card">
+        <h3>待兑现的回扣承诺</h3>
+        <div class="sub">内定中标时答应人家的，拖太久对方会不高兴——轻则关系清零，重则反手一个举报。</div>
+        <div id="oweList"></div>
+      </div>
+      <div class="card">
+        <h3>人情账户明细</h3>
+        <div class="sub">谁欠谁，一笔一笔都记着。内定中标、请托办事、官员出手帮你摆平麻烦，都会让你欠下人情；饭局送礼、还人情能把账抹平。</div>
+        <div id="favorList"></div>
+      </div>
+      <div class="card">
+        <h3>供应链策略（项目全周期）</h3>
+        <div class="sub">采购方式决定成本和事故率，选定后持续生效。正规集采贵一点但稳；低价直采省钱，工地出事的概率明显上升；关系供应商要靠政商关系网撑着。</div>
+        <div class="seg" id="supplySeg">
+          <button class="btn sm" data-supply="quality">正规集采（成本稳、事故低）</button>
+          <button class="btn sm" data-supply="cheap">低价直采（成本 -6%、事故高）</button>
+          <button class="btn sm" data-supply="guanxi">关系供应商（需关系总评 ≥25，成本 -3%）</button>
+        </div>
+        <div class="mini" id="supplyNote" style="margin-top:6px"></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h3>材料商报价 · 收不收回扣？</h3>
+          <div class="sub">每月刷新。吃回扣：当月材料成本直降、现金入账；代价是热度 +，且在建项目事故率上升。</div>
+          <div id="supplierList"></div>
+        </div>
+        <div class="card">
+          <h3>分包商「进贡」</h3>
+          <div class="sub">分包队伍想进场，先递个红包。收了能补现金，拒了涨声誉——全看你这个月的胃口和胆量。</div>
+          <div id="subconList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CO VIEW -->
+    <section class="view" id="view-co">
+      <div class="card">
+        <h3>资质与业绩</h3>
+        <div class="kv"><span>房建总承包</span><b id="qF">三级（可投 ≤2,000万）</b></div>
+        <div class="kv"><span>市政总承包</span><b id="qS">未取得</b></div>
+        <div class="kv"><span>累计完工项目</span><b id="qDone">0 个</b></div>
+        <div class="kv"><span>企业声誉</span><b id="qRep">50</b></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn sm" id="btnUpQual">申请房建升二级（费用 60万，需完工≥2、净资产≥800万）</button>
+          <button class="btn sm" id="btnAddQual">增项市政三级（费用 80万，需净资产≥800万）</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>成就墙</h3>
+        <div id="achList"><span class="mini">暂无成就，去拿下第一个项目吧。</span></div>
+      </div>
+      <div class="card">
+        <h3>周期 · 杠杆 · 风险传染</h3>
+        <div class="sub">行业每半年换一档周期；开发商在下行期暴雷会传染到你的回款；杠杆越高、牵连越深，中央巡视的威胁值涨得越快。</div>
+        <div id="riskList"></div>
+      </div>
+      <div class="card">
+        <h3>36 个月结算 / 提前结局</h3>
+        <div class="sub">满 36 个月自动结算。净资产冲到 8,000万且声誉 ≥60、热度 &lt;60，可走上市之路；热度失控被查实，则直接落马结局。</div>
+        <button class="btn primary" id="btnSettle">现在就结算这一局 →</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- START MODAL -->
+<div class="overlay show" id="startModal">
+  <div class="modal">
+    <div style="background:var(--ink);color:#fff;padding:16px;margin:-20px -20px 14px">
+      <div style="font-family:'Songti SC','STSong','SimSun','Source Han Serif SC','Noto Serif SC',serif;font-size:30px;font-weight:900">基建<span style="color:var(--orange)">狂魔</span> <span style="font-size:14px;color:#ffb38f">政商版</span></div>
+      <div style="font-size:13px;color:#ffb38f;font-weight:700;margin-top:5px">创作人：邓元元</div>
+      <div style="font-size:12.5px;color:#b9c7d1;margin-top:4px">从一支施工队，到特级资质、上市公司——这一版，你还能经营另一张网：和当地政府、官员处关系，靠内部消息与内定中标弯道超车。只是网织得越密，巡视组来的时候越难脱身。</div>
+      <div style="font-size:12px;color:#8fa2b1;margin-top:5px">🌐 国内直连版 · 网页版游戏：在中国境内联网，用浏览器打开本页即可直接游玩，无需 VPN、无需下载安装。本页零境外资源加载，打开不卡在字体和脚本上。</div>
+    </div>
+    <label class="mini">公司名称</label>
+    <input class="txt" id="inCoName" value="东大建筑" maxlength="10">
+    <div class="mini" style="margin:6px 0 10px">工商登记全称：江州<span id="coFull">东大建筑</span>工程有限公司</div>
+    <label class="mini">时代</label>
+    <div class="pickgrid" id="pickEra">
+      <button class="pick on" data-v="2026"><b>2026 当下</b><span>地产尾声、基建托底，政府项目回款慢但稳，监察最严。</span></button>
+      <button class="pick" data-v="2008"><b>2008 四万亿</b><span>刺激大放水，政府项目井喷，中标容易、钱也好赚，热度涨得慢。</span></button>
+      <button class="pick" data-v="2016"><b>2016 PPP浪潮</b><span>政企合作遍地开花，大项目多，和政府绑得越深机会越大。</span></button>
+      <button class="pick" data-v="2021"><b>2021 地产寒冬</b><span>开发商项目暴雷多，政府单最抢手，关系价值翻倍、竞争也最凶。</span></button>
+    </div>
+    <label class="mini">出身背景</label>
+    <div class="pickgrid" id="pickBg">
+      <button class="pick on" data-v="private"><b>民营起家</b><span>900万现金、房建三级、信用70。白手起家，标准开局。</span></button>
+      <button class="pick" data-v="soe"><b>国企改制</b><span>1500万现金、房建二级、信用75，自带城投董事长旧交情（关系+25）。</span></button>
+      <button class="pick" data-v="attach"><b>挂靠转正</b><span>600万现金、信用60，但和住建局局长是老乡（关系+30），开发商项目更多。</span></button>
+    </div>
+    <label class="mini">难度</label>
+    <div class="pickgrid" id="pickDiff">
+      <button class="pick" data-v="easy"><b>宽松</b><span>对手报价保守，巡视少，热度涨得慢。</span></button>
+      <button class="pick on" data-v="normal"><b>标准</b><span>市场环境正常，竞争适中。</span></button>
+      <button class="pick" data-v="hard"><b>困难</b><span>对手压价狠，巡视频繁，一次失误就可能翻车。</span></button>
+    </div>
+    <button class="btn primary block" id="btnStart" style="min-height:46px;font-size:15px">开始经营 →</button>
+    <div class="qr-start">
+      <div class="qs-t">📱 浏览器二维码 · 扫码直接玩（国内无需 VPN）</div>
+      <div class="qrbox" id="qrStart"></div>
+      <div class="qs-s" style="margin-top:8px">拿手机扫上面的二维码，就会在手机浏览器里打开本页，<br>国内网络打开即可直接游玩，无需下载、无需安装、无需 VPN。</div>
+      <div class="qr-fallback" id="qrStartFallback" style="display:none;margin-top:6px;color:var(--muted)"></div>
+    </div>
+    <div class="mini" style="margin-top:9px">创作人：邓元元 ｜ 纯虚构经营游戏：所有人物、单位均为虚构。行贿受贿在游戏里自带举报、巡视与落马风险——现实里更别碰。本局进度不保存，关页即重置。</div>
+  </div>
+</div>
+
+<!-- EVENT MODAL -->
+<div class="overlay" id="eventModal">
+  <div class="modal">
+    <div class="mini" id="evKind" style="color:var(--orange-d);font-weight:700;letter-spacing:.15em">突发事件</div>
+    <h2 id="evTitle">事件</h2>
+    <p id="evBody" style="font-size:14px;line-height:1.85;color:#333"></p>
+    <div class="choices" id="evChoices"></div>
+  </div>
+</div>
+
+<!-- ENDING MODAL -->
+<div class="overlay" id="endModal">
+  <div class="modal">
+    <div class="mini" style="letter-spacing:.15em;color:var(--orange-d);font-weight:700">本局结算</div>
+    <h2 id="endTitle">结局</h2>
+    <div class="ending-score" id="endScore">—</div>
+    <p id="endBody" style="font-size:14px;line-height:1.9;color:#333"></p>
+    <div id="endStats" style="font-size:13px;line-height:2"></div>
+    <div class="mini" style="margin-top:10px;text-align:center">《基建狂魔 · 政商版》创作人：邓元元</div>
+    <button class="btn primary block" id="btnAgain" style="margin-top:12px;min-height:46px">再来一局 →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id)};
+function rnd(a,b){return a+Math.random()*(b-a)}
+function ri(a,b){return Math.floor(rnd(a,b+1))}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function fmt(n){ n=Math.round(n); if(Math.abs(n)>=10000) return (n/10000).toFixed(2).replace(/\.?0+$/,'')+"亿"; return n+"万"; }
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+
+var ERAS={
+ "2026":{label:"2026 当下",govPay:1.15,heatMul:1.25,projMul:1.0,devRisk:.10},
+ "2008":{label:"2008 四万亿",govPay:0.9,heatMul:0.7,projMul:1.35,devRisk:.04},
+ "2016":{label:"2016 PPP浪潮",govPay:1.0,heatMul:1.0,projMul:1.2,devRisk:.06},
+ "2021":{label:"2021 地产寒冬",govPay:1.05,heatMul:1.1,projMul:0.9,devRisk:.22}
+};
+var OFFICIAL_SEED=[
+ {name:"王建国",role:"市住建局局长",desc:"管资质、管房建口审批。老派，爱喝两杯，最恨当众让他下不来台。",greed:55,heat:1.0,tenure:ri(18,40),domain:"房建",faction:"本土派",likes:"白酒 · 字画",caution:45,ambition:60},
+ {name:"李明轩",role:"市发改委副主任",desc:"管立项和大项目盘子。海归派，讲话滴水不漏，礼太轻他看不上。",greed:70,heat:1.15,tenure:ri(14,34),domain:"立项",faction:"学院派",likes:"红酒 · 高尔夫",caution:78,ambition:85},
+ {name:"赵国强",role:"滨江区区长",desc:"滨江新区的地和项目都过他的手。作风强势，认人不认标书。",greed:62,heat:1.05,tenure:ri(12,30),domain:"市政",faction:"本土派",likes:"排场 · 面子",caution:50,ambition:72},
+ {name:"陈志远",role:"江州城投董事长",desc:"城投平台一把手，半个商人。喜欢谈「长期合作」，回款要靠交情催。",greed:48,heat:0.85,tenure:ri(20,44),domain:"城投",faction:"市场派",likes:"喝茶 · 谈长期合作",caution:62,ambition:55},
+ {name:"刘海涛",role:"市交通局处长",desc:"道路桥梁项目评标专家组成员。牌瘾大，酒量浅，人情记得特别清。",greed:66,heat:1.1,tenure:ri(10,28),domain:"交通",faction:"技术派",likes:"棋牌 · 钓鱼",caution:38,ambition:48},
+ {name:"周文斌",role:"市财政局科长",desc:"管拨款进度的小科长，官不大、卡得死。进度款快慢，全看关系远近。",greed:40,heat:0.8,tenure:ri(22,48),domain:"财政",faction:"无派系",likes:"稳妥 · 不张扬",caution:84,ambition:35}
+];
+var CYCLES=[
+ {name:"上行期",mul:1.15,margin:0.02,note:"招标量放大、毛利走高，开发商回款也顺。"},
+ {name:"平稳期",mul:1.0,margin:0,note:"招标量与毛利正常。"},
+ {name:"下行期",mul:0.85,margin:-0.02,note:"招标缩水、毛利变薄，开发商回款会传染性变慢——先保现金流。"},
+ {name:"托底期",mul:1.06,margin:0.01,note:"政策托底，政府项目盘子回暖，回款优先排政府单。"}
+];
+function stageOf(rel){return rel>=85?"铁杆":rel>=60?"内定盟友":rel>=30?"消息灵通":rel>=15?"熟络":"点头之交"}
+function inspName(st){return ["暂无风声","⚠ 已有风声","🚨 巡视组进驻","🆘 约谈阶段"][st]||"暂无风声"}
+var TENDER_NAMES={
+ "房建":["实验小学教学楼","老旧小区改造","产业园研发楼","市人民医院门诊楼","保障房三期","职业学校实训楼","档案馆新馆","体育中心副馆"],
+ "市政":["滨江大道快速化改造","临港片区道路配套","老城区雨污分流","跨江大桥引桥","新区综合管廊","河道整治景观工程","公交枢纽站","智慧停车楼"],
+ "交通":["城际快速路二标段","县乡公路提档升级","物流园专用通道","高铁站连接线","农村公路安防工程"]
+};
+var MGR_POOL=[
+ {name:"周永刚",skill:6,tag:"技术攻关",salary:2.4,desc:"技术过硬，更容易拿回奖项加分"},
+ {name:"郭俊杰",skill:4,tag:"进度管理",salary:1.9,desc:"排期老练，天气停工少一半"},
+ {name:"罗卫东",skill:5,tag:"商务关系",salary:2.1,desc:"人脉广，投标更容易中"},
+ {name:"胡立新",skill:3,tag:"成本控制",salary:1.7,desc:"精打细算，项目成本再低1%"},
+ {name:"沈建军",skill:7,tag:"全能悍将",salary:3.2,desc:"进度、成本、关系样样行，贵有贵的道理"},
+ {name:"马小军",skill:2,tag:"新手上路",salary:1.1,desc:"便宜，但项目容易出岔子"}
+];
+var S, started=false;
+
+function newGame(){
+ var era=$("pickEra").querySelector(".on").dataset.v;
+ var bg=$("pickBg").querySelector(".on").dataset.v;
+ var diff=$("pickDiff").querySelector(".on").dataset.v;
+ S={
+  co:$("inCoName").value.trim()||"东大建筑", era:era, diff:diff,
+  year:parseInt(era,10), month:1, totalMonths:0,
+  cash:900, debt:0, creditLine:700, creditScore:70, reputation:50,
+  heat:0, lawyer:false, qualF:3, qualS:0, doneCount:0, totalProfit:0,
+  govActions:3, zhouUsed:false,
+  officials:OFFICIAL_SEED.map(function(o){return JSON.parse(JSON.stringify(o))}).map(function(o){o.relation=ri(2,10);o.status="在任";o.bribes=0;o.favor=0;o.exposure=0;return o}),
+  bridge:0, inspStage:0, inspCooldown:0, rescueArmed:true, rescueUsed:false,
+  supplyMode:"quality", supplyBuff:0, delayDue:false, jointNext:false, bizUsed:false, auditUsed:false,
+  cycleIdx:1, cycleTimer:0, landOpp:null,
+  rivals:[{name:"远洋路桥",str:62},{name:"恒通建设",str:52},{name:"江州二建",str:44}],
+  tenders:[], projects:[], owes:[], logs:[], ach:{},
+  bribeOut:0, kickPaid:0, kickIn:0, insiderWins:0, insiderUsed:0,
+  managers:[JSON.parse(JSON.stringify(MGR_POOL[0])),JSON.parse(JSON.stringify(MGR_POOL[1]))],
+  hire:JSON.parse(JSON.stringify(pick(MGR_POOL))), supplier:null, subcon:null,
+  supplierStreak:0, gameOver:false
+ };
+ if(bg==="soe"){S.cash=1500;S.qualF=2;S.creditScore=75;S.creditLine=1100;off("陈志远").relation=32;}
+ if(bg==="attach"){S.cash=600;S.creditScore=60;off("王建国").relation=38;}
+ if(diff==="easy"){S.creditLine+=200;}
+ genTenders(true); genSupplier(); genSubcon(); genLand();
+ log("开局："+S.co+"成立，账上现金 "+fmt(S.cash)+"，"+S.managers.length+" 名项目经理。老周说：<b>「标要投，人也要处。这个月先去招标里看看，有政府项目就去政商关系里拜拜码头。」</b>");
+ if(bg==="soe")log("国企改制背景：城投陈志远是你老领导，关系起点不错。");
+ if(bg==="attach")log("挂靠转正背景：住建局王建国是老乡，开局关系不浅，但现金紧。");
+ started=true; render();
+}
+function off(name){return S.officials.find(function(o){return o.name===name})}
+function relAvg(){var a=S.officials.filter(function(o){return o.status==="在任"});if(!a.length)return 0;return Math.round(a.reduce(function(s,o){return s+o.relation},0)/a.length)}
+function totalFavor(){return S.officials.reduce(function(s,o){return s+(o.favor||0)},0)}
+function maxExposure(){return S.officials.reduce(function(m,o){return Math.max(m,o.exposure||0)},0)}
+function centralThreat(){return Math.round(S.heat + S.bribeOut/12 + S.insiderWins*4 + maxExposure()/5 + (S.bridge>0?4:0))}
+function netAssets(){var pv=S.projects.reduce(function(s,p){return s+p.value*0.35},0);return Math.round(S.cash - S.debt + pv + 220)}
+function toast(msg){var t=$("toast");t.textContent=msg;t.style.display="block";setTimeout(function(){t.style.display="none"},2600)}
+function log(html){S.logs.unshift({m:S.year+"/"+S.month,html:html});if(S.logs.length>60)S.logs.pop();var b=$("logBox");if(b)b.innerHTML=S.logs.map(function(l){return "<div><span style='color:#999'>"+l.m+"</span>　"+l.html+"</div>"}).join("")}
+function ach(id,label){if(S.ach[id])return;S.ach[id]=label;toast("🏆 成就达成："+label);renderAch()}
+function addHeat(n){var mul=ERAS[S.era].heatMul*(S.diff==="hard"?1.3:S.diff==="easy"?0.7:1);S.heat=clamp(Math.round(S.heat+n*mul),0,100)}
+function qualLimit(){return S.qualF===1?20000:S.qualF===2?8000:2000}
+
+/* ---------- tenders ---------- */
+var usedNames={};
+function genTenders(full){
+ var n=full?5:ri(2,3);
+ for(var i=0;i<n;i++){
+  var type=pick(["房建","房建","市政","市政","交通"]);
+  var pool=TENDER_NAMES[type].filter(function(x){return !usedNames[x]});
+  if(!pool.length)continue;
+  var name=pick(pool); usedNames[name]=1;
+  var gov=Math.random()<0.62;
+  var owner=gov?pick(["政府/事业单位","城投平台","区政府","国企业主"]):pick(["开发商","国企业主","民营开发商"]);
+  var value=Math.round(rnd(500,2600)*ERAS[S.era].projMul*CYCLES[S.cycleIdx].mul/10)*10;
+  if(type==="交通")value=Math.round(value*1.3);
+  var official=null;
+  if(gov){ var cand=S.officials.filter(function(o){return o.status==="在任"&&(o.domain===type||o.domain==="立项"||o.domain==="城投")}); official=cand.length?pick(cand).name:pick(S.officials).name; }
+  S.tenders.push({id:Date.now()+i+Math.random(),name:name,type:type,city:"江州",owner:owner,gov:gov,value:value,
+    months:ri(4,10),credit:pick(["AA+","AA","AAA","A"]),official:official,
+    rivalLow:Math.round(value*rnd(0.86,0.97)), margin:rnd(0.08,0.16)+CYCLES[S.cycleIdx].margin, deadline:ri(1,2)});
+ }
+}
+function canBid(t){
+ if(t.type==="房建"&&t.value>qualLimit())return "需更高房建资质（上限 "+fmt(qualLimit())+"）";
+ if(t.type==="市政"&&S.qualS===0)return "需市政资质（公司页增项）";
+ if(t.type==="交通"&&S.qualS===0&&S.qualF>2)return "需市政资质或房建二级";
+ if(S.cash< t.value*0.03)return "现金不足投标保证金";
+ return null;
+}
+function doBid(id){
+ var t=S.tenders.find(function(x){return x.id===id}); if(!t)return;
+ var strat=document.querySelector("[data-strat='"+id+"']").value;
+ var useInfo=document.querySelector("[data-info='"+id+"']").checked;
+ var useInsider=document.querySelector("[data-insider='"+id+"']").checked;
+ var o=t.official?off(t.official):null;
+ var fee=0; var jointUsed=S.jointNext;
+ if(useInfo){ if(!o||o.relation<30){toast("关系不到 30，还打听不到内部消息");return;} o.favor=clamp((o.favor||0)-3,-60,60); }
+ if(useInsider){
+   if(!o||o.relation<60){toast("关系不到 60，对方不敢帮你内定");return;}
+   fee=Math.round(t.value*rnd(0.03,0.05));
+   if(S.cash<fee+ t.value*0.03){toast("现金不够付打点费 "+fmt(fee));return;}
+   S.cash-=fee; S.bribeOut+=fee; o.bribes+=fee; o.exposure=clamp((o.exposure||0)+ri(16,26),0,100); o.favor=clamp((o.favor||0)-10,-60,60); S.insiderUsed++; addHeat(ri(7,13));
+   log("给 <b>"+o.name+"</b> 送去打点费 "+fmt(fee)+"，对方只回了四个字：<b>「等消息吧。」</b>");
+ }
+ S.cash-=Math.round(t.value*0.03); // 保证金，完标退回大部分在利润里体现
+ var bidFactor=strat==="low"?0.90:strat==="high"?1.03:0.96;
+ var myBid=t.value*bidFactor;
+ var chance=0.42;
+ if(myBid<t.rivalLow)chance+=0.25; else if(myBid<t.rivalLow*1.05)chance+=0.08; else chance-=0.15;
+ chance+= (S.reputation-50)*0.003 + (S.creditScore-70)*0.002;
+ if(S.managers.some(function(m){return m.tag==="商务关系"}))chance+=0.06;
+ if(o)chance+= o.relation*0.0015;
+ if(S.diff==="hard")chance-=0.06; if(S.diff==="easy")chance+=0.06;
+ if(jointUsed)chance+=0.18;
+ if(useInsider)chance=0.93;
+ S.jointNext=false;
+ var win=Math.random()<clamp(chance,0.05,0.97);
+ S.tenders=S.tenders.filter(function(x){return x.id!==id});
+ if(win){
+   var kickOwe=useInsider?Math.round(t.value*rnd(0.02,0.04)):0;
+   S.projects.push({name:t.name,type:t.type,value:t.value,total:t.months,left:t.months,margin:t.margin-(strat==="low"?0.035:strat==="high"?-0.015:0)-(jointUsed?0.04:0),gov:t.gov,insider:useInsider,owner:t.owner});
+   if(useInsider){S.insiderWins++; if(kickOwe>0){S.owes.push({to:o.name,amount:kickOwe,due:S.totalMonths+3,proj:t.name}); log("内定拿下 <b>《"+t.name+"》</b>！但答应 "+o.name+" 的回扣 "+fmt(kickOwe)+" 要在 3 个月内兑现，去灰色账本里付。");} ach("insider","暗度陈仓：首次内定中标");}
+   log("<span class='good'>中标《"+t.name+"》</span> 合同 "+fmt(t.value)+"，工期 "+t.months+" 个月"+(useInfo?"（内部消息：对手低价约 "+fmt(t.rivalLow)+"）":""));
+   if(S.projects.length===1)ach("firstwin","开张大吉：首个项目");
+   toast("🎉 中标《"+t.name+"》 "+fmt(t.value));
+ }else{
+   log("《"+t.name+"》落标。对手低价约 "+fmt(t.rivalLow)+(useInfo?"，你的内部消息没白打听，下次压着它报":"，下次可以先去打听内部消息再报"));
+   if(useInsider)log("<span class='bad'>钱送了、标还没拿到——"+(o?o.name:"对方")+" 在电话里只说「这次情况特殊」。</span>");
+   toast("落标：《"+t.name+"》");
+ }
+ render();
+}
+
+/* ---------- officials actions ---------- */
+function govAct(name,kind){
+ if(S.govActions<=0){toast("本月政商行动用完了，结束本月刷新");return;}
+ var o=off(name); if(!o||o.status!=="在任"){toast("对方已不在任");return;}
+ var cost=0,rel=0,heat=0,msg="";
+ if(kind==="visit"){rel=ri(2,4);msg="登门拜访 "+o.name+"，聊了聊行业形势，混了个脸熟。";}
+ if(kind==="dinner"){cost=5;rel=ri(5,9);heat=2;msg="在江州人家摆了一桌，"+o.name+" 喝到微醺，拍着你肩膀说「小伙子懂事」。";}
+ if(kind==="gift"){cost=20;rel=ri(9,15);heat=5;msg="给 "+o.name+" 备了份「土特产」，对方推辞两下收下了，眼神热络了不少。";}
+ if(kind==="big"){cost=80;rel=ri(16,24);heat=11;msg="一笔大额打点送出，"+o.name+" 当场表态：「以后江州的项目，你先挑。」";}
+ if(S.cash<cost){toast("现金不够，需要 "+fmt(cost));return;}
+ S.cash-=cost; if(cost>=20){S.bribeOut+=cost;o.bribes+=cost;}
+ o.favor=clamp((o.favor||0)+(kind==="visit"?1:kind==="dinner"?3:kind==="gift"?4:6),-60,60);
+ if(kind==="gift")o.exposure=clamp((o.exposure||0)+6,0,100);
+ if(kind==="big")o.exposure=clamp((o.exposure||0)+14,0,100);
+ if(kind==="dinner")o.exposure=clamp((o.exposure||0)+2,0,100);
+ S.govActions--; o.relation=clamp(o.relation+rel,0,100); if(heat)addHeat(heat);
+ log(msg+"（与 "+o.name+" 关系 +"+rel+"）");
+ if(o.relation>=30)ach("rel30","登堂入室：任一官员关系达 30");
+ if(o.relation>=60)ach("rel60","自己人：任一官员关系达 60");
+ if(o.relation>=90)ach("rel90","铁杆盟友：任一官员关系达 90");
+ render();
+}
+
+function askFavor(name){
+ if(S.govActions<=0){toast("本月政商行动用完了");return;}
+ var o=off(name); if(!o||o.status!=="在任")return;
+ if(o.relation<40){toast("关系不到 40，人家不会替你办事");return;}
+ if((o.favor||0)<-30){toast(o.name+" 脸色不好看：你欠的人情太多了，先还账");return;}
+ S.govActions--; o.favor=clamp(o.favor-12,-60,60);
+ if(o.domain==="财政"){ var amt=Math.max(20,Math.round(S.projects.filter(function(p){return p.gov}).reduce(function(s,p){return s+p.value},0)*0.03)); S.cash+=amt; log("请托 <b>"+o.name+"</b> 催拨款：卡了两个月的进度款放下来 "+fmt(amt)+"。（人情 -12）"); }
+ else if(o.domain==="城投"){ S.cash+=40; log("<b>"+o.name+"</b> 打了个招呼，城投提前结了一笔尾款 "+fmt(40)+"。（人情 -12）"); }
+ else if(o.domain==="立项"){ genTenders(false); log("<b>"+o.name+"</b> 提前把下季度的项目盘子漏给了你：招标清单多了新项目。（人情 -12）"); }
+ else if(o.domain==="市政"){ S.landDiscount=true; genLand(true); log("<b>"+o.name+"</b> 松了口：新区那块地，可以谈定向出让——去「土地」卡片看看。（人情 -12）"); }
+ else if(o.domain==="房建"){ S.creditScore=clamp(S.creditScore+5,30,100); S.reputation=clamp(S.reputation+2,0,100); log("<b>"+o.name+"</b> 帮你把积压的审批一次过会：信用 +5，声誉 +2。（人情 -12）"); }
+ else { S.tenders.forEach(function(t){t.rivalLow=Math.round(t.rivalLow*1.05)}); log("<b>"+o.name+"</b> 在评标专家组里替你说了话：对手们的有效报价被抬高了。（人情 -12）"); }
+ render();
+}
+function repayFavor(name){
+ var o=off(name); if(!o)return;
+ if((o.favor||0)>=0){toast("你不欠 "+o.name+" 人情");return;}
+ if(S.cash<25){toast("还人情也要花钱：需要 25万");return;}
+ S.cash-=25; o.favor=clamp(o.favor+12,-60,60); addHeat(1);
+ log("你备了份厚礼登门「汇报工作」，把欠 <b>"+o.name+"</b> 的人情还上一截（人情 +12）。对方笑容回来了。");
+ render();
+}
+function introduce(name){
+ if(S.govActions<=0){toast("本月政商行动用完了");return;}
+ var o=off(name); if(!o||o.relation<60){toast("关系不到 60，人家不会替你引荐");return;}
+ var others=S.officials.filter(function(x){return x.status==="在任"&&x.name!==name});
+ if(!others.length)return;
+ others.sort(function(a,b){return a.relation-b.relation});
+ var t=others[0];
+ S.govActions--; o.favor=clamp((o.favor||0)-6,-60,60); t.relation=clamp(t.relation+9,0,100);
+ log("<b>"+o.name+"</b> 组了个局，把 <b>"+t.name+"</b> 引荐给你：饭桌上三杯酒下肚，对方和你的关系 +9。（欠 "+o.name+" 人情 -6）");
+ render();
+}
+
+/* ---------- land / old-city renewal ---------- */
+function genLand(forceGoudi){
+ var r=forceGoudi?0.5:Math.random();
+ if(r<0.34){ var c1=ri(150,320); S.landOpp={type:"土地拍卖",name:pick(["滨江新区商住地块","临港产业园东侧地块","高铁站前综合地块","老城核心区小地块"]),cost:c1,value:Math.round(c1*rnd(1.7,2.1)),margin:0.16,months:ri(8,12)}; }
+ else if(r<0.67){ S.landOpp={type:"勾地 · 定向出让",name:pick(["新区定向出让地块（文体配套）","城投合作开发地块","区属平台回购地块"]),cost:ri(90,180),value:ri(320,560),margin:0.20,months:ri(8,11),official:Math.random()<0.5?"赵国强":"陈志远"}; if(forceGoudi)S.landOpp.cost=Math.round(S.landOpp.cost*0.85); }
+ else { S.landOpp={type:"旧改拆迁",name:pick(["老棉纺厂片区旧改","河西棚户区改造","旧货运站片区更新","城中村综合整治"]),cost:ri(80,170),value:ri(380,640),margin:0.24,months:ri(10,14),jiugai:true}; }
+}
+function landAct(act){
+ var L=S.landOpp; if(!L)return;
+ if(act==="skip"){ log("你放过了「"+L.name+"」——地和旧改天天有，现金流不是天天有。"); S.landOpp=null; render(); return; }
+ if(L.official){ var o=off(L.official); if(!o||o.status!=="在任"||o.relation<50){toast("勾地需要 "+L.official+" 在任且关系 ≥50");return;} }
+ if(S.cash<L.cost){toast("现金不够付土地款 "+fmt(L.cost));return;}
+ S.cash-=L.cost;
+ if(L.official){ var oo=off(L.official); oo.favor=clamp((oo.favor||0)-8,-60,60); oo.exposure=clamp((oo.exposure||0)+10,0,100); addHeat(7); log("勾地拿下 <b>《"+L.name+"》</b>，比拍卖省了一大截——"+oo.name+" 的人情欠下了，牵连也深了。"); }
+ else if(L.jiugai){ log("接下旧改 <b>《"+L.name+"》</b>：拆迁谈判从今天开始，钉子户和媒体都在路上了。"); }
+ else { log("拍下 <b>《"+L.name+"》</b>，土地款 "+fmt(L.cost)+" 已付，项目进场。"); }
+ S.projects.push({name:L.name,type:L.jiugai?"旧改":"房建",value:L.value,total:L.months,left:L.months,margin:L.margin,gov:!!L.official,insider:!!L.official,owner:L.official?"政府平台":"自有开发",jiugai:!!L.jiugai,land:true});
+ ach("land","首次拿地：土地/旧改项目进场");
+ S.landOpp=null; S.landDiscount=false;
+ render();
+}
+
+/* ---------- cash-flow rescue ---------- */
+function bridgeLoan(fromModal){
+ if(!fromModal){ if(S.rescueUsed){toast("本月抢救手段已用过一次");return;} S.rescueUsed=true; }
+ S.bridge+=200; S.cash+=200; S.creditScore=clamp(S.creditScore-3,30,100); addHeat(2);
+ log("🌉 紧急过桥贷到账 "+fmt(200)+"（月息 2.5%，信用 -3）。钱是续上了，利息每个月都在滴血。");
+ if(!fromModal)render();
+}
+function sellProject(fromModal){
+ if(!fromModal){ if(S.rescueUsed){toast("本月抢救手段已用过一次");return;} }
+ if(!S.projects.length){toast("没有在建项目可卖");return;}
+ if(!fromModal)S.rescueUsed=true;
+ var p=S.projects.reduce(function(a,b){return (b.value*b.left/b.total)>(a.value*a.left/a.total)?b:a},S.projects[0]);
+ var amt=Math.round(p.value*(p.left/p.total)*0.55);
+ S.projects=S.projects.filter(function(x){return x!==p});
+ S.cash+=amt; S.reputation=clamp(S.reputation-2,0,100);
+ log("💰 把《"+p.name+"》剩余工程打折转给同行，回款 "+fmt(amt)+"。项目没了，命续上了。（声誉 -2）");
+ if(!fromModal)render();
+}
+function delayPay(fromModal){
+ if(!fromModal){ if(S.rescueUsed){toast("本月抢救手段已用过一次");return;} S.rescueUsed=true; }
+ S.cash+=35; S.delayDue=true; S.reputation=clamp(S.reputation-3,0,100); addHeat(3);
+ log("🧾 拖住供应商货款 "+fmt(35)+" 先周转，约好下月连本带「茶水费」还 45万。（声誉 -3）");
+ if(!fromModal)render();
+}
+function rescueModal(){
+ showModal("爆雷预警","现金流断裂！账上已经是负数",
+  "工资、材料款、利息一起堵在门口。银行客户经理的电话已经打到第三个了——再不想办法，下个月就是资金链断裂结局。",
+  [{t:"<b>借过桥贷 +200万</b> —— 月息 2.5%，先活下来再说",fn:function(){bridgeLoan(true)}},
+   {t:"<b>打折卖掉一个在建项目</b> —— 回款约剩余价值的 55%，声誉 -2",fn:function(){sellProject(true)}},
+   {t:"<b>拖欠供应商与工资</b> —— 立刻 +35万，下月还 45万，声誉 -3、热度 +3",fn:function(){delayPay(true)}}]);
+}
+
+/* ---------- central inspection ---------- */
+function showInsp2(){
+ showModal("中央巡视组","巡视组进驻江州，点名要看城建口的账",
+  "没有预告，没有陪同。巡视组在宾馆包了一层楼，举报箱就摆在市政府门口。你送出去的每一笔钱、每一个内定项目，都可能变成谈话提纲。今晚，老周的电话打不通了。",
+  [{t:"<b>积极配合，主动退赃整改</b> —— 罚没约净资产 15%，热度大降，牵连清除大半",fn:function(){
+      var fine=Math.round(netAssets()*0.15); S.cash-=fine; S.heat=clamp(S.heat-35,0,100); S.reputation=clamp(S.reputation-8,0,100);
+      S.officials.forEach(function(o){o.exposure=clamp((o.exposure||0)-25,0,100)});
+      S.inspStage=0; S.inspCooldown=8; ach("insp","惊险过关：挺过一轮中央巡视");
+      log("<span class='good'>你主动交代了几笔「小问题」，退赃罚款 "+fmt(fine)+"。</span>巡视组组长合上本子：态度还算端正。这一关，过了。");}},
+   {t:"<b>找关系疏通</b> —— 需有官员关系 ≥70：花 100万、人情 -18，成败各半，败了直接进约谈",fn:function(){
+      var top=S.officials.filter(function(o){return o.status==="在任"}).sort(function(a,b){return b.relation-a.relation})[0];
+      if(!top||top.relation<70){ S.inspStage=3; log("<span class='bad'>你四处打电话，发现平时称兄道弟的人全在「开会」。</span>没有够硬的关系，这条路走不通——约谈通知到了。"); return; }
+      if(S.cash<100){ S.inspStage=3; log("<span class='bad'>疏通的钱都凑不齐。</span>约谈通知到了。"); return; }
+      S.cash-=100; top.favor=clamp((top.favor||0)-18,-60,60); top.exposure=clamp((top.exposure||0)+15,0,100);
+      if(Math.random()<0.55){ S.inspStage=0; S.inspCooldown=6; S.heat=clamp(S.heat-20,0,100); ach("insp","惊险过关：挺过一轮中央巡视"); log("<span class='good'>"+top.name+" 冒着风险递了句话，巡视组的名单上，你的名字被划掉了。</span>这份人情，你得记一辈子。"); }
+      else { S.inspStage=3; addHeat(10); log("<span class='bad'>疏通的事不知怎么传到了巡视组耳朵里——这下不是查账，是查你这个人了。</span>约谈通知到了。"); }}},
+   {t:"<b>连夜销毁账本，硬扛</b> —— 五五开：成了热度大降，败了直接约谈并罚款 50万",fn:function(){
+      if(Math.random()<0.5){ S.inspStage=0; S.inspCooldown=6; S.heat=clamp(S.heat-18,0,100); S.officials.forEach(function(o){o.exposure=clamp((o.exposure||0)+8,0,100)}); ach("insp","惊险过关：挺过一轮中央巡视"); log("<span class='good'>灰色账本在锅炉房烧了一夜。</span>巡视组查了三天，没找到实锤——但每个经手人的牵连，反而更深了。"); }
+      else { S.inspStage=3; S.cash-=50; addHeat(10); log("<span class='bad'>烧账本的灰还没凉，巡视组就从银行流水里拼出了全貌。</span>罚款 50万，约谈通知到了。"); }}}]);
+}
+function showInsp3(){
+ showModal("中央巡视组 · 约谈","小会议室，一杯水，一支录音笔",
+  "谈话已经进行了四个小时。对方把你和几位官员的往来一笔一笔念出来，精确到月份。念完，他抬起头：「剩下的，你自己说，还是我们继续查？」",
+  [{t:"<b>交代问题，争取宽大处理</b> —— 罚没约净资产 30%，信用声誉重挫，一位牵连最深的官员落马，但你能回家",fn:function(){
+      var fine=Math.round(netAssets()*0.30); S.cash-=fine; S.creditScore=clamp(S.creditScore-20,30,100); S.reputation=clamp(S.reputation-15,0,100); S.heat=25; S.inspStage=0; S.inspCooldown=10;
+      var worst=S.officials.filter(function(o){return o.status==="在任"}).sort(function(a,b){return (b.exposure||0)-(a.exposure||0)})[0];
+      if(worst&&(worst.exposure||0)>20){ worst.status="落马"; log("<span class='bad'>🚨 你的交代牵出了 "+worst.name+"，他当晚被带走。</span>江州官场看你的眼神，从此不一样了。"); }
+      S.officials.forEach(function(o){if(o.status==="在任")o.relation=clamp(o.relation-15,0,100)});
+      log("罚没 "+fmt(fine)+"，你走出宾馆时天已经黑了。公司还在，你还在——代价是半壁江山和所有人的信任。");}},
+   {t:"<b>死扛到底，一个字不认</b> —— 45% 直接东窗事发，55% 侥幸脱身但元气大伤",fn:function(){
+      if(Math.random()<0.45){ gameEnd("caught"); }
+      else { S.heat=45; S.inspStage=0; S.inspCooldown=8; S.reputation=clamp(S.reputation-10,0,100); log("<span class='good'>你扛了九个小时。</span>证据链差最后一环，巡视组撤了。但老周说：你的名字，已经写进档案了。"); }}}]);
+}
+function centralCheck(){
+ if(S.inspCooldown>0){S.inspCooldown--;return false;}
+ var th=centralThreat();
+ if(S.inspStage===0){
+   var p= th>60?0.30 : th>40?0.13 : S.bribeOut>120?0.05 : 0.02;
+   if(S.diff==="hard")p+=0.03; if(S.diff==="easy")p-=0.01;
+   if(Math.random()<Math.max(0.01,p)){ S.inspStage=1; addHeat(5); log("<span class='bad'>🍃 风声：听说中央巡视组下个月要进驻本省，第一站可能就是江州。</span>老周把灰色账本锁进了保险柜最底层。"); toast("🍃 风声：中央巡视组可能要来"); }
+   return false;
+ }
+ if(S.inspStage===1){
+   if(Math.random()<0.45){ S.inspStage=2; showInsp2(); return true; }
+   log("巡视的风声刮了一个月，又好像没了下文。老周说：<b>「别松气，这种事，从来都是先放风、再进门。」</b>");
+   return false;
+ }
+ if(S.inspStage===3){ showInsp3(); return true; }
+ return false;
+}
+
+/* ---------- grey ---------- */
+function genSupplier(){
+ var names=["宏发建材","鑫源商砼","东方钢材批发","江州管业集团"];
+ S.supplier={name:pick(names),save:ri(15,60),heat:ri(4,8)};
+}
+function genSubcon(){
+ var names=["老吴劳务队","川渝架子班","阿强土方队","本地水电班组"];
+ S.subcon={name:pick(names),amount:ri(8,35)};
+}
+function takeSupplier(){
+ if(S.cash<0)return;
+ S.cash+=S.supplier.save; S.kickIn+=S.supplier.save; S.supplierStreak++;
+ addHeat(S.supplier.heat);
+ log("收下 "+S.supplier.name+" 的回扣 "+fmt(S.supplier.save)+"，材料按「优惠价」进场。<span class='bad'>只有质检员老李多看了你一眼。</span>");
+ ach("kickin","雁过拔毛：首次收受回扣");
+ S.supplier=null; render();
+}
+function takeSubcon(accept){
+ if(accept){S.cash+=S.subcon.amount;S.kickIn+=S.subcon.amount;addHeat(ri(2,5));log(S.subcon.name+" 递上红包 "+fmt(S.subcon.amount)+" 求进场，你收下了。");}
+ else{S.reputation=clamp(S.reputation+2,0,100);log("你拒了 "+S.subcon.name+" 的红包，消息在圈里传开，声誉 +2。");}
+ S.subcon=null; render();
+}
+function payOwe(idx){
+ var w=S.owes[idx]; if(!w)return;
+ if(S.cash<w.amount){toast("现金不够付这笔回扣");return;}
+ S.cash-=w.amount; S.kickPaid+=w.amount; addHeat(ri(2,5));
+ var o=off(w.to); if(o&&o.status==="在任")o.relation=clamp(o.relation+6,0,100);
+ S.owes.splice(idx,1);
+ log("兑现给 <b>"+w.to+"</b> 的回扣 "+fmt(w.amount)+"（项目《"+w.proj+"》），对方回了个「👌」——哦不，是「合作愉快」。");
+ render();
+}
+
+/* ---------- month end ---------- */
+function endMonth(n){
+ if(S.gameOver)return;
+ for(var k=0;k<(n||1);k++){ if(S.gameOver)break; stepMonth(); }
+ render();
+}
+function stepMonth(){
+ S.totalMonths++; S.month++; if(S.month>12){S.month=1;S.year++;}
+ S.govActions=3; S.zhouUsed=false; S.bizUsed=false; S.auditUsed=false; S.rescueUsed=false;
+ genLand();
+ // cycle rotation
+ S.cycleTimer++; if(S.cycleTimer>=6){S.cycleTimer=0;S.cycleIdx=(S.cycleIdx+1)%CYCLES.length;log("📈 行业周期切换：<b>"+CYCLES[S.cycleIdx].name+"</b> —— "+CYCLES[S.cycleIdx].note);headline();}
+ // managers salary + overhead
+ var salary=S.managers.reduce(function(s,m){return s+m.salary},0)+2.0;
+ S.cash-=salary;
+ // debt interest
+ var interest=S.debt*0.008; S.cash-=interest;
+ if(S.bridge>0){ var bi=S.bridge*0.025; S.cash-=bi; if(Math.random()<0.5)log("过桥贷利息又扣了 "+fmt(bi)+"。这钱借得起，还起来要命。"); }
+ if(S.delayDue){ S.delayDue=false; S.cash-=45; log("上月拖欠的供应商货款到期，连本带茶水费还了 "+fmt(45)+"。"); }
+ // favor debt cooling: officials you owe too much cool off
+ S.officials.forEach(function(o){ if(o.status==="在任"&&(o.favor||0)<=-25){ o.relation=clamp(o.relation-3,0,100); if(Math.random()<0.3)log(o.name+" 最近见你有点冷淡——人情欠太久，是会变味的。"); } });
+ // projects progress
+ var income=0,cost=0;
+ var supplyMul=S.supplyMode==="cheap"?0.94:S.supplyMode==="guanxi"?(relAvg()>=25?0.97:1.02):0.99;
+ if(S.supplyBuff>0)supplyMul*=0.95;
+ S.projects.forEach(function(p){
+   var prog=p.value/p.total;
+   var c=prog*(1-p.margin)*(S.managers.some(function(m){return m.tag==="成本控制"})?0.99:1)*supplyMul;
+   var payDelay=(p.gov?ERAS[S.era].govPay:1.0);
+   var inc=prog*(Math.random()<0.75?1:0.4)* (off("周文斌")&&off("周文斌").relation>=50&&p.gov?0.9:1);
+   if(!p.gov&&CYCLES[S.cycleIdx].name==="下行期"&&Math.random()<0.30){ inc*=0.35; if(Math.random()<0.4)log("<span class='bad'>风险传染：</span>《"+p.name+"》的业主资金链紧张，本月回款只到了零头。"); }
+   if(p.jiugai&&Math.random()<0.16&&p.left>1){ var comp=ri(15,45); S.cash-=comp; S.reputation=clamp(S.reputation-2,0,100); log("<span class='bad'>旧改钉子户：</span>《"+p.name+"》最后一户坐地起价，你多付补偿 "+fmt(comp)+" 才拔掉，声誉 -2。"); }
+   income+=inc/payDelay* (p.gov?1:1); cost+=c;
+   p.left--;
+   // accident risk
+   var accP=(S.supplyMode==="cheap"?0.055:S.supplyMode==="quality"?0.02:0.03) + S.supplierStreak*0.012;
+   if(Math.random()<accP && p.left>0){
+     var fine=ri(10,50); S.cash-=fine; S.reputation=clamp(S.reputation-4,0,100);
+     log("<span class='bad'>《"+p.name+"》工地出事故</span>，停工整顿+罚款 "+fmt(fine)+"，声誉 -4。"+(S.supplierStreak>1?"工人私下嘀咕：这批材料，手感不对。":""));
+   }
+ });
+ S.cash+=income-cost;
+ var finished=S.projects.filter(function(p){return p.left<=0});
+ finished.forEach(function(p){
+   var profit=Math.round(p.value*p.margin); S.totalProfit+=profit; S.doneCount++;
+   S.reputation=clamp(S.reputation+2,0,100);
+   log("<span class='good'>《"+p.name+"》竣工结算</span>，利润约 "+fmt(profit)+"，声誉 +2。");
+   if(p.name.indexOf("滨江大道")>=0)ach("landmark","地标缔造者：建成滨江大道");
+ });
+ S.projects=S.projects.filter(function(p){return p.left>0});
+ // supplier streak decay + refresh offers
+ if(S.supplyBuff>0)S.supplyBuff--;
+ if(S.supplierStreak>0&&Math.random()<0.5)S.supplierStreak--;
+ genSupplier(); genSubcon();
+ // tenders expire & new
+ S.tenders.forEach(function(t){t.deadline--});
+ S.tenders=S.tenders.filter(function(t){return t.deadline>0});
+ genTenders(false);
+ // hire refresh
+ if(Math.random()<0.6)S.hire=JSON.parse(JSON.stringify(pick(MGR_POOL)));
+ // heat decay
+ var decay=S.lawyer?5:3; S.heat=clamp(S.heat-decay,0,100);
+ // owes overdue
+ S.owes.forEach(function(w){
+   if(S.totalMonths>w.due+1){
+     var o=off(w.to);
+     if(o&&o.status==="在任"&&Math.random()<0.4){ o.relation=clamp(o.relation-25,0,100); log("<span class='bad'>答应 "+w.to+" 的回扣拖太久了</span>，对方放话：「不讲信用的人，迟早有人替他讲。」关系大跌。"); w.due=S.totalMonths+1; }
+   }
+ });
+ // officials tenure
+ S.officials.forEach(function(o){
+   if(o.status!=="在任")return; o.tenure--;
+   if(o.tenure<=0){
+     var roll=Math.random();
+     if(roll<0.45){o.status="调任";log("🏛 "+o.name+"（"+o.role+"）<b>调任外地</b>，关系网断了一条线。临走他说：「有事……就别联系了。」");}
+     else if(roll<0.58&&(o.bribes>60||(o.exposure||0)>45)){o.status="落马";addHeat(14);log("<span class='bad'>🚨 "+o.name+" 被带走调查！</span>你和他来往不少，监察热度飙升。老周连夜让你「该删的删一删」。");if((o.exposure||0)>=40&&S.inspStage===0){S.inspStage=1;log("<span class='bad'>老周脸色发白：你们之间的牵连太深，他要是开口，名单上一定有你——中央巡视的风声，一下子紧了。</span>");}}
+     else{o.tenure=ri(10,24);log(o.name+" 任期考核过关，继续在任，你的关系保住了。");}
+   }
+ });
+ // cash-flow rescue (auto)
+ var modalShown=false;
+ if(S.cash>150)S.rescueArmed=true;
+ if(S.cash<0&&S.rescueArmed&&S.cash>-200){S.rescueArmed=false;rescueModal();modalShown=true;}
+ // central inspection can arrive any month
+ if(!modalShown&&centralCheck())modalShown=true;
+ // random event
+ if(!modalShown&&Math.random()<0.55)showEvent();
+ // local inspection check
+ if(!modalShown&&S.heat>=70&&Math.random()<0.30){ inspection(); }
+ // bankruptcy
+ if(S.cash< -200){ gameEnd("bankrupt"); return; }
+ if(S.totalMonths>=36){ gameEnd("settle"); return; }
+ if(S.totalMonths%6===0)headline();
+}
+function headline(){
+ var hs=[
+  "📰 江州日报：市里召开城建工作会，强调「亲清政商关系」——台下几位老板的笑容有点僵。",
+  "📰 本地热搜：某新区项目中标价「精准」压线，网友热议，官方回应称流程合规。",
+  "📰 财经版：江州城投新一轮融资到位，一批拖欠的工程款有望近期拨付。",
+  "📰 社会新闻：农民工工资专户检查启动，几家分包公司被点名。",
+  "📰 江州晚报：滨江新区拍出新地王，周边基建项目排队上马。"
+ ];
+ $("headline").textContent=pick(hs);
+}
+
+/* ---------- inspection & events ---------- */
+function inspection(){
+ var caught = S.heat>=90 ? Math.random()<0.65 : Math.random()<0.35;
+ if(caught){
+   var fine=Math.round(netAssets()*rnd(0.25,0.45));
+   S.cash-=fine; S.reputation=clamp(S.reputation-20,0,100); S.creditScore=clamp(S.creditScore-15,30,100);
+   addHeat(-55);
+   log("<span class='bad'>🚨 巡视组进驻江州，你被约谈三天。</span>罚款 "+fmt(fine)+"、声誉重挫。老周说：这一关算过去了，但档案里有了你一笔。");
+   showModal("巡视风暴","监察事件","巡视组查到你几笔账外往来的尾巴。罚款 <b>"+fmt(fine)+"</b>，公司声誉 -20、信用 -15。你在小会议室里坐了三天，出来时腿是软的——但总算出来了。下一次，未必。",[{t:"认罚整改，老实一阵",fn:function(){}}]);
+   if(S.cash<-200||S.bribeOut>600&&Math.random()<0.4){gameEnd("caught");return;}
+ }else{
+   addHeat(-25);
+   log("巡视组在江州转了一圈，没查到你头上。<span class='good'>热度回落</span>，老周给你倒了杯茶：压惊。");
+   toast("巡视组过境，你侥幸过关，热度 -25");
+ }
+}
+var EVENTS=[
+ {kind:"酒局事件",title:"饭局上，局长把杯子推过来",body:"王建国喝高了，把满满一杯白酒推到你面前：「这杯你不干，就是看不起江州的项目。」桌上十几双眼睛看着你。你的胃已经在抗议了。",choices:[
+   {t:"<b>仰头干了</b> —— 关系 +8，健康埋雷：下月可能「住院」少赚一笔",fn:function(){var o=off("王建国");if(o)o.relation=clamp(o.relation+8,0,100);if(Math.random()<0.4){S.cash-=ri(10,30);log("酒局硬撑的后遗症：你住了三天院，花了点钱，项目也耽误了。");}log("一杯下肚满桌叫好，王建国搂着你称兄道弟。");}},
+   {t:"<b>以茶代酒赔笑</b> —— 关系 +2，滴酒不沾全身而退",fn:function(){var o=off("王建国");if(o)o.relation=clamp(o.relation+2,0,100);log("你笑称肝不好，局长略显扫兴，但也没真计较。");}},
+   {t:"<b>让项目经理挡酒</b> —— 关系 +5，但经理心里记你一笔（工资要涨）",fn:function(){var o=off("王建国");if(o)o.relation=clamp(o.relation+5,0,100);if(S.managers[0])S.managers[0].salary=+(S.managers[0].salary+0.3).toFixed(1);log("经理替你挡了三杯，局长满意；回程车上经理幽幽地说：老板，这得算工伤。");}}
+ ]},
+ {kind:"人情事件",title:"官员家孩子结婚，份子给多少？",body:"赵国强秘书「不经意」透露：区长儿子下月办婚礼，在江州大酒店。去的人据说都不会空手。你和赵区长的关系还差一口气。",choices:[
+   {t:"<b>厚礼 30万</b> —— 关系 +12，热度 +6",fn:function(){S.cash-=30;S.bribeOut+=30;var o=off("赵国强");if(o){o.relation=clamp(o.relation+12,0,100);o.bribes+=30;}addHeat(6);log("婚礼上你坐了主桌附近，赵国强敬酒时特意绕到你这桌。");}},
+   {t:"<b>随大流 3万</b> —— 关系 +3",fn:function(){S.cash-=3;var o=off("赵国强");if(o)o.relation=clamp(o.relation+3,0,100);log("份子随了大流，不出头也不失礼。");}},
+   {t:"<b>送祝福不送钱</b> —— 声誉 +2，关系 -3",fn:function(){S.reputation=clamp(S.reputation+2,0,100);var o=off("赵国强");if(o)o.relation=clamp(o.relation-3,0,100);log("你只发了条祝福短信。清白是清白，就是酒桌上没人再提你的名字。");}}
+ ]},
+ {kind:"诱惑事件",title:"同行深夜来电：串标，干不干？",body:"远洋路桥的老板约你喝茶：下个月的快速路标段，你俩一家报价一家陪标，轮流坐庄，利润对半。事成之后，他先让你拿这一标。",choices:[
+   {t:"<b>干！</b> —— 下个交通/市政项目胜率大增，热度 +10",fn:function(){addHeat(10);S.tenders.forEach(function(t){t.rivalLow=Math.round(t.rivalLow*1.06)});log("串标同盟达成：对手们的报价悄悄抬高了，你的胜率上去了。只是这事知道的人，又多了一个。");ach("collude","围标同盟：首次串标");}},
+   {t:"<b>不干，各凭本事</b> —— 声誉 +3",fn:function(){S.reputation=clamp(S.reputation+3,0,100);log("你婉拒了串标。对方笑笑说「你清高」，转身去找下一家了。");}}
+ ]},
+ {kind:"危机事件",title:"农民工堵了公司大门",body:"分包老吴的班组三个月没拿到钱，几十号人拉着横幅堵在公司门口，有人已经在拍视频了。项目款其实卡在财政拨款环节。",choices:[
+   {t:"<b>先垫资发钱</b> —— 现金 -40万，声誉 +6，财政周科长欠你个人情（关系 +8）",fn:function(){S.cash-=40;S.reputation=clamp(S.reputation+6,0,100);var o=off("周文斌");if(o)o.relation=clamp(o.relation+8,0,100);log("你当场垫付工资，视频没火起来。周文斌听说后主动打来电话：下笔拨款，给你排前面。");}},
+   {t:"<b>让分包商自己解决</b> —— 声誉 -6，可能上热搜",fn:function(){S.reputation=clamp(S.reputation-6,0,100);if(Math.random()<0.4){addHeat(4);log("堵门视频上了本地热搜，劳动监察找上门，你被迫多花了一笔协调费。");S.cash-=20;}else log("横幅挂了半天，人散了。只是公司门口的保安，最近看你的眼神怪怪的。");}},
+   {t:"<b>请赵区长出面协调</b> —— 需关系≥40：拨款加速，关系 -5（用人情是要还的）",fn:function(){var o=off("赵国强");if(o&&o.relation>=40){o.relation-=5;S.cash+=30;log("赵区长一个电话，财政把卡住的进度款放了 30万下来。人情债 +1。");}else{S.reputation=clamp(S.reputation-3,0,100);log("你打电话过去，秘书说区长在开会。这事最后还是你自己扛的，声誉 -3。");}}}
+ ]},
+ {kind:"风口事件",title:"政策吹风会：新区要大干一场",body:"内部消息：市里下季度要集中推出一批新区基建项目，盘子比平时大一倍。提前知道的人，已经在连夜改标书了——消息源正是发改委的李明轩。",choices:[
+   {t:"<b>请李明轩「指导工作」</b> —— 花 25万打点，关系 +10，提前刷新 3 个大项目，热度 +5",fn:function(){S.cash-=25;S.bribeOut+=25;var o=off("李明轩");if(o){o.relation=clamp(o.relation+10,0,100);o.bribes+=25;}addHeat(5);genTenders(false);log("一顿「指导」之后，你的招标清单里多了几个还没公示的大项目。");}},
+   {t:"<b>等正式公示再说</b> —— 无事发生",fn:function(){log("你选择等公示。稳是稳，就是公示那天，全江州的公司都看到了。");}}
+ ]},
+ {kind:"审计事件 · 双刃剑",title:"审计组进驻远洋路桥，约你「了解情况」",body:"同行远洋路桥被专项审计，审计组顺手约你喝茶：他们围标的证据链，就差你这一块拼图。递出去，老对手元气大伤；但审计的目光在你身上多停一秒，都是风险。",choices:[
+   {t:"<b>提供线索</b> —— 远洋路桥实力大跌、对手报价抬高，热度 +6，小概率被反咬",fn:function(){S.rivals[0].str=Math.max(15,S.rivals[0].str-14);S.tenders.forEach(function(t){t.rivalLow=Math.round(t.rivalLow*1.05)});addHeat(6);if(Math.random()<0.25){S.reputation=clamp(S.reputation-4,0,100);log("你递了线索，远洋路桥被查了个底朝天——但对方临死反咬，说你也参与过串标。声誉 -4。");}else log("远洋路桥被审计打残，江州的标桌上少了个最狠的对手。");ach("whistle","双刃剑：借审计之手伤同行");}},
+   {t:"<b>明哲保身，什么都不知道</b> —— 热度 -2",fn:function(){addHeat(-2);log("你在审计组面前一问三不知。对方笑笑，没再多问——这种笑，最让人心里没底。");}},
+   {t:"<b>趁乱收购他们的在建项目</b> —— 需现金 200万：低价接盘一个项目",fn:function(){if(S.cash<200){log("你想趁乱接盘，账上却拿不出 200万——商战也是要本钱的。");return;}S.cash-=200;S.projects.push({name:"接盘·远洋在建商业体",type:"房建",value:430,total:6,left:6,margin:0.15,gov:false,owner:"接盘项目"});log("趁远洋路桥自顾不暇，你 200万接盘了他们的在建商业体，转手就是 430万的合同。");}}
+ ]},
+ {kind:"舆情事件",title:"工地视频上了本地热搜",body:"一段塔吊下工人没系安全绳的视频被传上网，标题是《江州某工地：命比进度便宜？》。转发量一小时破万，记者已经在去工地的路上了。",choices:[
+   {t:"<b>公开道歉 + 立即整改</b> —— 现金 -25万，声誉 +4，热度 -4",fn:function(){S.cash-=25;S.reputation=clamp(S.reputation+4,0,100);addHeat(-4);log("你的道歉信写得诚恳，整改照片连夜发了。热搜半天就凉了，评论区还夸你「算个明白人」。");}},
+   {t:"<b>冷处理，等热度过去</b> —— 五五开：过去了没事，过不去声誉 -6、热度 +4",fn:function(){if(Math.random()<0.5){log("三天后热搜换了主角，没人记得你的塔吊了。");}else{S.reputation=clamp(S.reputation-6,0,100);addHeat(4);log("冷处理翻车：官媒点名批评，监管部门顺势进场检查。声誉 -6。");}}},
+   {t:"<b>找李明轩帮忙压稿</b> —— 需关系 ≥50：人情 -8，热度 +3，声誉 -2",fn:function(){var o=off("李明轩");if(o&&o.relation>=50){o.favor=clamp((o.favor||0)-8,-60,60);addHeat(3);S.reputation=clamp(S.reputation-2,0,100);log("稿子在见报前被撤了下来。李明轩只回了句「下不为例」——人情账上，又添一笔。");}else{S.reputation=clamp(S.reputation-4,0,100);log("你打了一圈电话，没人接得住这个盘。热搜挂了整整两天，声誉 -4。");}}}
+ ]},
+ {kind:"供应链事件",title:"钢材暴涨，主力供应商要断供",body:"钢价一周涨了两成，你的主力供应商摊牌：按原价，这批货供不了。工地停工一天，违约金就是六位数。",choices:[
+   {t:"<b>加价囤料保供应</b> —— 现金 -60万，接下来 3 个月项目成本 -5%",fn:function(){S.cash-=60;S.supplyBuff=3;log("你咬牙加价锁了三个月的量。贵是贵，工地没停——停工才是真烧钱。");}},
+   {t:"<b>换低价小厂供货</b> —— 免费，但劣质材料风险累积（事故率↑）",fn:function(){S.supplierStreak+=2;log("小厂的货便宜，就是质检报告看着有点「水」。工地先转起来再说。");}},
+   {t:"<b>请陈志远协调城投供应链</b> —— 需关系 ≥40：人情 -6，平稳过关",fn:function(){var o=off("陈志远");if(o&&o.relation>=40){o.favor=clamp((o.favor||0)-6,-60,60);log("陈志远一个电话，城投的战略供应商给你开了绿色通道。这就是关系网的用法。");}else{S.cash-=40;log("陈志远那边没接上话，你最后还是加价买了现货，花了 40万。");}}}
+ ]},
+ {kind:"传染事件",title:"合作开发商暴雷，风险顺着账期传过来",body:"和你有在建项目往来的开发商资金链断裂，老板失联。你的工程款还压在他账上——江州半个建筑圈今晚都没睡好。",choices:[
+   {t:"<b>认栽计提坏账</b> —— 现金 -20万，声誉 +2（圈里夸你体面）",fn:function(){S.cash-=20;S.reputation=clamp(S.reputation+2,0,100);log("你公开表态不闹不堵、先保工人工资。圈里人说：这老板，能处。");}},
+   {t:"<b>全力追款打官司</b> —— 五五开：追回 30万，或律师费 -10万打水漂",fn:function(){if(Math.random()<0.5){S.cash+=30;log("律师抢在查封前保全了对方一块地，你的 30万工程款有着落了。");}else{S.cash-=10;log("官司赢了，钱没了——对方账上只剩三台旧塔吊。律师费 10万，买了个教训。");}}},
+   {t:"<b>请赵区长协调资产冻结</b> —— 需关系 ≥40：人情 -7，追回 20万",fn:function(){var o=off("赵国强");if(o&&o.relation>=40){o.favor=clamp((o.favor||0)-7,-60,60);S.cash+=20;log("赵区长协调下，对方资产先冻后分，你的 20万排在了前面。人情 -7。");}else{S.cash-=10;log("区长秘书说「依法依规处理」，翻译过来就是：排队吧。还搭进去 10万协调费。");}}}
+ ]}
+];
+function showEvent(){ var e=pick(EVENTS); showModal(e.kind,e.title,e.body,e.choices); }
+function showModal(kind,title,body,choices){
+ $("evKind").textContent=kind; $("evTitle").textContent=title; $("evBody").innerHTML=body;
+ var box=$("evChoices"); box.innerHTML="";
+ choices.forEach(function(c){
+   var b=document.createElement("button"); b.innerHTML=c.t;
+   b.onclick=function(){ $("eventModal").classList.remove("show"); if(c.fn)c.fn(); render(); };
+   box.appendChild(b);
+ });
+ $("eventModal").classList.add("show");
+}
+
+/* ---------- endings ---------- */
+function gameEnd(kind){
+ if(S.gameOver)return; S.gameOver=true;
+ var net=netAssets(); var title,body,score;
+ var stats="净资产 "+fmt(net)+" ｜ 完工 "+S.doneCount+" 个项目 ｜ 累计利润 "+fmt(S.totalProfit)+"<br>累计行贿 "+fmt(S.bribeOut)+" ｜ 已付回扣 "+fmt(S.kickPaid)+" ｜ 收受回扣 "+fmt(S.kickIn)+"<br>内定中标 "+S.insiderWins+" 次 ｜ 最高关系 "+Math.max.apply(null,S.officials.map(function(o){return o.relation}))+" ｜ 结算热度 "+S.heat+"<br>人情总账 "+totalFavor()+" ｜ 最高牵连 "+maxExposure()+" ｜ 过桥贷余额 "+fmt(S.bridge)+(S.ach["insp"]?" ｜ 🏆 挺过中央巡视":"");
+ if(kind==="caught"){title="🚨 结局：东窗事发";score="F";body="专案组的车停在公司楼下那天，老周正在给你泡茶。你织了三年的网，最后把自己网了进去。江州的项目还在继续，只是中标名单上，再也不会有你的名字。";}
+ else if(kind==="bankrupt"){title="💸 结局：资金链断裂";score="D";body="现金断了那天，工地停了，电话停了，人也散了。基建这行，倒下的人多半不是输在标书上，是输在账期上。";}
+ else if(net>=8000&&S.reputation>=60&&S.heat<60){title="🏆 结局：敲钟上市";score="S";body="36 个月，你从一支施工队走到了交易所大厅。敲钟时你想起那些饭局和红包——有些账，永远不会出现在招股书里。这一局，你赢了，而且全身而退。";ach("ipo","敲钟人：上市结局");}
+ else if(net>=5000&&S.insiderWins>=3){title="👑 结局：政商教父";score="A";body="江州一半的新项目，绕不开你的饭局。你不是官，但官场的人都给你面子。只是每个月总有那么一晚，你会盯着手机，生怕跳出一条「某某被带走调查」的推送。";}
+ else if(net>=3000&&S.bribeOut<50){title="🌿 结局：清白企业家";score="A";body="你没织那张网，你织的是口碑。慢是慢了点，但巡视组来的那天，你在办公室里睡了个午觉。江州年度企业家颁奖礼上，主持人说你是「行业的一股清流」。";}
+ else if(net>=3000){title="🏗 结局：基建大亨";score="B";body="公司站稳了，项目不断，关系也还在。上市还差一口气，风险也还悬着一线。下一局，把节奏踩稳点。";}
+ else if(net>=1200){title="🧱 结局：守成之主";score="C";body="不温不火地活了下来。公司还在，项目零零星星。狂魔谈不上，算个江州建筑圈的老熟人。";}
+ else{title="🌧 结局：草草收场";score="D";body="36 个月下来，公司勉强还在，你的头发白了一半。这一行不好混——标、人情、账期，哪一样都够喝一壶。";}
+ $("endTitle").textContent=title; $("endScore").textContent=score+" 级"; $("endBody").innerHTML=body; $("endStats").innerHTML=stats;
+ $("endModal").classList.add("show");
+}
+
+/* ---------- render ---------- */
+function switchView(v){
+ document.querySelectorAll(".view").forEach(function(el){el.classList.remove("on")});
+ $("view-"+v).classList.add("on");
+ document.querySelectorAll("#mainNav button").forEach(function(b){b.classList.toggle("on",b.dataset.view===v)});
+}
+function render(){
+ if(!started)return;
+ $("uiCo").textContent=S.co; $("uiEra").textContent=ERAS[S.era].label;
+ $("uiMonth").textContent=S.month+"月"; $("uiYear").textContent=S.year+"年";
+ $("uiSeason").textContent="第 "+(S.totalMonths+1)+" / 36 个月 · 目标：36个月后结算评级";
+ $("uiQualF").textContent="房建"+["","一级","二级","三级"][S.qualF]; $("uiQualS").textContent=S.qualS?"市政三级":"市政未取";
+ $("sCash").textContent=fmt(S.cash); $("sCredit").textContent=fmt(Math.max(0,S.creditLine-S.debt));
+ $("sContracts").textContent=fmt(S.projects.reduce(function(s,p){return s+p.value},0));
+ $("sCreditScore").textContent=S.creditScore; $("sHeat").textContent=S.heat;
+ $("stCash").textContent=fmt(S.cash); $("stCash").style.color=S.cash<100?"var(--red)":"";
+ $("stNet").textContent=fmt(netAssets());
+ $("stRank").textContent=netAssets()>=5000?"同行第 1-2 名梯队":netAssets()>=2500?"同行第 3-4 名":"同行第 6-7 名";
+ $("stRel").textContent=relAvg(); $("stHeat").textContent=S.heat;
+ $("heatFill").style.width=S.heat+"%";
+ $("navTenderCt").textContent=S.tenders.length; $("navRelAvg").textContent=relAvg();
+ $("navOwe").textContent=S.owes.length;
+ $("sInsp").textContent=inspName(S.inspStage); $("sFavor").textContent=totalFavor(); $("sCycle").textContent=CYCLES[S.cycleIdx].name;
+ $("stHeatSub").textContent=S.inspStage?("中央巡视："+inspName(S.inspStage)+" · 威胁值 "+centralThreat()):("≥70 地方巡视预警 · 中央威胁值 "+centralThreat()+"（热度+打点+牵连，越高越容易被盯上）");
+ $("cycleLine").textContent="📈 行业周期："+CYCLES[S.cycleIdx].name+" —— "+CYCLES[S.cycleIdx].note;
+ var ia=$("inspAlert");
+ if(S.inspStage===1){ia.style.display="block";ia.innerHTML="🍃 <b>巡视风声</b>：中央巡视组可能进驻江州。趁现在压热度、清牵连、还人情，或者去政商关系页做一次「主动迎审自查」。";}
+ else if(S.inspStage>=2){ia.style.display="block";ia.innerHTML="🚨 <b>中央巡视进行中（"+inspName(S.inspStage)+"）</b>：接下来的每个选择都可能决定这一局的生死。";}
+ else ia.style.display="none";
+ // tenders
+ $("tenderInfo").textContent="共 "+S.tenders.length+" 条 · 本月保证金按合同额 3%";
+ var tl=$("tenderList");
+ if(!S.tenders.length)tl.innerHTML="<div class='mini'>本月暂无新标，等下个月刷新。</div>";
+ tl.innerHTML=S.tenders.map(function(t){
+   var o=t.official?off(t.official):null;
+   var block=canBid(t);
+   var infoOk=o&&o.relation>=30, insOk=o&&o.relation>=60;
+   return "<div class='tender'><div class='top'><span class='tname'><span class='tag'>"+t.type+"</span> "+t.name+"</span><b style='color:var(--orange-d)'>"+fmt(t.value)+"</b></div>"
+   +"<div class='tmeta'>"+t.city+" · 业主："+t.owner+"（信用 "+t.credit+"）· 工期 "+t.months+" 个月 · 预计毛利 "+Math.round(t.margin*100)+"%"
+   +(t.gov&&o?"<br>对口联系人：<b>"+o.name+"</b>（"+o.role+"，关系 "+o.relation+(infoOk?"，可打听内部消息":"")+(insOk?"，<span style='color:var(--red);font-weight:700'>可谈内定</span>":"")+"）":"")
+   +(infoOk?"<br>🔓 内部消息：对手最低报价约 <b>"+fmt(t.rivalLow)+"</b>，评标还看重「本地业绩」。":"")
+   +"</div>"
+   +(block?"<div class='mini' style='color:var(--red);margin-top:6px'>⛔ "+block+"</div>":
+     "<div class='bidrow'><select data-strat='"+t.id+"'><option value='mid'>均衡报价（胜率稳）</option><option value='low'>低价抢标（胜率高、利润薄）</option><option value='high'>高价博利润（胜率低）</option></select>"
+     +(t.gov?"<label class='switch'><input type='checkbox' data-info='"+t.id+"' "+(infoOk?"":"disabled")+"> 内部消息"+(infoOk?"":"（关系≥30）")+"</label>"
+     +"<label class='switch'><input type='checkbox' data-insider='"+t.id+"' "+(insOk?"":"disabled")+"> 内定中标"+(insOk?"（打点约3-5%）":"（关系≥60）")+"</label>":"")
+     +"<button class='btn primary sm' data-bid='"+t.id+"'>投标</button></div>")
+   +"</div>";
+ }).join("");
+ tl.querySelectorAll("[data-bid]").forEach(function(b){b.onclick=function(){doBid(+b.dataset.bid||b.dataset.bid)}});
+ // fix id type: ids are floats from Date.now+random; use string match
+ tl.querySelectorAll("[data-bid]").forEach(function(b){ b.onclick=function(){ var id=b.getAttribute("data-bid"); var t=S.tenders.find(function(x){return String(x.id)===String(id)}); if(t)doBid(t.id); }; });
+ // projects
+ var pl=$("projList");
+ pl.innerHTML=S.projects.length?S.projects.map(function(p){
+   var pct=Math.round((p.total-p.left)/p.total*100);
+   return "<div class='proj'><div class='top' style='display:flex;justify-content:space-between'><b>"+p.name+(p.insider?" <span class='tag insider'>内定</span>":"")+"</b><span class='mini'>剩 "+p.left+" 月</span></div><div class='pbar'><i style='width:"+pct+"%'></i></div><div class='mini' style='margin-top:5px'>合同 "+fmt(p.value)+" · 预计毛利 "+Math.round(p.margin*100)+"% · "+(p.gov?"政府项目（回款慢、靠财政关系催款）":"市场项目")+"</div></div>";
+ }).join(""):"<div class='mini'>没有在建项目。去招标信息里算标、投标。</div>";
+ // land & rivals
+ var ll=$("landList"), L=S.landOpp;
+ if(L){ var lo=L.official?off(L.official):null;
+   ll.innerHTML="<div class='tender'><div class='top'><span class='tname'><span class='tag gov'>"+L.type+"</span> "+L.name+"</span><b style='color:var(--orange-d)'>合同 "+fmt(L.value)+"</b></div><div class='tmeta'>土地款 "+fmt(L.cost)+" · 预计毛利 "+Math.round(L.margin*100)+"% · 工期 "+L.months+" 个月"+(L.official?"<br>勾地通道：<b>"+L.official+"</b>（关系 "+(lo?lo.relation:"—")+"，需在任且 ≥50 · 热度 +7 · 人情 -8 · 牵连 +10）":"")+(L.jiugai?"<br>⚠ 拆迁项目：施工期间可能遇钉子户加价与舆情。":"")+"</div><div class='bidrow'><button class='btn primary sm' id='btnLandTake'>拿下</button><button class='btn sm ghost' id='btnLandSkip'>放弃</button></div></div>";
+   $("btnLandTake").onclick=function(){landAct("take")}; $("btnLandSkip").onclick=function(){landAct("skip")};
+ } else ll.innerHTML="<div class='mini'>本月机会已处理，下月刷新。</div>";
+ $("rivalList").innerHTML=S.rivals.map(function(r){return "<div class='kv'><span><b>"+r.name+"</b></span><span class='mini'>实力 "+r.str+"</span></div><div class='relbar'><i style='width:"+r.str+"%;background:var(--orange)'></i></div>"}).join("");
+ $("jointNote").textContent=S.jointNext?"✅ 联合投标已达成：下一次投标胜率 +18%，中标毛利 -4%（分给盟友）。":(S.bizUsed?"本月商战动作已用，下月再出手。":"");
+ // bank & managers
+ $("bankLine").textContent=fmt(S.creditLine); $("bankDebt").textContent=fmt(S.debt)+" / "+fmt(S.debt*0.008);
+ $("bankBridge").textContent=fmt(S.bridge)+(S.bridge>0?"（月息 "+fmt(S.bridge*0.025)+"）":"");
+ var lev=(S.debt+S.bridge)/Math.max(1,netAssets()); $("bankLev").textContent=Math.round(lev*100)+"%"+(lev>0.8?" ⚠ 高杠杆":"");
+ $("mgrList").innerHTML=S.managers.map(function(m,i){
+   return "<div class='kv'><span><b>"+m.name+"</b> <span class='tag'>"+m.tag+"</span> 能力"+m.skill+"</span><span>月薪 "+m.salary+"万 <button class='btn sm ghost' data-fire='"+i+"'>解约</button></span></div><div class='mini'>"+m.desc+"</div>";
+ }).join("");
+ $("mgrList").querySelectorAll("[data-fire]").forEach(function(b){b.onclick=function(){var m=S.managers.splice(+b.dataset.fire,1)[0];log("与项目经理 "+m.name+" 解约。");render();}});
+ $("hireList").innerHTML=S.hire?"<div class='kv'><span><b>"+S.hire.name+"</b> <span class='tag'>"+S.hire.tag+"</span> 能力"+S.hire.skill+" · "+S.hire.desc+"</span><button class='btn sm' id='btnHire'>签约（签约费 "+(S.hire.skill*0.6).toFixed(1)+"万）</button></div>":"<span class='mini'>本月暂无</span>";
+ var hb=$("btnHire"); if(hb)hb.onclick=function(){var fee=+(S.hire.skill*0.6).toFixed(1);if(S.cash<fee){toast("现金不够付签约费");return;}S.cash-=fee;S.managers.push(S.hire);log("签下项目经理 "+S.hire.name+"（"+S.hire.tag+"）。");S.hire=null;render();};
+ // officials
+ $("govActions").textContent=S.govActions+" 次";
+ $("govSpent").textContent=fmt(S.bribeOut); $("govInsiderWins").textContent=S.insiderWins+" 个";
+ $("govFavor").textContent=totalFavor(); $("govExposure").textContent=maxExposure()+" / 100"; $("govInsp").textContent=inspName(S.inspStage)+"（威胁值 "+centralThreat()+"）";
+ $("officialList").innerHTML=S.officials.map(function(o){
+   var dis=o.status!=="在任";
+   return "<div class='off'><div class='off-head'><div class='avatar'>"+o.name[0]+"</div><div><div class='off-name'>"+o.name+" "+(dis?"<span class='tag' style='border-color:#999;color:#999'>"+o.status+"</span>":"")+"</div><div class='off-role'>"+o.role+"</div></div></div>"
+   +"<div class='off-desc'>"+o.desc+"</div>"
+   +"<div class='mini'>派系："+o.faction+" · 喜好："+o.likes+"<br>贪婪 "+o.greed+" · 谨慎 "+o.caution+" · 野心 "+o.ambition+"（越谨慎的人，送礼见效越慢、但牵连涨得也慢）</div>"
+   +"<div><div class='mini'>关系值 "+o.relation+" / 100 · <span class='stage"+(o.relation>=60?" hot":"")+"'>"+stageOf(o.relation)+"</span> · 预计在任还剩约 "+Math.max(0,o.tenure)+" 个月"+(o.relation>=60?" · <b style='color:var(--red)'>可谈内定中标</b>":o.relation>=30?" · 可打听内部消息":"")+"</div><div class='relbar'><i style='width:"+o.relation+"%'></i></div></div>"
+   +"<div class='mini'>人情账：<span class='"+((o.favor||0)>0?"fav-pos":(o.favor||0)<0?"fav-neg":"")+"'>"+((o.favor||0)>0?"他欠你 +"+o.favor:(o.favor||0)<0?"你欠他 "+o.favor:"互不相欠")+"</span> · 牵连 "+(o.exposure||0)+"/100（他落马时你的引爆点）<div class='expbar'><i style='width:"+(o.exposure||0)+"%'></i></div></div>"
+   +(dis?"<div class='mini'>此人已"+o.status+"，这条线断了。"+((o.exposure||0)>=40?"但你们之间的牵连不会消失——他在里面说什么，没人知道。":"")+"</div>":
+     "<div class='off-actions'>"
+     +"<button class='btn sm' data-gov='"+o.name+"|visit'>登门拜访（免费 +2~4）</button>"
+     +"<button class='btn sm' data-gov='"+o.name+"|dinner'>摆一桌饭局（5万 +5~9）</button>"
+     +"<button class='btn sm' data-gov='"+o.name+"|gift'>送土特产（20万 +9~15）</button>"
+     +"<button class='btn sm' data-gov='"+o.name+"|big' style='border-color:var(--red);color:var(--red)'>大额打点（80万 +16~24）</button>"
+     +"<button class='btn sm teal' data-ask='"+o.name+"' "+(o.relation>=40?"":"disabled")+">请托办事（关系≥40 · 人情 -12）</button>"
+     +"<button class='btn sm' data-repay='"+o.name+"' "+((o.favor||0)<0?"":"disabled")+">还人情（25万 · 人情 +12）</button>"
+     +"</div>"
+     +(o.relation>=60?"<button class='btn sm block' data-intro='"+o.name+"' style='margin-top:2px'>🍶 请他组局引荐（人情 -6，最弱的关系线 +9）</button>":""))
+   +"</div>";
+ }).join("");
+ $("officialList").querySelectorAll("[data-gov]").forEach(function(b){b.onclick=function(){var p=b.dataset.gov.split("|");govAct(p[0],p[1]);}});
+ $("officialList").querySelectorAll("[data-ask]").forEach(function(b){b.onclick=function(){askFavor(b.dataset.ask)}});
+ $("officialList").querySelectorAll("[data-repay]").forEach(function(b){b.onclick=function(){repayFavor(b.dataset.repay)}});
+ $("officialList").querySelectorAll("[data-intro]").forEach(function(b){b.onclick=function(){introduce(b.dataset.intro)}});
+ // grey
+ $("favorList").innerHTML=S.officials.map(function(o){var f=o.favor||0;return "<div class='kv'><span><b>"+o.name+"</b>（"+o.role+"）"+(o.status!=="在任"?" · 已"+o.status:"")+" · 牵连 "+(o.exposure||0)+"</span><span class='"+(f>0?"fav-pos":f<0?"fav-neg":"")+"'>"+(f>0?"他欠你 +"+f:f<0?"你欠他 "+f:"互不相欠")+"</span></div>"}).join("");
+ document.querySelectorAll("#supplySeg [data-supply]").forEach(function(b){b.classList.toggle("on",b.dataset.supply===S.supplyMode);b.onclick=function(){S.supplyMode=b.dataset.supply;log("供应链策略切换为："+b.textContent+"。");render();};});
+ $("supplyNote").textContent=S.supplyMode==="guanxi"&&relAvg()<25?"⚠ 关系总评不足 25，关系供应商反而加价（成本 +2%）——先去把关系处起来。":"当前策略持续生效，切换不消耗行动。吃回扣的供应商另算事故风险。";
+ $("gBribeOut").textContent=fmt(S.bribeOut); $("gKickPaid").textContent=fmt(S.kickPaid);
+ $("gKickIn").textContent=fmt(S.kickIn); $("gInsider").textContent=S.insiderWins; $("gHeat").textContent=S.heat;
+ $("oweList").innerHTML=S.owes.length?S.owes.map(function(w,i){
+   var left=w.due-S.totalMonths;
+   return "<div class='kv'><span>欠 <b>"+w.to+"</b> 回扣（项目《"+w.proj+"》）"+(left<0?" <b style='color:var(--red)'>已逾期！</b>":" · 剩 "+left+" 个月")+"</span><span><b>"+fmt(w.amount)+"</b> <button class='btn sm primary' data-pay='"+i+"'>兑现</button></span></div>";
+ }).join(""):"<div class='mini'>暂无待兑现承诺。内定中标后，这里会出现要付的回扣。</div>";
+ $("oweList").querySelectorAll("[data-pay]").forEach(function(b){b.onclick=function(){payOwe(+b.dataset.pay)}});
+ $("supplierList").innerHTML=S.supplier?"<div class='kv'><span><b>"+S.supplier.name+"</b> 悄悄报价：这批材料走「账外价」，回扣直接打你个人卡</span><b style='color:var(--orange-d)'>+"+fmt(S.supplier.save)+"</b></div><div style='display:flex;gap:6px;margin-top:8px'><button class='btn sm danger' id='btnSupTake'>收下（热度 +"+S.supplier.heat+"，事故率↑）</button><button class='btn sm ghost' id='btnSupNo'>拒绝，走正规采购</button></div>":"<div class='mini'>本月已处理，下月刷新。</div>";
+ var st=$("btnSupTake"); if(st)st.onclick=takeSupplier;
+ var sn=$("btnSupNo"); if(sn)sn.onclick=function(){log("拒绝了 "+S.supplier.name+" 的回扣，走正规采购。财务小刘看你的眼神多了点敬意。");S.supplier=null;render();};
+ $("subconList").innerHTML=S.subcon?"<div class='kv'><span><b>"+S.subcon.name+"</b> 提着两条烟来敲门，烟盒底下压着红包</span><b style='color:var(--orange-d)'>"+fmt(S.subcon.amount)+"</b></div><div style='display:flex;gap:6px;margin-top:8px'><button class='btn sm danger' id='btnSubTake'>收下红包</button><button class='btn sm ghost' id='btnSubNo'>退回去（声誉 +2）</button></div>":"<div class='mini'>本月已处理，下月刷新。</div>";
+ var bt=$("btnSubTake"); if(bt)bt.onclick=function(){takeSubcon(true)};
+ var bn=$("btnSubNo"); if(bn)bn.onclick=function(){takeSubcon(false)};
+ // company
+ $("qF").textContent=["","一级（可投 ≤2亿）","二级（可投 ≤8,000万）","三级（可投 ≤2,000万）"][S.qualF];
+ $("qS").textContent=S.qualS?"三级（市政/交通可投）":"未取得";
+ $("qDone").textContent=S.doneCount+" 个"; $("qRep").textContent=S.reputation;
+ var worstO=S.officials.slice().sort(function(a,b){return (b.exposure||0)-(a.exposure||0)})[0];
+ $("riskList").innerHTML="<div class='kv'><span>当前行业周期</span><b>"+CYCLES[S.cycleIdx].name+"（约 "+(6-S.cycleTimer)+" 个月后切换）</b></div>"
+ +"<div class='kv'><span>总负债 / 杠杆率</span><b>"+fmt(S.debt+S.bridge)+" / "+Math.round((S.debt+S.bridge)/Math.max(1,netAssets())*100)+"%</b></div>"
+ +"<div class='kv'><span>牵连最深的官员</span><b>"+(worstO?worstO.name+" · 牵连 "+(worstO.exposure||0):"—")+"</b></div>"
+ +"<div class='kv'><span>中央巡视威胁值</span><b>"+centralThreat()+"（热度+累计打点+内定次数+牵连）</b></div>"
+ +"<div class='kv'><span>巡视状态</span><b>"+inspName(S.inspStage)+"</b></div>";
+ renderAch(); logRenderOnly();
+}
+function logRenderOnly(){var b=$("logBox");if(b&&S)b.innerHTML=S.logs.map(function(l){return "<div><span style='color:#999'>"+l.m+"</span>　"+l.html+"</div>"}).join("")}
+function renderAch(){
+ var box=$("achList"); if(!box)return;
+ var ks=Object.keys(S.ach);
+ box.innerHTML=ks.length?ks.map(function(k){return "<span class='ach'>🏆 "+S.ach[k]+"</span>"}).join(""):"<span class='mini'>暂无成就，去拿下第一个项目吧。</span>";
+ var lz=$("laozhou");
+ if(lz&&started){
+   var tips=[];
+   var low=S.officials.filter(function(o){return o.status==="在任"&&o.relation<30});
+   if(low.length)tips.push("「"+low[0].name+" 那边还没混熟。内部消息要关系 30 才肯漏，内定要 60——先从饭局吃起，别一上来就送大的，吓着人家。」");
+   if(S.heat>=50)tips.push("「最近风声紧。账外的事先停一停，去做点公益、请个法务，把热度压下来再说。」");
+   if(S.inspStage===1)tips.push("「中央巡视的风声已经起来了。这个月别再送一分钱，先去自查迎审、把牵连清一清——进驻之前，账面越干净越好。」");
+   if(S.inspStage>=2)tips.push("「巡视组就在楼上。这个时候，配合比疏通值钱，硬扛是最后一招。」");
+   var deep=S.officials.filter(function(o){return (o.exposure||0)>=50&&o.status==="在任"});
+   if(deep.length)tips.push("「你和 "+deep[0].name+" 的牵连太深了。他要是出事，你跑不掉——要么慢慢切割，要么祈祷他平安落地。」");
+   var debtors=S.officials.filter(function(o){return (o.favor||0)<=-20&&o.status==="在任"});
+   if(debtors.length)tips.push("「你欠 "+debtors[0].name+" 的人情太久了。人情这东西，欠着欠着就变成仇了——花点钱还上吧。」");
+   if(S.bridge>0)tips.push("「过桥贷的利息在滴血。有闲钱先还它，别让小贷拖垮大盘。」");
+   if(S.owes.length)tips.push("「答应人家的回扣别拖。拖久了，那不是债，是雷。」");
+   if(S.cash<150)tips.push("「现金快见底了。先去银行借点，或者接个回款快的开发商小项目续命。」");
+   if(!tips.length)tips.push("「现在这局面，稳住就是赢。关系慢慢处，标稳稳投，别贪。」");
+   lz.innerHTML=tips.join("<br>");
+ }
+}
+
+/* ---------- wiring ---------- */
+document.querySelectorAll("#mainNav button").forEach(function(b){b.onclick=function(){switchView(b.dataset.view)}});
+function pickWire(id){var box=$(id);box.querySelectorAll(".pick").forEach(function(p){p.onclick=function(){box.querySelectorAll(".pick").forEach(function(x){x.classList.remove("on")});p.classList.add("on");}})}
+pickWire("pickEra");pickWire("pickBg");pickWire("pickDiff");
+$("inCoName").addEventListener("input",function(){$("coFull").textContent=$("inCoName").value||"东大建筑"});
+$("btnStart").onclick=function(){$("startModal").classList.remove("show");newGame();toast("开局！先去招标里看看，再去政商关系拜码头")};
+$("btnRestart").onclick=function(){$("endModal").classList.remove("show");$("startModal").classList.add("show")};
+$("btnAgain").onclick=function(){$("endModal").classList.remove("show");$("startModal").classList.add("show")};
+$("btnEndMonth").onclick=function(){endMonth(1)};
+$("btnEnd3").onclick=function(){endMonth(3)};
+$("btnSettle").onclick=function(){gameEnd("settle")};
+document.querySelectorAll("[data-loan]").forEach(function(b){b.onclick=function(){
+ var amt=+b.dataset.loan;
+ if(amt>0){ if(S.debt+amt>S.creditLine){toast("超过授信额度");return;} S.debt+=amt;S.cash+=amt;log("向银行借款 "+fmt(amt)+"，月息 0.8%。"); }
+ else{ var pay=amt===-9999?S.debt:Math.min(S.debt,-amt); if(S.cash<pay){toast("现金不够还款");return;} S.debt-=pay;S.cash-=pay;log("偿还银行借款 "+fmt(pay)+"。"); }
+ render();
+}});
+$("btnDonate").onclick=function(){if(S.cash<30){toast("现金不够");return;}S.cash-=30;addHeat(-12);S.reputation=clamp(S.reputation+3,0,100);log("向江州教育基金捐赠 30万，本地新闻给了你一个豆腐块报道。热度 -12，声誉 +3。");render();};
+$("btnLawyer").onclick=function(){if(S.lawyer){toast("已聘法务顾问");return;}if(S.cash<20){toast("现金不够");return;}S.cash-=20;S.lawyer=true;addHeat(-8);log("聘请前检察官出身的法务顾问坐镇，账目「规范」了许多。热度 -8，此后衰减加快。");render();};
+$("btnPr").onclick=function(){if(S.cash<10){toast("现金不够");return;}S.cash-=10;addHeat(-4);S.reputation=clamp(S.reputation+2,0,100);log("做了一轮合规宣传，公众号推文《"+S.co+"：把每一分钱花在阳光下》阅读量 327。声誉 +2，热度 -4。");render();};
+$("btnSelfAudit").onclick=function(){if(S.auditUsed){toast("本月已自查过一次");return;}if(S.cash<15){toast("现金不够");return;}S.cash-=15;S.auditUsed=true;addHeat(-10);S.officials.forEach(function(o){o.exposure=clamp((o.exposure||0)-12,0,100)});if(Math.random()<0.18){S.cash-=40;addHeat(6);log("<span class='bad'>迎审自查翻出旧账：</span>一笔三年前的「咨询费」对不上，补罚 40万。双刃剑，割到自己了。");}else log("主动迎审自查：请第三方把账目梳了一遍，该补的票都补上。热度 -10，全员牵连 -12。");render();};
+$("btnBridge").onclick=function(){bridgeLoan(false)};
+$("btnSellProj").onclick=function(){sellProject(false)};
+$("btnDelayPay").onclick=function(){delayPay(false)};
+$("btnJoint").onclick=function(){if(S.bizUsed){toast("本月商战动作已用");return;}if(S.jointNext){toast("联合投标已达成，等下一次投标生效");return;}S.bizUsed=true;S.jointNext=true;log("与恒通建设达成联合投标：下一次投标胜率 +18%，代价是中标毛利分对方 4%。");render();};
+$("btnMerge").onclick=function(){if(S.bizUsed){toast("本月商战动作已用");return;}if(netAssets()<1500){toast("条件不足：净资产需 ≥1500万");return;}if(S.cash<260){toast("现金不够付并购款 260万");return;}S.bizUsed=true;S.cash-=260;S.creditLine+=120;S.projects.push({name:"并购·老旧厂房改造",type:"房建",value:460,total:6,left:6,margin:0.14,gov:false,owner:"并购项目"});log("🏢 并购一家濒临倒闭的小公司：资质、队伍和在建项目一并接盘，授信 +120万。对方老板签完字，抱着纸箱走了。");ach("merge","蛇吞象：首次并购同行");render();};
+$("btnReport").onclick=function(){if(S.bizUsed){toast("本月商战动作已用");return;}S.bizUsed=true;addHeat(7);S.rivals[0].str=Math.max(15,S.rivals[0].str-10);S.tenders.forEach(function(t){t.rivalLow=Math.round(t.rivalLow*1.04)});if(Math.random()<0.25){S.reputation=clamp(S.reputation-5,0,100);log("你举报远洋路桥围标，审计和纪委都动了——但对方反咬一口，行业里开始传你的「不讲究」。声誉 -5，热度 +7。");}else log("实名举报递了上去：远洋路桥被约谈，实力大跌，对手报价整体抬高。只是纪委的回执单上，写着你的名字。热度 +7。");render();};
+$("btnUpQual").onclick=function(){if(S.qualF<=2){toast("已是二级或更高");return;}if(S.doneCount<2||netAssets()<800){toast("条件不足：需完工≥2 且净资产≥800万");return;}if(S.cash<60){toast("现金不够");return;}S.cash-=60;S.qualF=2;log("<span class='good'>房建资质升至二级！</span>可投上限提到 8,000万。");ach("qual2","资质跃升：房建二级");render();};
+$("btnAddQual").onclick=function(){if(S.qualS){toast("已有市政资质");return;}if(netAssets()<800){toast("条件不足：需净资产≥800万");return;}if(S.cash<80){toast("现金不够");return;}S.cash-=80;S.qualS=3;log("<span class='good'>增项市政三级成功！</span>市政、交通项目可以投了。");render();};
+$("btnAskZhou").onclick=function(){
+ if(S.zhouUsed){toast("老周这个月已经透露得够多了");return;} S.zhouUsed=true;
+ var o=pick(S.officials.filter(function(x){return x.status==="在任"}));
+ if(o){o.relation=clamp(o.relation+3,0,100);log("老周压低声音：<b>「"+o.name+" 最近对你印象不错（关系 +3）。他那条线管的是"+o.domain+"，有项目先想着他。」</b>");render();}
+};
+/* ---------- browser QR (generated from this page's own address at open time) ---------- */
+(function initQR(){
+ var url="";
+ try{ url=window.location.href||""; }catch(e){ url=""; }
+ function make(id,size){
+   var el=document.getElementById(id); if(!el)return false;
+   if(typeof QRCode==="undefined"||!url||url.indexOf("http")!==0)return false;
+   try{ el.innerHTML=""; new QRCode(el,{text:url,width:size,height:size,correctLevel:QRCode.CorrectLevel.M}); return true; }
+   catch(e){ return false; }
+ }
+ var okSide=make("qrSide",132), okMain=make("qrMain",84), okStart=make("qrStart",148);
+ function fallback(boxId,fbId){
+   var box=document.getElementById(boxId), fb=document.getElementById(fbId);
+   if(box&&!box.innerHTML&&fb){ fb.style.display="block"; fb.textContent="二维码显示受阻时，直接在手机浏览器打开本页链接即可游玩（国内网络直连，无需 VPN）："+url; }
+ }
+ if(!okSide)fallback("qrSide","qrSideFallback");
+ if(!okStart)fallback("qrStart","qrStartFallback");
+ if(!okMain){ var m=document.getElementById("qrMain"); if(m)m.style.display="none"; }
+})();
+})();
+</script>
+</body>
+</html>
