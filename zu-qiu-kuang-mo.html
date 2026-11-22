@@ -2770,13 +2770,17 @@ function showCreatorPopup(thenStart){
   +'<div class="creator-hint">点 击 右 上 角 ✕ 进 入 游 戏</div>'
   +'</div></div>';
 }
+function chainSignAfterPoster(){
+  // 入口流程：创造人海报关掉后（或本次会话已看过海报、海报不再弹时），接着弹每周签到。
+  // 只在当天还没领时弹：已领过 signCan() 为 false，不会重复弹。奖励与规则仍走唯一一套 showWeeklySign。
+  if(typeof G!=='undefined' && G && G.started && !G.ended && signCan()) showWeeklySign(false);
+}
 function closeCreatorPopup(){
   var r=document.getElementById('creator-root');
   if(r) r.innerHTML='';
   try{ sessionStorage.setItem(CREATOR_SEEN_KEY,'1'); }catch(e){}
   if(creatorThenStart){ creatorThenStart=false; showStart(false); return; }
-  // 入口流程：创造人海报关掉后，接着弹每周签到（同一套签到，大厅入口也能领）
-  if(typeof G!=='undefined' && G && G.started && !G.ended && signCan()) showWeeklySign(false);
+  chainSignAfterPoster();
 }
 /* ---------------- 启动：优先自动读档 ---------------- */
 if(loadAutoSave()){
@@ -2784,6 +2788,7 @@ if(loadAutoSave()){
   render();
   toast('💾 已自动读取上次存档：'+G.club+' · 第 '+G.month+' 个月，接着玩！');
   if(!creatorSeen()) showCreatorPopup(false);
+  else chainSignAfterPoster(); // 刷新/重进：海报本次会话已看过不再弹，签到也要接着自动弹（当天未领才弹）
 } else {
   render();
   if(!creatorSeen()) showCreatorPopup(true);
