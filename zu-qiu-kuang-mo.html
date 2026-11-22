@@ -266,6 +266,44 @@ var RELS=[
 var TIERS=[{amt:1,dia:10},{amt:6,dia:60},{amt:30,dia:300},{amt:68,dia:680},{amt:128,dia:1280},{amt:328,dia:3280},{amt:648,dia:6480}];
 var G=null, PAGE='home', autoTimer=null, autoOn=false;
 
+/* ---------------- 集团扩张：创业阶段与跨界板块 ---------------- */
+var STAGES=[
+  {name:'草根俱乐部', desc:'一支小球队，先活下去，把比赛踢好。'},
+  {name:'职业劲旅', desc:'站稳职业联赛，可以试着开第一条副业线了。'},
+  {name:'豪门俱乐部', desc:'顶级联赛球队，品牌和跨界生意都能谈了。'},
+  {name:'体育集团', desc:'多支球队、多条业务线，集团化运营。'},
+  {name:'跨国体育帝国', desc:'国内外球队 + 电竞 + 篮球 + 自有品牌，体育版图成型。'}
+];
+var VENTURES=[
+  {id:'esports', icon:'🎮', sector:'电竞', name:'电竞战队', desc:'组建一支 MOBA 职业电竞战队，打联赛、接代言。成绩波动大，但年轻球迷市场全靠它打开。', cost:400, upkeep:25, inc:[10,95], stage:1, fx:'每月带来年轻粉丝流入；打进决赛的月份有奖金惊喜。'},
+  {id:'satellite', icon:'🛰️', sector:'足球', name:'国内卫星球队', desc:'收购一支低级别联赛球队当卫星队，年轻球员送过去练级，好苗子优先回购自家一线队。', cost:600, upkeep:35, inc:[5,40], stage:1, fx:'青训加成：年轻球员涨球更快。'},
+  {id:'school', icon:'🎓', sector:'青训', name:'连锁足球学校', desc:'在省内开足球学校连锁，学费和苗子两头赚，青训总监林育才亲自挂帅。', cost:500, upkeep:20, inc:[15,50], stage:1, fx:'青训加成；声望缓慢上涨。'},
+  {id:'basketball', icon:'🏀', sector:'篮球', name:'职业篮球队', desc:'收购一支职业篮球队，共享球馆、赞助商和球迷运营体系，篮球足球两开花。', cost:900, upkeep:60, inc:[30,115], stage:2, fx:'收入稳定偏高；赢下德比的月份有额外进账。'},
+  {id:'brand', icon:'👕', sector:'品牌', name:'自有运动品牌', desc:'成立自己的运动品牌，卖球衣、围巾和联名款。球迷越多，卖得越火。', cost:800, upkeep:30, inc:[10,40], stage:2, fx:'收入随球迷人数增长；声望不时上涨。'},
+  {id:'agency', icon:'🧾', sector:'经纪', name:'体育经纪公司', desc:'自己开经纪公司，球员买卖两头吃：卖人能多卖钱，签人少被经纪人宰。', cost:700, upkeep:30, inc:[20,80], stage:2, fx:'球员卖出报价 +20%。'},
+  {id:'media', icon:'📺', sector:'传媒', name:'体育传媒公司', desc:'短视频、纪录片、直播带货，把俱乐部的流量握在自己手里变现。', cost:550, upkeep:25, inc:[15,60], stage:2, fx:'声望每月小涨，媒体关系更稳。'},
+  {id:'overseas', icon:'🌍', sector:'海外', name:'海外卫星俱乐部', desc:'收购一家葡萄牙二级联赛俱乐部，欧洲球探网络和球员留洋通道一次打通。', cost:1500, upkeep:80, inc:[20,70], stage:3, fx:'每 6 个月输送一名外援小将免费加盟一线队。'},
+  {id:'arena', icon:'🏙️', sector:'商业', name:'主场商业综合体', desc:'球场周边开发商业街、酒店和电竞馆，比赛日之外天天收租。', cost:2000, upkeep:90, inc:[60,170], stage:3, need:'stadium3', fx:'需要主场球场 ≥3 级；收入大头，集团估值的压舱石。'}
+];
+function hasVent(id){ return !!(G && G.ventures && G.ventures[id]); }
+function ventDef(id){ return VENTURES.filter(function(v){ return v.id===id; })[0]; }
+function ventCount(){ return (G && G.ventures)? Object.keys(G.ventures).length : 0; }
+function venturesValue(){ if(!G || !G.ventures) return 0; var s=0; Object.keys(G.ventures).forEach(function(id){ var d=ventDef(id); if(d) s+=Math.round(d.cost*(0.6+0.5*G.ventures[id])); }); return s; }
+function groupStage(){
+  if(!G) return 0;
+  var v=valuation(); var s=0;
+  if(G.div<=1 || v>=3000) s=1;
+  if(s>=1 && G.div===0 && G.rep>=50) s=2;
+  if(s>=2 && v>=8000 && G.rep>=60) s=3;
+  if(s>=3 && v>=15000 && G.rep>=75 && (G.champion || hasVent('overseas'))) s=4;
+  return s;
+}
+function ventReqOK(d){
+  if(groupStage()<d.stage) return '需要集团阶段达到「'+STAGES[d.stage].name+'」';
+  if(d.need==='stadium3' && G.fac.stadium<3) return '需要主场球场先升到 3 级';
+  return '';
+}
+
 /* ---------------- 状态 ---------------- */
 function mkPlayer(name,pos,ability,age,foreign){
   var val=Math.max(5, Math.pow(Math.max(ability-38,2),2)*0.16*(age>30?0.75:1));
@@ -307,7 +345,8 @@ function newGame(clubName, origin, diff){
     relUsed:{}, grayUsed:{}, market:[], offers:[], table:[],
     hist:[o.cash], log:[], lastResults:[], lastFinance:null,
     diamonds:0, vip:0, spent:0, claimed:{}, ended:false, ending:null,
-    grayWinBoost:0, seasonRank:0, negMonths:0
+    grayWinBoost:0, seasonRank:0, negMonths:0,
+    ventures:{}, ventureNet:0
   };
   buildTable(); refreshMarket(true); refreshOffers();
   log('🏟️ '+G.club+'正式接手球队：'+o.note+' 现金 '+fmt(G.cash)+'，从中乙开踢，36 个月冲到中超夺冠。','good');
@@ -320,7 +359,7 @@ function buildTable(){
 function log(msg, cls){ G.log.unshift({m:G.year+'/'+G.mon, t:msg, cls:cls||''}); if(G.log.length>60) G.log.length=60; }
 function squadValue(){ return G.squad.reduce(function(s,p){ return s+p.value; },0); }
 function facValue(){ var f=G.fac; return (f.stadium+f.academy+f.training+f.medical)*120; }
-function valuation(){ return Math.round(G.cash - G.debt + squadValue() + facValue() + G.rep*15 + G.fans*0.04); }
+function valuation(){ return Math.round(G.cash - G.debt + squadValue() + facValue() + venturesValue() + G.rep*15 + G.fans*0.04); }
 function teamStr(){
   var sorted=G.squad.slice().sort(function(a,b){ return b.ab-a.ab; });
   var top=sorted.slice(0,11); if(!top.length) return 40;
@@ -360,6 +399,7 @@ function refreshOffers(){
     if(G.offers.some(function(o){ return o.player===p; })) continue;
     G.offers.push({player:p, price:Math.round(p.value*rnd(0.9,1.5)), from:pick(['中超豪门球探','中甲竞争对手','海外低级别联赛','同城死敌'])});
   }
+  if(hasVent('agency')) G.offers.forEach(function(o){ o.price=Math.round(o.price*1.2); });
 }
 </script>
 <script>
@@ -403,7 +443,7 @@ function growPlayers(){
   G.squad.forEach(function(p){
     if(p.inj>0){ p.inj--; return; }
     var grow=0;
-    if(p.age<=23 && Math.random()<0.34+G.fac.academy*0.05+(G.rel.youth>=60?0.08:0)+(G.coach.spec==='青训提拔'?0.1:0)) grow=1;
+    if(p.age<=23 && Math.random()<0.34+G.fac.academy*0.05+(G.rel.youth>=60?0.08:0)+(G.coach.spec==='青训提拔'?0.1:0)+(hasVent('satellite')?0.06:0)+(hasVent('school')?0.05:0)) grow=1;
     if(p.age>=24 && p.age<=28 && Math.random()<0.1+G.fac.training*0.02) grow=1;
     if(G.focus==='青训提拔' && p.age<=21 && Math.random()<0.2) grow=1;
     if(p.age>=31 && Math.random()<0.3) grow=-1;
@@ -441,6 +481,26 @@ var EVENTS=[
     {tx:'接冠名：+220万', fx:function(){ G.cash+=220; G.rel.fans=clamp(G.rel.fans-5,0,100); return '钱到账了，球迷在看台上打出了抗议横幅。'; }},
     {tx:'拒绝，保住球场名字', fx:function(){ G.rel.fans=clamp(G.rel.fans+8,0,100); G.rep=clamp(G.rep+2,0,100); return '球迷直呼“这才是自家俱乐部”。'; }}]}
 ];
+function processVentures(){
+  if(!G.ventures) G.ventures={};
+  var inc=0, up=0, notes=[];
+  Object.keys(G.ventures).forEach(function(id){
+    var d=ventDef(id); if(!d) return; var lv=G.ventures[id];
+    var i=Math.round(ri(d.inc[0],d.inc[1])*(1+0.6*(lv-1)));
+    if(id==='brand') i+=Math.round(G.fans*0.0008*lv);
+    up+=Math.round(d.upkeep*(1+0.4*(lv-1)));
+    inc+=i;
+  });
+  var net=inc-up; G.cash+=net; G.ventureNet=net;
+  if(hasVent('esports')){ G.fans+=150*G.ventures.esports; if(Math.random()<0.14){ var b=ri(80,220); G.cash+=b; G.rep=clamp(G.rep+2,0,100); notes.push('🎮 电竞战队打进联赛决赛，奖金加代言 +'+fmt(b)+'，声望 +2。'); } }
+  if(hasVent('basketball') && Math.random()<0.12){ var b2=ri(50,150); G.cash+=b2; notes.push('🏀 篮球队赢下同城德比，门票和周边大卖 +'+fmt(b2)+'。'); }
+  if(hasVent('media')){ if(Math.random()<0.4) G.rep=clamp(G.rep+1,0,100); G.rel.media=clamp(G.rel.media+1,0,100); }
+  if(hasVent('school') && Math.random()<0.3) G.rep=clamp(G.rep+1,0,100);
+  if(hasVent('brand') && Math.random()<0.25) G.rep=clamp(G.rep+1,0,100);
+  if(hasVent('overseas') && G.month%6===0 && G.squad.length<22){ var f=pick(FOREIGN); var p=mkPlayer(f[0],pick(POS),ri(55,64),ri(17,20),true); p.pot=ri(74,90); G.squad.push(p); notes.push('🌍 海外卫星俱乐部输送小将 '+p.name+'（'+f[1]+'，潜力 '+p.pot+'）免费加盟一线队。'); }
+  if(ventCount()>0) log('🏢 集团板块本月：收入 '+fmt(inc)+' · 支出 '+fmt(up)+' · 净'+(net>=0?'+':'')+fmt(net)+'。', net>=0?'good':'bad');
+  notes.forEach(function(n){ log(n,'good'); });
+}
 function seasonSettle(){
   var rank=myRank(); G.seasonRank=rank; var d=DIVS[G.div];
   var prize=d.prize[rank-1]||50;
@@ -476,6 +536,7 @@ function endMonth(auto){
   G.lastResults=results;
   var fin=monthlyFinance(results);
   G.lastFinance=fin;
+  processVentures();
   var wins=results.filter(function(r){ return r.res==='胜'; }).length;
   var losses=results.filter(function(r){ return r.res==='负'; }).length;
   G.morale=clamp(G.morale + wins*4 - losses*5 + (G.coach.spec==='体能储备'?2:0), 5, 100);
@@ -507,7 +568,7 @@ function endGame(kind){
   var effDiv=G.div; if(kind==='final' && rank<=2 && G.div>0) effDiv=G.div-1; // 最后一季压哨升级也算数
   if(kind==='bankrupt'){ e={grade:'D', title:'资金链断裂 · 破产清算', text:'工资发不出来，球员集体解约，俱乐部被托管拍卖。'+G.club+'的故事，在第 '+G.month+' 个月戛然而止。'}; }
   else if(kind==='caught'){ e={grade:'D', title:'东窗事发 · 禁赛重罚', text:'调查组带走了账本，俱乐部被取消注册资格。赢球的方式错了，赢多少场都不算数。'}; }
-  else if(G.champion && v>=15000){ e={grade:'S', title:'豪门帝国 · 王朝奠基', text:'中超冠军奖杯在手，俱乐部估值 '+fmt(v)+'，球迷 '+fmtFans(G.fans)+'。你从中乙带出来的球队，成了别人眼里的豪门。'}; }
+  else if(G.champion && v>=15000){ e={grade:'S', title: groupStage()>=4?'跨国体育帝国 · 王朝奠基':'豪门帝国 · 王朝奠基', text:'中超冠军奖杯在手，俱乐部估值 '+fmt(v)+'，球迷 '+fmtFans(G.fans)+'。你从中乙带出来的球队，成了别人眼里的豪门。'+(ventCount()? '旗下 '+ventCount()+' 个跨界板块横跨电竞、篮球与海外球队——这已经不只是一支球队，而是一个体育帝国。':'')}; }
   else if(G.champion){ e={grade:'A', title:'联赛冠军 · 登顶之夜', text:'你带队拿下了中超冠军！估值 '+fmt(v)+'。从第 1 个月的中乙小球会，到站在领奖台中央，你用了整整三年。'}; }
   else if(effDiv===0 && G.div===1){ e={grade:'A', title:'压哨冲超 · 梦圆顶级联赛', text:'最后一个赛季冲进前二，球队升上中超！估值 '+fmt(v)+'。三年两级跳，这支球队的故事才刚刚开始。'}; }
   else if(effDiv===0){ e={grade:'A', title:'顶级联赛 · 站稳脚跟', text:'球队在中超活了下来，最终排名第 '+rank+'，估值 '+fmt(v)+'。冠军还差一步，但没人再敢小看'+G.club+'。'}; }
@@ -616,6 +677,25 @@ function upgradeFac(id){
   log('🏗️ '+f.name+' 升到 '+G.fac[id]+' 级，花费 '+fmt(cost)+'。','good');
   render();
 }
+/* ---- 集团扩张操作 ---- */
+function buyVenture(id){
+  var d=ventDef(id); if(!d || hasVent(id)) return;
+  var req=ventReqOK(d); if(req){ toast(req); return; }
+  if(G.cash<d.cost){ toast('现金不够，还差 '+fmt(d.cost-G.cash)); return; }
+  if(!G.ventures) G.ventures={};
+  G.cash-=d.cost; G.ventures[id]=1;
+  log('🏢 集团扩张：'+d.name+'正式成立！投入 '+fmt(d.cost)+'，集团从此多了一条业务线（当前阶段：'+STAGES[groupStage()].name+'）。','good');
+  toast(d.name+' 成立！'); render();
+}
+function upgradeVenture(id){
+  var d=ventDef(id); if(!d || !G.ventures) return;
+  var lv=G.ventures[id]; if(!lv || lv>=3) return;
+  var cost=Math.round(d.cost*0.8*lv);
+  if(G.cash<cost){ toast('现金不够，还差 '+fmt(cost-G.cash)); return; }
+  G.cash-=cost; G.ventures[id]=lv+1;
+  log('🏢 '+d.name+' 扩建到 '+G.ventures[id]+' 级规模，投入 '+fmt(cost)+'，收入盘子更大了。','good');
+  render();
+}
 function borrow(amt){
   var avail=G.credit-G.debt;
   if(amt>avail){ toast('授信额度不够'); return; }
@@ -663,11 +743,18 @@ function autoStep(){
     if(p.ab>=weakest+4 && G.cash>p.price+300 && G.squad.length<20){ buyPlayerSilent(i); break; }
   }
   if(G.rel.sponsor<40 && G.cash>200) relActSilent('sponsor');
+  if(G.cash>2600 && ventCount()<4){
+    for(var vi=0; vi<VENTURES.length; vi++){
+      var vd=VENTURES[vi];
+      if(!hasVent(vd.id) && !ventReqOK(vd) && G.cash>vd.cost+1200){ buyVentureSilent(vd); break; }
+    }
+  }
   endMonth(true);
   render();
 }
 function buyPlayerSilent(i){ var p=G.market[i]; G.cash-=p.price; G.squad.push(p); G.market.splice(i,1); log('🤖 自动经营：签下 '+p.name+'（能力 '+p.ab+'），转会费 '+fmt(p.price)+'。',''); }
 function relActSilent(id){ if(G.relUsed[id]) return; G.cash-=15; G.relUsed[id]=true; G.rel[id]=clamp(G.rel[id]+7,0,100); }
+function buyVentureSilent(d){ if(!G.ventures) G.ventures={}; G.cash-=d.cost; G.ventures[d.id]=1; log('🤖 自动经营：成立'+d.name+'，投入 '+fmt(d.cost)+'，集团板块 +1。',''); }
 function startAuto(){ if(!G||G.ended) return; autoOn=true; autoTimer=setInterval(autoStep, 650); render(); }
 function stopAuto(){ autoOn=false; if(autoTimer){ clearInterval(autoTimer); autoTimer=null; } }
 function toggleAuto(){ if(autoOn){ stopAuto(); render(); } else startAuto(); }
@@ -677,7 +764,7 @@ function restart(){ stopAuto(); G=null; PAGE='home'; showStart(); render(); }
 <script>
 "use strict";
 /* ---------------- 渲染 ---------------- */
-var NAV=[['home','经营','📋'],['market','转会市场','🔁'],['squad','阵容教练','👕'],['rel','人脉关系','🤝'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
+var NAV=[['home','经营','📋'],['market','转会市场','🔁'],['squad','阵容教练','👕'],['rel','人脉关系','🤝'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['empire','集团扩张','🏢'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
 function navBtns(cls){
   return NAV.map(function(n){
     var bdg='';
@@ -694,7 +781,7 @@ function render(){
   +'<div><span class="brand-tag">足球狂魔</span></div>'
   +'<div><div class="club-name">'+esc(G.club)+'</div><div class="club-sub">江州 · '+d.name+' · 第 '+Math.ceil(G.month/12)+' 赛季</div></div>'
   +'<div class="month-box"><div class="m num">'+G.mon+'月<span>'+G.year+'年 · 第 '+G.month+'/36 个月</span></div><div class="s">联赛排名 第 '+myRank()+' · 积分 '+G.pts+'</div></div>'
-  +'<div class="tag-row"><span class="tag hot">'+d.short+'</span><span class="tag">声望 '+G.rep+'</span>'+(G.champion?'<span class="tag hot">🏆 已夺冠</span>':'')+(G.vip?'<span class="tag hot">VIP'+G.vip+'</span>':'')+'</div>'
+  +'<div class="tag-row"><span class="tag hot">'+d.short+'</span><span class="tag">声望 '+G.rep+'</span><span class="tag">🏢 '+STAGES[groupStage()].name+(ventCount()?' · '+ventCount()+'板块':'')+'</span>'+(G.champion?'<span class="tag hot">🏆 已夺冠</span>':'')+(G.vip?'<span class="tag hot">VIP'+G.vip+'</span>':'')+'</div>'
   +'<nav class="side">'+navBtns()+'</nav>'
   +'<div class="side-stats">'
   +'<div class="row"><span>现金</span><b class="num'+(G.cash<0?' neg':'')+'">'+fmt(G.cash)+'</b></div>'
@@ -721,13 +808,14 @@ function render(){
   else if(PAGE==='rel') body+=pageRel();
   else if(PAGE==='gray') body+=pageGray();
   else if(PAGE==='club') body+=pageClub();
+  else if(PAGE==='empire') body+=pageEmpire();
   else if(PAGE==='pay') body+=pagePay();
   else if(PAGE==='auto') body+=pageAuto();
   $app.innerHTML='<div class="layout"><aside>'+side+'</aside><div style="flex:1;min-width:0;">'+top+'<main>'+body+'</main></div></div>';
 }
 function endingBanner(){
   var e=G.ending;
-  return '<div class="card" style="border:2px solid var(--orange);"><div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;"><div class="end-grade">'+e.grade+'</div><div style="flex:1;min-width:220px;"><h3 style="margin:0;">🎬 '+e.title+'</h3><p class="desc" style="margin-top:6px;font-size:13.5px;">'+e.text+'</p><div class="mini">最终数据：估值 '+fmt(valuation())+' · 现金 '+fmt(G.cash)+' · 声望 '+G.rep+' · 球迷 '+fmtFans(G.fans)+' · 阵容身价 '+fmt(squadValue())+'</div></div><button class="btn pri" onclick="restart()">再来一局</button></div></div>';
+  return '<div class="card" style="border:2px solid var(--orange);"><div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;"><div class="end-grade">'+e.grade+'</div><div style="flex:1;min-width:220px;"><h3 style="margin:0;">🎬 '+e.title+'</h3><p class="desc" style="margin-top:6px;font-size:13.5px;">'+e.text+'</p><div class="mini">最终数据：估值 '+fmt(valuation())+' · 现金 '+fmt(G.cash)+' · 声望 '+G.rep+' · 球迷 '+fmtFans(G.fans)+' · 阵容身价 '+fmt(squadValue())+' · 集团阶段 '+STAGES[groupStage()].name+' · 旗下板块 '+ventCount()+' 个（估值 '+fmt(venturesValue())+'）</div></div><button class="btn pri" onclick="restart()">再来一局</button></div></div>';
 }
 function kpiHTML(){
   var rank=myRank(); var fin=G.lastFinance;
@@ -767,6 +855,55 @@ function tableHTML(){
   });
   return html+'</table></div>';
 }
+function stageNextText(s){
+  if(s===0) return '下一步：升入中甲，或俱乐部估值达到 3000万 → 升格「职业劲旅」，解锁电竞战队、国内卫星球队、连锁足球学校。';
+  if(s===1) return '下一步：升入中超且声望达到 50 → 升格「豪门俱乐部」，解锁职业篮球队、自有运动品牌、经纪公司、传媒公司。';
+  if(s===2) return '下一步：估值达到 8000万且声望 60 → 升格「体育集团」，解锁海外卫星俱乐部和主场商业综合体。';
+  if(s===3) return '下一步：估值达到 1.5亿、声望 75，且夺冠或拥有海外俱乐部 → 登顶「跨国体育帝国」。';
+  return '🏆 你已经站在体育产业的顶层：国内外球队、电竞、篮球、自有品牌全线开花。';
+}
+function stageCardHTML(withBtn){
+  var s=groupStage();
+  var steps=STAGES.map(function(st,i){
+    return '<div style="flex:1;min-width:82px;text-align:center;"><div style="font-size:18px;">'+(i<s?'✅':(i===s?'🔵':'⚪'))+'</div><div style="font-weight:'+(i===s?'800':'600')+';font-size:12.5px;color:'+(i===s?'var(--orange-d)':'var(--ink2)')+'">'+st.name+'</div></div>';
+  }).join('<div style="align-self:center;color:#c3d2dd;font-weight:700;">→</div>');
+  return '<div class="card"><h3><span class="no">创业</span>集团发展之路<span class="hint">当前阶段：'+STAGES[s].name+' · '+STAGES[s].desc+'</span></h3>'
+  +'<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:flex-start;">'+steps+'</div>'
+  +'<p class="desc" style="margin-top:10px;">'+stageNextText(s)+'</p>'
+  +(withBtn?'<button class="btn pri sm" onclick="go(\'empire\')">去集团扩张 →</button>':'')
+  +'</div>';
+}
+function pageEmpire(){
+  var s=groupStage();
+  var cards=VENTURES.map(function(d){
+    var lv=(G.ventures && G.ventures[d.id])||0;
+    var req=ventReqOK(d);
+    var head='<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="nm">'+d.icon+' '+d.name+'</span><span class="pill">'+d.sector+' · '+STAGES[d.stage].name+'解锁</span></div>'
+    +'<div class="ben">'+d.desc+'</div>'
+    +'<div class="ben" style="color:var(--ink);">💡 '+d.fx+'</div>'
+    +'<div class="mini">投入 '+fmt(d.cost)+' · 月支出 '+fmt(d.upkeep)+' · 月收入约 '+fmt(d.inc[0])+'~'+fmt(d.inc[1])+(d.id==='brand'?'+球迷加成':'')+' · 计入集团估值</div>';
+    var act='';
+    if(lv>0){
+      var upCost=Math.round(d.cost*0.8*lv);
+      act='<div class="acts"><span class="pill up">运营中 · '+lv+' 级</span>'+(lv>=3?'<span class="pill">已扩到顶级规模</span>':'<button class="btn sm" onclick="upgradeVenture(\''+d.id+'\')">扩建到 '+(lv+1)+' 级 · '+fmt(upCost)+'</button>')+'</div>';
+    } else if(req){
+      act='<div class="acts"><button class="btn sm" disabled>🔒 未解锁</button><span class="mini">'+req+'</span></div>';
+    } else {
+      act='<div class="acts"><button class="btn pri sm" onclick="buyVenture(\''+d.id+'\')">成立 · '+fmt(d.cost)+'</button><span class="mini">现金 '+fmt(G.cash)+'</span></div>';
+    }
+    return '<div class="rel-card">'+head+act+'</div>';
+  }).join('');
+  return '<div class="kpis">'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--orange)"></span>集团阶段</div><div class="vl" style="font-size:20px;">'+STAGES[s].name+'</div><div class="sub">第 '+(s+1)+' / 5 阶段</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--blue)"></span>旗下板块</div><div class="vl num">'+ventCount()+' <span style="font-size:14px;color:var(--ink3)">/ '+VENTURES.length+'</span></div><div class="sub">足球 · 电竞 · 篮球 · 品牌…</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--green)"></span>板块估值</div><div class="vl num">'+fmt(venturesValue())+'</div><div class="sub">已计入俱乐部总估值 '+fmt(valuation())+'</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--gold)"></span>板块上月净额</div><div class="vl num" style="'+(G.ventureNet<0?'color:var(--red)':'')+'">'+(G.ventureNet>=0?'+':'')+fmt(G.ventureNet||0)+'</div><div class="sub">每月随主队账目一起结算</div></div>'
+  +'</div>'
+  + stageCardHTML(false)
+  +'<div class="card"><h3><span class="no">扩张</span>跨界板块<span class="hint">像创业一样一步一步来：先站稳联赛，再开副业，最后铺向海外</span></h3>'
+  +'<p class="desc">每个板块成立后每月自动结算收入和支出，等级越高盘子越大（最高 3 级）。板块估值计入俱乐部总估值——冲 S 级「豪门帝国」不只靠夺冠，集团做大了同样算数。注意别在现金紧张时贪多，板块的月支出可是雷打不动的。</p>'
+  +'<div class="rel-grid">'+cards+'</div></div>';
+}
 function pageHome(){
   var fin=G.lastFinance;
   var finHTML= fin? '<div class="item"><div class="grow"><div class="nm">上月账目</div><div class="meta">门票 '+fmt(fin.gate)+' · 赞助 '+fmt(fin.sponsor)+' · 转播 '+fmt(fin.tv)+' ｜ 工资 '+fmt(fin.wages)+' · 运营 '+fmt(fin.ops)+' · 利息 '+fmt(fin.interest)+'</div></div><b class="num" style="color:'+(fin.net>=0?'var(--green-d)':'var(--red)')+'">'+(fin.net>=0?'+':'')+fmt(fin.net)+'</b></div>' : '<p class="desc">点「结束本月」，球队就会踢完本月 3 场比赛并结算账目。</p>';
@@ -779,7 +916,7 @@ function pageHome(){
   else if(G.div===1) goal='当前目标：赛季结束冲进前 2，升上中超。';
   else if(!G.champion) goal='当前目标：拿下中超第 1，把冠军奖杯带回家。';
   else goal='🏆 冠军已到手！把估值冲到 1.5亿，解锁 S 级「豪门帝国」结局。';
-  return kpiHTML()+warn+stadiumHTML()
+  return kpiHTML()+warn+stadiumHTML()+stageCardHTML(true)
   +'<div class="grid-main"><div>'
   +'<div class="card"><h3><span class="no">1/3</span>本月赛果<span class="hint">'+goal+'</span></h3>'+resHTML+finHTML+'</div>'
   +'<div class="card"><h3><span class="no">2/3</span>经营动态</h3><div class="log">'+(G.log.slice(0,10).map(function(l){ return '<div class="it '+l.cls+'"><span class="dt num">'+l.m+'</span><span>'+l.t+'</span></div>'; }).join('')||'<p class="desc">暂无动态。</p>')+'</div></div>'
@@ -866,7 +1003,10 @@ function pageClub(){
     {t:'升入中超', done:G.div===0},
     {t:'夺得中超冠军', done:G.champion},
     {t:'俱乐部估值达到 1.5亿（当前 '+fmt(v)+')', done:v>=15000},
-    {t:'声望达到 80（当前 '+G.rep+')', done:G.rep>=80}
+    {t:'声望达到 80（当前 '+G.rep+')', done:G.rep>=80},
+    {t:'集团升格为「体育集团」（当前：'+STAGES[groupStage()].name+'）', done:groupStage()>=3},
+    {t:'旗下跨界板块达到 5 个（当前 '+ventCount()+' 个）', done:ventCount()>=5},
+    {t:'登顶「跨国体育帝国」', done:groupStage()>=4}
   ];
   var goalHTML=goals.map(function(g){ return '<div class="item"><span class="pill '+(g.done?'up':'')+'">'+(g.done?'✓ 已达成':'未达成')+'</span><div class="grow"><div class="nm" style="font-weight:600;">'+g.t+'</div></div></div>'; }).join('');
   return '<div class="grid-main"><div>'
@@ -944,7 +1084,7 @@ function showStart(keep){
   +'</div><label class="fl">难度</label><div class="opt-grid">'
   + diffs.map(function(o){ return '<button class="opt '+(selDiff===o.id?'on':'')+'" onclick="selOpt(\'d\',\''+o.id+'\')"><b>'+o.t+'</b><span>'+o.d+'</span></button>'; }).join('')
   +'</div>'
-  +'<p class="mini" style="margin-top:12px;">玩法：每月踢 3 场联赛、结算门票/赞助/转播与工资；转会补强、人脉打点、设施升级、银行授信都能用；赛季前 2 升级、后 2 降级。第 36 个月结算结局：夺冠+估值 1.5亿 = S 级豪门帝国。灰色账本能救命，也能送你进去。</p>'
+  +'<p class="mini" style="margin-top:12px;">玩法：每月踢 3 场联赛、结算门票/赞助/转播与工资；转会补强、人脉打点、设施升级、银行授信都能用；赛季前 2 升级、后 2 降级。踢出名堂后还能像创业一样搞集团扩张：从草根俱乐部一步步升格到跨国体育帝国——办电竞战队、组职业篮球队、收购国内卫星球队和海外俱乐部、创自有运动品牌、开足球学校和经纪公司，板块收入每月结算、计入集团估值。第 36 个月结算结局：夺冠+估值 1.5亿 = S 级豪门帝国。灰色账本能救命，也能送你进去。</p>'
   +'</div>'
   +'<div class="foot"><button class="btn-start" onclick="beginGame()">开始经营</button></div>'
   +'</div></div>';
