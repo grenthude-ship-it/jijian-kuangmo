@@ -209,7 +209,7 @@
       .ev-choices{ display:flex; flex-direction:column; gap:9px; margin-top:12px; }
       .ev-choices button{ text-align:left; }
       .end-grade{ font-size:54px; font-weight:900; color:var(--orange); line-height:1; }
-      /* ---------- 创作人宣传弹窗（首页首次进入，本次会话只弹一次） ---------- */
+      /* ---------- 游戏创作者宣传弹窗（首页首次进入，本次会话只弹一次） ---------- */
       .creator-overlay{ position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center; padding:24px 16px; overflow-y:auto;
         background:
           radial-gradient(420px 200px at 12% -40px, rgba(255,214,120,.28), rgba(255,214,120,0) 70%),
@@ -709,7 +709,8 @@ function newGame(clubName, origin, diff){
     tactic:'均衡攻守', titles:0, cupWins:0, seasonsPlayed:0, totalWins:0,
     boardTarget:null, achClaimed:{}, opsUsed:{},
     youth:[], youthCandidates:[], youthBudget:30, youthPromoted:0, youthSold:0, youthSoldIncome:0, youthLog:[],
-    formation:'4-3-3', seasonGoals:{}, awards:[], playerHonors:{}
+    formation:'4-3-3', seasonGoals:{}, awards:[], playerHonors:{},
+    train:{intensity:'标准', physio:1}, scout:{reports:{}, used:0, mission:null}, director:{mode:'manual'}, board:{patience:70, cityRep:35, frozen:0, budgetSeason:-1, grantSeason:-1, facGrant:false, citySeason:-1}, mediaUsed:false
   };
   buildTable(); refreshMarket(true); refreshOffers();
   // 青训开局：梯队里先有 4 名小将，候选名单刷出 3 人
@@ -730,7 +731,7 @@ function squadValue(){ return G.squad.reduce(function(s,p){ return s+p.value; },
 function fmtSign(p){ if(p.cost===0) return p.signNote||'免签'; if(p.cost==null) return fmt(p.value)+'（初始身价）'; return fmt(p.cost); }
 function signCost(p){ return p.cost==null? p.value : p.cost; }
 function signProfit(p, price){ return price - signCost(p); }
-function facValue(){ var f=G.fac; return (f.stadium+f.academy+f.training+f.medical)*120; }
+function facValue(){ var f=G.fac; return (f.stadium+f.academy+f.training+f.medical+(f.data||0))*120; }
 function valuation(){ return Math.round(G.cash - G.debt + squadValue() + facValue() + venturesValue() + G.rep*15 + G.fans*0.04); }
 function fatPenalty(p){ var f=p.fat||0; return f>=75?4 : f>=50?2 : f>=30?1 : 0; }
 function effAb(p){ return p.ab - fatPenalty(p); }
@@ -740,6 +741,7 @@ function teamStr(){
   var avg=top.reduce(function(s,p){ return s+effAb(p); },0)/top.length;
   var s=avg + G.coach.ab*0.7 + (G.morale-60)*0.06 + G.fac.training*0.8;
   if(G.staff.some(function(x){ return x.role==='数据分析师'; })) s+=2;
+  s+=(G.fac.data||0)*0.4; // 数据分析中心：情报越准，临场越占便宜
   if(G.grayWinBoost>0) s+=7;
   return s;
 }
@@ -786,6 +788,7 @@ function refreshOffers(){
   var n=ri(1,2);
   for(var i=0;i<n;i++){
     var p=pick(G.squad);
+    if(p.renewedUntil && p.renewedUntil>G.month) continue; // 刚续约的球员，短期内不会有球队来报价挖角
     if(G.offers.some(function(o){ return o.player===p; })) continue;
     G.offers.push({player:p, price:Math.round(p.value*rnd(0.9,1.5)), from:pick(['中超豪门球探','中甲竞争对手','海外低级别联赛','同城死敌'])});
   }
@@ -918,7 +921,7 @@ function matchGate(win){
   var d=DIVS[G.div];
   var attend=Math.min(G.fans, 8000+G.fac.stadium*9000);
   var satMult=0.82+(G.fanSat||60)*0.0036; // 球迷满意度直接影响上座与门票
-  return Math.round(attend*d.ticket/100*(0.55+(win?0.48:0)+G.fac.stadium*0.09)*(G.rel.fans>=60?1.15:1)*(G.staff.some(function(x){return x.role==='商务总监';})?1.06:1)*satMult/2);
+  return Math.round(attend*d.ticket/100*(0.55+(win?0.48:0)+G.fac.stadium*0.09)*(G.rel.fans>=60?1.15:1)*(G.staff.some(function(x){return x.role==='商务总监';})?1.06:1)*((G.board&&G.board.cityRep>=60)?1.05:1)*satMult/2); // 城市声望 ≥60：这座城市以球队为荣，门票 +5%
 }
 function playSingleMatch(fx){
   var opp=null; G.table.forEach(function(t){ if(t.name===fx.opp) opp=t; });
@@ -959,8 +962,10 @@ function playSingleMatch(fx){
   pickLineup().forEach(function(s){ starters[s.p.name]=s.p; });
   G.squad.forEach(function(p){
     if(starters[p.name]){
-      p.fat=clamp((p.fat||0)+Math.round(ri(16,26)*fatScale),0,100);
-      var injCh=(0.035 + ((p.fat||0)>=70?0.06:0) - G.fac.medical*0.006) * injScale;
+      p.played=(p.played||0)+1; // 出场计数：出场承诺兑现、更衣室心情都看它
+      var intenFat=(G.train&&G.train.intensity)==='高强度'?6:((G.train&&G.train.intensity)==='恢复调养'?-5:0);
+      p.fat=clamp((p.fat||0)+Math.round(ri(16,26)*fatScale)+intenFat,0,100);
+      var injCh=(0.035 + ((p.fat||0)>=70?0.06:0) - G.fac.medical*0.006 - ((G.train&&G.train.physio)||0)*0.004 + ((G.train&&G.train.intensity)==='高强度'?0.015:0)) * injScale;
       if(p.inj===0 && Math.random()<injCh){ p.inj=ri(10,40); log('🚑 '+p.name+' 在对阵 '+fx.opp+' 的比赛中受伤，预计缺阵约 '+p.inj+' 天（医疗中心等级越高、轮换越合理，伤病越少）。','bad'); }
     } else {
       p.fat=clamp((p.fat||0)-12,0,100);
@@ -1015,25 +1020,31 @@ function monthlyFinance(results){
   var sponsor=Math.round(d.sponsor*(0.7+G.rep/160)*(G.rel.sponsor>=60?1.3:1)*(1+G.vip*0.02)*(G.staff.some(function(x){return x.role==='商务总监';})?1.06:1)*(G.sponsorBoost||1));
   var tv=Math.round(d.tv*(G.rel.fa>=60?1.2:1));
   var wages=Math.round(wagesTotal());
-  var ops=Math.round(26+G.fac.stadium*4+G.fac.training*3+G.squad.length*0.7);
+  var ops=Math.round(26+G.fac.stadium*4+G.fac.training*3+G.squad.length*0.7+((G.train&&G.train.physio)||0)*25+(G.fac.data||0)*6); // 理疗投入（25万/级）与数据中心维护费进运营费
   var interest=Math.round(G.debt*0.01);
   var income=gate+sponsor+tv, cost=wages+ops+interest;
   G.cash+=sponsor+tv-cost;
   return {gate:gate, sponsor:sponsor, tv:tv, wages:wages, ops:ops, interest:interest, net:income-cost};
 }
 function growPlayers(){
+  var inten=(G.train&&G.train.intensity)||'标准';
+  var physio=(G.train&&G.train.physio)||0;
+  var mult= inten==='高强度'?1.5 : (inten==='恢复调养'?0.55:1); // 训练强度直接放大/缩小成长——练得狠涨得快，但代价在体能和伤病上
   G.squad.forEach(function(p){
     if(p.inj>0){ return; } // 伤病按天恢复（advanceDays 里逐日递减），养伤期间不涨球
     var grow=0;
-    if(p.age<=23 && Math.random()<0.34+G.fac.academy*0.05+(G.rel.youth>=60?0.08:0)+(G.coach.spec==='青训提拔'?0.1:0)+(hasVent('satellite')?0.06:0)+(hasVent('school')?0.05:0)) grow=1;
-    if(p.age>=24 && p.age<=28 && Math.random()<0.1+G.fac.training*0.02) grow=1;
-    if(G.focus==='青训提拔' && p.age<=21 && Math.random()<0.2) grow=1;
-    if(p.age>=31 && Math.random()<0.3) grow=-1;
+    if(p.age<=23 && Math.random()<(0.34+G.fac.academy*0.05+(G.rel.youth>=60?0.08:0)+(G.coach.spec==='青训提拔'?0.1:0)+(hasVent('satellite')?0.06:0)+(hasVent('school')?0.05:0))*mult) grow=1;
+    if(p.age>=24 && p.age<=28 && Math.random()<(0.1+G.fac.training*0.02)*mult) grow=1;
+    if(G.focus==='青训提拔' && p.age<=21 && Math.random()<0.2*mult) grow=1;
+    if(inten==='高强度' && p.age<=21 && Math.random()<0.12) grow=1; // 年轻人吃得消魔鬼训练
+    if(p.age>=31 && Math.random()<0.3+(inten==='高强度'?0.15:0)) grow=-1; // 老将硬练掉状态更快：现在多练 vs 以后还有人用的取舍
+    if(p.firedUp){ p.firedUp=false; if(grow===0){ grow=1; log('🔥 '+p.name+' 被公开批评后知耻后勇，这个月训练拼了命，能力 +1。','good'); } }
     if(grow!==0 && p.ab+grow<= (p.pot||99)){ p.ab=clamp(p.ab+grow,35,95); p.value=Math.round(Math.max(5,Math.pow(Math.max(p.ab-38,2),2)*0.16*(p.age>30?0.75:1))); p.wage=Math.round(Math.max(0.4,Math.pow(Math.max(p.ab-40,2),2)*0.016)*10)/10; }
   });
-  // 伤病（训练伤，场上伤病在单场引擎里按体能结算）
-  if(Math.random()<0.3-G.fac.medical*0.035 && G.squad.length>11){
-    var p=pick(G.squad); if(p.inj===0){ p.inj=ri(10,35); log('🚑 '+p.name+'训练中受伤，预计缺阵约 '+p.inj+' 天。','bad'); }
+  // 伤病（训练伤，场上伤病在单场引擎里按体能结算）：强度越高越容易练伤，理疗投入与医疗中心能压下来
+  var injP=0.3 - G.fac.medical*0.035 + (inten==='高强度'?0.14:0) + (inten==='恢复调养'?-0.13:0) - physio*0.05;
+  if(Math.random()<injP && G.squad.length>11){
+    var p=pick(G.squad); if(p.inj===0){ p.inj=ri(10,35)+(inten==='高强度'?8:0); log('🚑 '+p.name+'训练中受伤，预计缺阵约 '+p.inj+' 天。'+(inten==='高强度'?'这就是高强度训练的代价：练得越狠，伤得越多。':''),'bad'); }
   }
 }
 var EVENTS=[
@@ -1202,12 +1213,13 @@ function checkInvestigation(){
 function dailyRecovery(){
   var medic=G.staff.some(function(x){ return x.role==='队医主管'; });
   G.squad.forEach(function(p){
-    if(p.inj>0) p.inj=Math.max(0, p.inj-(medic?2:1)); // 有队医主管，康复速度翻倍
-    p.fat=clamp((p.fat||0)-(p.rest?7:3),0,100); // 轮休的球员体能恢复更快
+    if(p.inj>0) p.inj=Math.max(0, p.inj-(medic?2:1)-(((G.train&&G.train.physio)||0)>=2?1:0)); // 队医主管恢复翻倍；顶级理疗再 +1 天/日
+    p.fat=clamp((p.fat||0)-(p.rest?7:3)-((G.train&&G.train.intensity)==='恢复调养'?2:0),0,100); // 轮休恢复更快；恢复调养周全队体能回得更快
   });
 }
 function settleMonth(manual){
   G.relUsed={}; G.grayUsed={}; G.opsUsed={};
+  if(G.scout) G.scout.used=0; G.mediaUsed=false; monthlySystems(); // 承诺兑现/食言、更衣室心情、董事会耐心都在这里月结
   var results=G.monthResults||[];
   opponentDrift(); worldNewsTick();
   var fin=monthlyFinance(results);
@@ -1238,6 +1250,7 @@ function settleMonth(manual){
   G.mon++; if(G.mon>12){ G.mon=1; G.year++; }
   G.month++;
   refreshMarket(); refreshOffers();
+  scoutMissionArrive(); directorAct(); // 球探考察归队带回独家候选；足球总监按建队策略自动操作
   if(isSeasonEnd){ seasonSettle(); }
   if(manual && !G.ended && Math.random()<0.38){ showEvent(pick(EVENTS)); }
 }
@@ -1305,6 +1318,8 @@ function endGame(kind){
 function go(p){ PAGE=p; render(); window.scrollTo(0,0); }
 function buyPlayer(i){
   var p=G.market[i]; if(!p) return;
+  if(G.director && G.director.mode==='none'){ toast('当前是「零引援」建队策略：只靠原阵容和青训。去转会页把策略改掉才能买人。'); return; }
+  if(G.board && G.board.frozen>0){ toast('董事会冻结了本月预算，先把成绩打回来，下个月再买。'); return; }
   if(G.cash<p.price){ toast('现金不够，还差 '+fmt(p.price-G.cash)); return; }
   if(G.squad.length>=22){ toast('一线队名额已满（22人），先卖掉球员'); return; }
   G.cash-=p.price; p.cost=p.price; p.signNote=''; G.squad.push(p); G.market.splice(i,1);
@@ -1385,16 +1400,21 @@ var FACDEF=[
   {id:'stadium', name:'主场球场', icon:'🏟️', desc:'每升一级：门票收入 +9%，球迷口碑更好。'},
   {id:'academy', name:'青训营', icon:'🌱', desc:'每升一级：年轻球员成长概率提升，梯队更出人才。'},
   {id:'training', name:'训练基地', icon:'🏋️', desc:'每升一级：全队比赛强度 +0.8，球员涨球更快。'},
-  {id:'medical', name:'医疗中心', icon:'🏥', desc:'每升一级：伤病概率下降，老将状态保持更好。'}
+  {id:'medical', name:'医疗中心', icon:'🏥', desc:'每升一级：伤病概率下降，老将状态保持更好。'},
+  {id:'data', name:'数据分析中心', icon:'📊', desc:'每升一级：球探报告更完整（潜力区间更准）、球队强度 +0.4，足球总监更不容易看走眼。'}
 ];
 function facCost(lv){ return Math.round(150*Math.pow(lv+1,1.6)); }
 function upgradeFac(id){
-  var lv=G.fac[id]; if(lv>=5){ toast('已经满级'); return; }
+  var lv=G.fac[id]||0; if(lv>=5){ toast('已经满级'); return; }
+  if(G.board && G.board.frozen>0){ toast('董事会冻结了本月预算，设施升级也要等下个月。'); return; }
   var cost=facCost(lv);
+  var grant=false;
+  if(G.board && G.board.facGrant){ cost=Math.round(cost/2); grant=true; } // 董事会设施拨款：半价
   if(G.cash<cost){ toast('现金不够，还差 '+fmt(cost-G.cash)); return; }
-  G.cash-=cost; G.fac[id]++;
+  G.cash-=cost; G.fac[id]=lv+1;
+  if(grant) G.board.facGrant=false;
   var f=FACDEF.filter(function(x){ return x.id===id; })[0];
-  log('🏗️ '+f.name+' 升到 '+G.fac[id]+' 级，花费 '+fmt(cost)+'。','good');
+  log('🏗️ '+f.name+' 升到 '+G.fac[id]+' 级，花费 '+fmt(cost)+(grant?'（用了董事会设施拨款，半价）':'')+'。','good');
   render();
 }
 /* ---- 集团扩张操作 ---- */
@@ -1677,7 +1697,7 @@ function restart(){ stopAuto(); clearAutoSave(); G=null; PAGE='home'; showStart(
 <script>
 "use strict";
 /* ---------------- 渲染 ---------------- */
-var NAV=[['home','游戏大厅','📋'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
+var NAV=[['home','游戏大厅','📋'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
 function navBtns(cls){
   return NAV.map(function(n){
     var bdg='';
@@ -1718,7 +1738,13 @@ function render(){
   if(!G.sign) G.sign={last:0, streak:0};
   if(G.sponsorBoost==null) G.sponsorBoost=1;
   if(G.sponsorDealSeason==null) G.sponsorDealSeason=-1;
-  G.squad.forEach(function(p){ if(p.fat==null) p.fat=0; if(p.rest==null) p.rest=false; });
+  if(!G.train) G.train={intensity:'标准', physio:1};
+  if(!G.scout) G.scout={reports:{}, used:0, mission:null};
+  if(!G.director) G.director={mode:'manual'};
+  if(!G.board) G.board={patience:70, cityRep:35, frozen:0, budgetSeason:-1, grantSeason:-1, facGrant:false, citySeason:-1};
+  if(G.mediaUsed==null) G.mediaUsed=false;
+  if(G.fac.data==null) G.fac.data=0;
+  G.squad.forEach(function(p){ if(p.fat==null) p.fat=0; if(p.rest==null) p.rest=false; if(p.trust==null) p.trust=55; if(p.mood==null) p.mood=60; if(p.played==null) p.played=0; if(p.promise===undefined) p.promise=null; });
   ensureFixtures();
   var d=DIVS[G.div];
   var side=''
@@ -1744,7 +1770,7 @@ function render(){
   +'<button class="btn-ghost js-install-btn" onclick="doInstall()">📲 装成 App</button>'
   +'<button class="btn-ghost" onclick="toggleFullscreen()">⛶ 全屏模式</button>'
   +'<button class="btn-ghost" onclick="restart()">重新开局</button>'
-  +'<div class="credit">创作人：邓元元</div>'
+  +'<div class="credit">游戏创作者：邓元元</div>'
   +'</div>';
   var top='<div class="topbar"><div class="r1"><img class="game-logo" src="logo.png" alt="豪门缔造者"><span class="cn">'+esc(G.club)+'</span><span class="mm"><b class="num">'+G.mon+'月'+G.day+'日</b> '+G.year+' · '+d.short+'第'+myRank()+' · 💾 '+saveTimeText()+'</span></div>'
   +'<nav>'+NAV.map(function(n){ return '<button class="'+(PAGE===n[0]?'on':'')+'" onclick="go(\''+n[0]+'\')">'+n[2]+' '+n[1]+'</button>'; }).join('')+'</nav>'
@@ -1754,6 +1780,8 @@ function render(){
   if(PAGE==='home'){ body+=lobbyHTML(); body+=installCardHTML(); body+=pageHome(); }
   else if(PAGE==='league') body+=pageLeague();
   else if(PAGE==='market') body+=pageMarket();
+  else if(PAGE==='intel') body+=pageIntel();
+  else if(PAGE==='media') body+=pageMedia();
   else if(PAGE==='stars') body+=pageStars();
   else if(PAGE==='ops') body+=pageOps();
   else if(PAGE==='squad') body+=pageSquad();
@@ -1907,7 +1935,10 @@ function abBar(p){
 function posPill(pos){ var c= pos==='前锋'?'fw': pos==='中场'?'mf': pos==='后卫'?'df':'gk'; return '<span class="pill '+c+'">'+pos+'</span>'; }
 function pageMarket(){
   var buy=G.market.map(function(p,i){
-    return '<div class="item"><div class="grow"><div class="nm">'+esc(p.name)+(p.foreign?' <span class="pill">外援</span>':'')+' '+posPill(p.pos)+'</div><div class="meta">'+p.age+' 岁 · 潜力 '+p.pot+' · 月薪 '+p.wage+'万 · 当前身价 '+fmt(p.value)+'</div></div>'+abBar(p)+'<div style="text-align:right;"><div class="mini">签约费（转会费）</div><div class="num" style="font-weight:800;">'+fmt(p.price)+'</div><button class="btn pri sm" onclick="buyPlayer('+i+')">签下</button></div></div>';
+    var r=scoutReportFor(p);
+    return '<div class="item"><div class="grow"><div class="nm">'+esc(p.name)+(p.foreign?' <span class="pill">外援</span>':'')+' '+posPill(p.pos)+'</div><div class="meta">'+p.age+' 岁 · 潜力 '+p.pot+' · 月薪 '+p.wage+'万 · 当前身价 '+fmt(p.value)+'</div>'
+    +(r? '<div class="meta">🔭 球探报告：适配度 <b>'+r.fit+'/100</b> · 真实潜力约 '+r.potLo+'~'+r.potHi+' · '+r.verdict+'</div>' : '<div class="meta">🔭 暂无球探报告：标称潜力是经纪人嘴里的话，派球探实地看过（8万/份）才算数。</div>')
+    +'</div>'+abBar(p)+'<div style="text-align:right;"><div class="mini">签约费（转会费）</div><div class="num" style="font-weight:800;">'+fmt(p.price)+'</div>'+(r?'':'<button class="btn sm" onclick="scoutPlayer('+i+')">情报 · 8万</button> ')+'<button class="btn pri sm" onclick="buyPlayer('+i+')">签下</button></div></div>';
   }).join('') || '<p class="desc">本月市场已空，下个月刷新。</p>';
   var sell=G.offers.map(function(o,i){
     var pr=signProfit(o.player, o.price);
@@ -1917,7 +1948,7 @@ function pageMarket(){
     ? '<div class="ok-strip" style="margin-bottom:10px;">🪟 转会窗（'+(G.mon===1?'冬窗':'夏窗')+'）开启中 · 还剩 '+windowDaysLeft()+' 天'+(isDeadline()?' · <b>压哨期！全场挂牌价已打八折，窗口关门前最后的机会</b>':' · 窗口期挂牌价九二折，每天有新面孔上架')+'</div>'
     : '<div class="item" style="margin-bottom:10px;"><div class="grow"><div class="nm">🪟 转会窗未开启</div><div class="meta">冬窗 1 月 / 夏窗 7 月开启：人数更多、必有好货、价格打折，最后 3 天压哨八折。距离下个窗口还有 '+daysToWindow()+' 天。窗口外市场照常营业，就是不打折、不上新。</div></div></div>';
   return winBanner+'<div class="card"><h3><span class="no">转会</span>球员市场<span class="hint">每月刷新 · 现金 '+fmt(G.cash)+' · 阵容 '+G.squad.length+'/22</span></h3><p class="desc">买人看能力与潜力：能力决定现在的战绩，潜力决定年轻球员能涨多高。外援和明星球员贵，但能直接把球队抬一个档次。每名球员的<b>签约价会被记进档案</b>：以后卖他的时候，报价旁边会直接标出当初多少钱签的、这笔买卖赚了还是亏了（阵容页也能查每个人的签约价）。</p>'+buy+'</div>'
-  +'<div class="card"><h3><span class="no">卖出</span>收到的报价<span class="hint">每笔报价都标了当初签约价和卖出盈亏</span></h3>'+sell+'</div>';
+  +'<div class="card"><h3><span class="no">卖出</span>收到的报价<span class="hint">每笔报价都标了当初签约价和卖出盈亏</span></h3>'+sell+'</div>'+directorCardHTML();
 }
 function pageOps(){
   var bt=G.boardTarget;
@@ -2031,6 +2062,7 @@ function showPlayer(name){
   +(p.img? '<img src="'+p.img+'" alt="'+esc(p.name)+'的真实比赛照片" style="width:100%;border-radius:10px;display:block;margin-bottom:10px;">':'')
   +'<div class="item"><div class="grow"><div class="nm">能力 '+p.ab+' · 潜力 '+(p.pot||p.ab)+'</div><div class="meta">'+p.age+' 岁 · 月薪 '+p.wage+'万 · 当前身价 '+fmt(p.value)+' · 签约价 '+fmtSign(p)+(p.inj>0?' · 🚑 伤停约 '+p.inj+' 天':'')+'</div></div></div>'
   +'<div class="item"><div class="grow"><div class="nm">🩺 状态：'+(p.inj>0?'伤停养伤中（约 '+p.inj+' 天复出）':(p.rest?'轮休中（不上场，体能恢复更快）':'健康，可出战'))+'</div><div class="meta">体能 '+(100-(p.fat||0))+'/100'+((p.fat||0)>=50?' · 疲劳偏高：出场能力打折、受伤风险上升，给他轮休一场能缓过来':'')+' · 伤病按天恢复，队医主管在队时恢复翻倍</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn sm" onclick="toggleRest(\''+esc(p.name)+'\')">'+(p.rest?'取消轮休':'安排轮休')+'</button>'+(p.inj>0?'<button class="btn sm" onclick="rehabPlayer(\''+esc(p.name)+'\')">💉 康复治疗 · 20万（伤停 -14 天）</button>':'')+'</div></div>'
+  +'<div class="item"><div class="grow"><div class="nm">🤝 与你的关系：信任 '+(p.trust||55)+' · 心情 '+(p.mood||60)+'</div><div class="meta">本赛季出场 '+(p.played||0)+' 次'+(p.promise?' · 🤝 有承诺待兑现：下个月至少首发 '+p.promise.need+' 次，食言信任 -25':'')+(p.renewedUntil&&p.renewedUntil>G.month?' · 已续约，'+p.renewedUntil+' 月前不会被报价挖走':'')+' · 在阵容页「更衣室」里用谈话、承诺、续约经营这段关系</div></div></div>'
   +'<div class="item"><div class="grow"><div class="nm">⚽ 进球账</div><div class="meta">本赛季 '+( (G.seasonGoals&&G.seasonGoals[p.name])||0 )+' 球 · 累计为本队打进 '+((G.goalTable&&G.goalTable[p.name])||0)+' 球</div></div></div>'
   +(star&&STAR_HONORS[star.id]? '<div class="item"><div class="grow"><div class="nm">🏅 真实荣誉</div><div class="meta">'+STAR_HONORS[star.id]+'</div></div></div>':'')
   +'<div style="font-weight:800;margin:12px 0 4px;">🏆 他在本队拿过的奖项</div>'+honHTML
@@ -2058,7 +2090,7 @@ function pageSquad(){
   +'<div class="card"><h3><span class="no">阵容</span>一线队<span class="hint">'+G.squad.length+' 人 · 身价合计 '+fmt(squadValue())+'</span></h3>'
   +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;"><span class="mini">训练重点：</span>'+focuses.map(function(f){ return '<button class="btn sm '+(G.focus===f?'pri':'')+'" onclick="setFocus(\''+f+'\')">'+f+'</button>'; }).join('')+'</div>'
   +'<div class="tbl-wrap"><table><tr><th>球员</th><th>位置</th><th>年龄</th><th>能力</th><th>潜力</th><th>月薪</th><th>当前身价</th><th>签约价</th><th>操作</th></tr>'+rows+'</table></div><p class="mini" style="margin-top:8px;">「签约价」= 当初签下他花的钱（免签/青训会注明来源）；卖出时拿报价减签约价就是这笔交易的盈亏。「特训」每月每人限 1 次：30万，有概率能力 +1（训练基地等级和教练风格会影响成功率）。</p></div>'
-  +'<div class="grid2"><div class="card"><h3>主教练市场</h3>'+coachCands+'</div><div class="card"><h3>教练组与职员</h3>'+staffHTML+'</div></div>';
+  +'<div class="grid2"><div class="card"><h3>主教练市场</h3>'+coachCands+'</div><div class="card"><h3>教练组与职员</h3>'+staffHTML+'</div></div>'+trainCardHTML()+dressingCardHTML();
 }
 function pageYouth(){
   var cap=youthCap();
@@ -2160,6 +2192,7 @@ function pageClub(){
   }).join('');
   return '<div class="grid-main"><div>'
   +'<div class="card"><h3><span class="no">设施</span>基地与设施</h3>'+facs+'</div>'
+  +boardCityHTML()
   +'<div class="card"><h3><span class="no">银行</span>银行与授信</h3>'
   +'<div class="item"><div class="grow"><div class="nm">授信额度 '+fmt(G.credit)+'</div><div class="meta">已用 '+fmt(G.debt)+' · 月息 1% · 估值和声望越高越容易借（本版固定额度）</div></div></div>'
   +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"><button class="btn sm" onclick="borrow(100)">借 100万</button><button class="btn sm" onclick="borrow(300)">借 300万</button><button class="btn sm" onclick="borrow(500)">借 500万</button><button class="btn sm" onclick="repay(100)">还 100万</button><button class="btn sm" onclick="repay(99999)">全部还清</button></div>'
@@ -2393,7 +2426,7 @@ function pageStars(){
                钻石=钻石余额（点开充值中心，+ 同样去充值中心）
                体力=球队士气（点开阵容页，+ 去运营活动提升士气）
    福利=福利中心弹窗（签到/成就/VIP） 签到=每周签到板（7 天循环，与入口弹窗同一套） 活动=运营活动页 商城=充值中心
-   任务=任务弹窗（董事会目标+长期目标） 排行=积分榜弹窗 致敬传奇=创造人 × C罗谢幕海报全屏查看
+   任务=任务弹窗（董事会目标+长期目标） 排行=积分榜弹窗 致敬传奇=游戏创作者 × C罗谢幕海报全屏查看
    球员招募=转会市场 战术中心=运营页战术 我的球队=阵容页 下一场=模拟到下一场比赛日
    底部五栏（bottomTabsHTML 由 render() 全局渲染，所有页面常驻，点任意页签直接切换）：
    首页=大厅 球队=俱乐部页 阵容=阵容页（球队强度/一线队名单/主教练）
@@ -2451,7 +2484,7 @@ function showTribute(){
   $modal.innerHTML='<div class="tribute-overlay" role="dialog" aria-modal="true" aria-label="致敬传奇 · OBRIGADO CR7 海报">'
   +'<div class="tribute-card">'
   +'<button type="button" class="creator-close" aria-label="关闭" title="关闭" onclick="closeModal()">✕</button>'
-  +'<img src="tribute-cr7.webp" alt="创造人邓元元手举葡萄牙 7 号 RONALDO 球衣的致敬海报：致敬传奇 OBRIGADO CR7，C罗葡萄牙国家队 2003–2026" />'
+  +'<img src="tribute-cr7.webp" alt="游戏创作者邓元元手举葡萄牙 7 号 RONALDO 球衣的致敬海报：致敬传奇 OBRIGADO CR7，C罗葡萄牙国家队 2003–2026" />'
   +'<div class="tribute-cap">致 敬 传 奇 · OBRIGADO CR7</div>'
   +'</div></div>';
 }
@@ -2529,6 +2562,8 @@ function lobbyHTML(){
     ['honors','🎖️','荣誉中心','俱乐部荣誉 · 球员荣誉 · 颁奖倒计时', monthsToAwards()<=1?'本月颁奖':('颁奖 '+monthsToAwards()+' 月')],
     ['youth','🌱','青训体系','签苗子 · 提拔一线队', youthReady||''],
     ['rel','🤝','人脉关系','六位关键人物打点', ''],
+    ['intel','🔭','数据球探','残缺报告 · 适配度 · 独家候选', ''],
+    ['media','🎙️','媒体中心','发布会表态 · 表扬与批评', ''],
     ['gray','🕶️','灰色账本','来钱快 · 热度危险', G.heat>=60?('热度'+G.heat):''],
     ['club','🏛️','俱乐部','设施 · 银行 · 成就', claim||''],
     ['empire','🏢','集团扩张','电竞 · 篮球 · 海外', ventCount()||''],
@@ -2538,7 +2573,7 @@ function lobbyHTML(){
   ];
   var tilesHTML=tiles.map(function(t){
     return '<button class="ltile" onclick="go(\''+t[0]+'\')"><span class="ti">'+t[1]+'</span>'+t[2]+'<small>'+t[3]+'</small>'+(t[4]!==''?'<span class="bdg">'+t[4]+'</span>':'')+'</button>';
-  }).join('')+'<button class="ltile" onclick="showTribute()"><span class="ti">🐐</span>致敬传奇<small>创造人 × C罗国家队谢幕海报</small></button>'
+  }).join('')+'<button class="ltile" onclick="showTribute()"><span class="ti">🐐</span>致敬传奇<small>游戏创作者 × C罗国家队谢幕海报</small></button>'
   +'<button class="ltile" onclick="doInstall()"><span class="ti">📲</span>装成 App<small>添加到主屏幕全屏玩</small></button>';
   var nfx=nextFixture();
   var startBtn= G.ended
@@ -2567,7 +2602,7 @@ function lobbyHTML(){
   +'<button onclick="showRanking()"><span class="ri">📊</span>排行</button>'
   +'<button onclick="go(\'rel\')"><span class="ri">🤝</span>人脉</button>'
   +'</div>'
-  +'<div class="hero-poster"><img src="creator-poster.jpg" alt="《豪门缔造者》创作人宣传海报"></div>'
+  +'<div class="hero-poster"><img src="creator-poster.jpg" alt="《豪门缔造者》游戏创作者宣传海报"></div>'
   +'<div class="rail">'
   +'<button class="photocard" onclick="go(\'market\')"><img src="photo-25.jpg" alt="身穿 10 号球衣的球员背影真实照片"><span class="pc-t">球员招募<small>转会市场 · 本月 '+G.market.length+' 名球员在售</small></span></button>'
   +'<button class="photocard" onclick="go(\'ops\')"><img src="photo-06.jpg" alt="足球战术板真实照片"><span class="pc-t">战术中心<small>当前战术：'+(G.tactic||'均衡攻守')+'</small></span></button>'
@@ -2698,6 +2733,376 @@ function pageHonors(){
 </script>
 <script>
 "use strict";
+/* ================= 新系统（七大经营系统，全部与钱/士气/能力/声望/热度/球迷/青训/转会/设施挂钩） =================
+   1 训练与发展：训练强度 + 理疗投入（growPlayers / 单场引擎 / 月度财务已接入）
+   2 转会与建队：足球总监四种策略（含零引援锁买人）
+   3 俱乐部运营：董事会耐心/预算/设施拨款 + 城市赛事运营（门票加成已接入 matchGate）
+   4 数据球探：残缺报告（完整度=球探+数据中心）、适配度、考察任务带回独家候选
+   5 更衣室：心情月结、出场承诺兑现/食言
+   6 人际关系：谈话 / 承诺首发 / 续约（续约球员不被报价挖角）
+   7 媒体关系：发布会四种表态 + 公开表扬/批评（批评有概率激出状态，growPlayers 已接入） */
+function playerByName(name){ var f=null; if(G) G.squad.forEach(function(p){ if(p.name===name) f=p; }); return f; }
+function hasScout(){ return !!(G && G.staff.some(function(x){ return x.role==='首席球探'; })); }
+function scoutLevel(){ return 1 + (hasScout()?1:0) + ((G&&G.fac.data)||0); } // 报告完整度：1 起步，首席球探 +1，数据中心每级 +1
+
+/* ---- 1. 训练计划 ---- */
+function setTrainIntensity(v){
+  if(!G.train) G.train={intensity:'标准', physio:1};
+  G.train.intensity=v;
+  log('🏋️ 训练强度调整为「'+v+'」：'+(v==='高强度'?'成长加速、年轻人涨得更快，但体能掉得快、训练伤和比赛伤都变多，老将掉状态也更快。':(v==='恢复调养'?'成长放缓，换全队体能和健康——赛程密、伤号多的时候用它保人。':'按常规节奏训练，成长、体能、伤病都走中间路线。')),'');
+  render();
+}
+function setPhysio(lv){
+  if(!G.train) G.train={intensity:'标准', physio:1};
+  G.train.physio=lv;
+  log('🩹 理疗投入调整为 '+(lv===0?'0 级（不投入：省钱，但训练伤概率最高）':(lv===1?'标准理疗 · 25万/月':'顶级理疗 · 50万/月（训练伤概率再降，伤员每天多恢复 1 天）'))+'。费用在每月运营费里扣。','');
+  render();
+}
+function trainCardHTML(){
+  var t=G.train||{intensity:'标准', physio:1};
+  var intens=['恢复调养','标准','高强度'].map(function(v){ return '<button class="btn sm '+(t.intensity===v?'pri':'')+'" onclick="setTrainIntensity(\''+v+'\')">'+v+'</button>'; }).join('');
+  var phys=[0,1,2].map(function(lv){ return '<button class="btn sm '+((t.physio||0)===lv?'pri':'')+'" onclick="setPhysio('+lv+')">'+(lv===0?'不投入':(lv===1?'标准理疗 · 25万/月':'顶级理疗 · 50万/月'))+'</button>'; }).join('');
+  return '<div class="card"><h3><span class="no">训练</span>训练与球员发展<span class="hint">重点定方向 · 强度定取舍 · 理疗定伤病</span></h3>'
+  +'<p class="desc">训练重点在上面阵容卡里选（进攻演练/防守体系/体能储备/青训提拔）。这里定<b>强度</b>和<b>理疗投入</b>：高强度让成长 ×1.5、年轻人涨得更快，但体能消耗、训练伤、比赛伤和老将掉状态全都变多；恢复调养正好反过来。年龄、主教练风格、训练基地、医疗中心和理疗投入一起决定谁涨球、谁受伤——永远在「现在多练」和「以后还有人用」之间取舍。</p>'
+  +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;"><span class="mini">训练强度：</span>'+intens+'</div>'
+  +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span class="mini">理疗投入：</span>'+phys+'</div>'
+  +'<p class="mini" style="margin-top:8px;">当前生效：强度「'+t.intensity+'」· 理疗 '+(t.physio||0)+' 级（每级让训练伤概率 -5%）· 训练基地 '+G.fac.training+' 级 · 医疗中心 '+G.fac.medical+' 级 · 主教练 '+esc(G.coach.name)+'（'+G.coach.spec+'）· 数据分析中心 '+(G.fac.data||0)+' 级</p></div>';
+}
+
+/* ---- 4. 数据球探与情报 ---- */
+function fitScore(p){
+  var F=FORMATIONS[G.formation||'4-3-3']||FORMATIONS['4-3-3'];
+  var need={'门将':1,'后卫':F.DF,'中场':F.MF,'前锋':F.FW};
+  var have={}; G.squad.forEach(function(q){ have[q.pos]=(have[q.pos]||0)+1; });
+  var gap=(need[p.pos]||3)-(have[p.pos]||0);
+  var starters=G.squad.slice().sort(function(a,b){ return b.ab-a.ab; }).slice(0,11);
+  var avgAb=starters.length? starters.reduce(function(s2,q){ return s2+q.ab; },0)/starters.length : 55;
+  var score=55 + gap*7 + (p.ab-avgAb)*2.2 - Math.max(0,p.age-27)*1.6 - Math.max(0,p.wage-6)*1.2 + (p.pot-p.ab)*0.9;
+  return Math.round(clamp(score,5,99));
+}
+function scoutReportFor(p){ if(!G || !G.scout || !p) return null; return G.scout.reports[p.name]||null; }
+function makeReport(p){
+  var lv=scoutLevel();
+  var spread=Math.max(0, 9-lv*2); // 完整度越高，潜力区间越窄：1 级 ±7，3 级 ±3，5 级起精确
+  var risks=[];
+  if(p.age>=31) risks.push('年龄偏大，状态下滑风险高，买的是即战力');
+  if(p.age>=29 && p.pot<=p.ab) risks.push('已过巅峰，没有成长空间');
+  if(p.wage>=10) risks.push('工资高，会抬高更衣室薪资结构');
+  if(p.pot-p.ab>=14) risks.push('成长空间大，但需要出场时间喂，买回来坐板凳会废');
+  if(!risks.length) risks.push('暂无明显风险点');
+  var verdict= p.price!=null? (p.price<p.value*0.92? '挂牌价低于身价，属于被低估' : (p.price>p.value*1.25? '挂牌价明显溢价，慎重' : '价格与身价基本匹配')) : '';
+  return {lv:lv, potLo:Math.max(p.ab, p.pot-spread), potHi:p.pot+(spread>0? Math.round(spread/2):0), fit:fitScore(p), risks:risks, verdict:verdict, month:G.month};
+}
+function scoutPlayer(i){
+  var p=G.market[i]; if(!p) return;
+  if(!G.scout) G.scout={reports:{}, used:0, mission:null};
+  if(G.scout.reports[p.name]){ toast('已经有 '+p.name+' 的球探报告了'); return; }
+  if(G.scout.used>=3){ toast('球探本月已经出了 3 份报告，下个月再来——情报也是要花时间的'); return; }
+  if(G.cash<8){ toast('球探差旅费 8万，现金不够'); return; }
+  G.cash-=8; G.scout.used++;
+  var r=makeReport(p); G.scout.reports[p.name]=r;
+  log('🔭 球探报告：'+p.name+'（'+p.pos+'）—— 适配度 '+r.fit+'/100，真实潜力约 '+r.potLo+'~'+r.potHi+'（报告完整度 '+r.lv+' 级）。'+r.verdict+'。','');
+  toast('报告到手：'+p.name+' 适配度 '+r.fit+'/100');
+  render();
+}
+function scoutMission(region){
+  if(!G.scout) G.scout={reports:{}, used:0, mission:null};
+  if(G.scout.mission){ toast('球探已经在外考察了，等他下个月回来'); return; }
+  var cost= region==='国内'? 30 : 60;
+  if(G.cash<cost){ toast('考察经费 '+cost+'万，现金不够'); return; }
+  G.cash-=cost;
+  G.scout.mission={region:region, due:G.month+1};
+  log('✈️ 球探团队出发去'+region+'考察（经费 '+fmt(cost)+'），下个月带回 1~2 名独家候选，附完整报告。','');
+  render();
+}
+function scoutMissionArrive(){
+  if(!G.scout || !G.scout.mission) return;
+  if(G.month < G.scout.mission.due) return;
+  var region=G.scout.mission.region; G.scout.mission=null;
+  var n=ri(1,2), names=[];
+  for(var i=0;i<n;i++){
+    var p= region==='国内'? genPlayer(Math.random()<0.5?'young':'good') : genPlayer('star');
+    if(region!=='国内' && p.ab<66) p.ab=ri(66,78);
+    p.price=Math.round(p.value*rnd(0.95,1.15));
+    G.market.unshift(p);
+    G.scout.reports[p.name]=makeReport(p);
+    names.push(p.name+'（'+p.pos+' · 能力 '+p.ab+' · 潜力 '+p.pot+'）');
+  }
+  log('✈️ 球探从'+region+'回来了，带回独家候选：'+names.join('、')+'，已置顶放进转会市场，报告一并附上。','good');
+}
+function pageIntel(){
+  var lv=scoutLevel();
+  var rows=G.market.map(function(p,i){
+    var r=scoutReportFor(p);
+    return '<div class="item"><div class="grow"><div class="nm">'+esc(p.name)+(p.foreign?' <span class="pill">外援</span>':'')+' '+posPill(p.pos)+(r?' <span class="pill up">已有报告</span>':'')+'</div>'
+    +'<div class="meta">'+p.age+' 岁 · 能力 '+p.ab+' · 标称潜力 '+p.pot+' · 月薪 '+p.wage+'万 · 挂牌价 '+fmt(p.price)+' · 身价 '+fmt(p.value)+'</div>'
+    +(r? '<div class="meta">🔭 报告（完整度 '+r.lv+' 级）：真实潜力约 <b>'+r.potLo+'~'+r.potHi+'</b> · 适配度 <b>'+r.fit+'/100</b>（按当前阵型 '+ (G.formation||'4-3-3') +' 的位置缺口、能力差、年龄和工资算）'+(r.verdict?' · '+r.verdict:'')+' · 风险：'+r.risks.join('；')+'</div>' : '<div class="meta">暂无报告：只有标称潜力——那是经纪人报的数。派球探看过，才知道真实潜力和适不适合你的阵型。</div>')
+    +'</div><div style="display:flex;flex-direction:column;gap:6px;flex:0 0 auto;">'+(r?'':'<button class="btn sm" onclick="scoutPlayer('+i+')">派球探 · 8万</button>')+'<button class="btn pri sm" onclick="buyPlayer('+i+')">签下</button></div></div>';
+  }).join('') || '<p class="desc">市场暂时没人，等下个月刷新。</p>';
+  var missionHTML= (G.scout && G.scout.mission)
+    ? '<p class="desc">✈️ 球探正在<b>'+G.scout.mission.region+'</b>考察，下个月带回独家候选（附完整报告）。</p>'
+    : '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn sm" onclick="scoutMission(\'国内\')">派去国内考察 · 30万</button><button class="btn sm" onclick="scoutMission(\'欧洲\')">派去欧洲考察 · 60万</button><button class="btn sm" onclick="scoutMission(\'南美\')">派去南美考察 · 60万</button></div>';
+  return '<div class="kpis">'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--blue)"></span>报告完整度</div><div class="vl num">'+lv+' 级</div><div class="sub">首席球探 +1 · 数据中心每级 +1 · 5 级潜力精确</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--green)"></span>本月已出报告</div><div class="vl num">'+((G.scout&&G.scout.used)||0)+' / 3</div><div class="sub">每份 8万差旅费 · 每月最多 3 份</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--orange)"></span>数据分析中心</div><div class="vl num">'+(G.fac.data||0)+' 级</div><div class="sub">在「俱乐部」页升级 · 还加球队强度</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--gold)"></span>首席球探</div><div class="vl" style="font-size:19px;">'+(hasScout()?'孙立平 · 在队':'未聘请')+'</div><div class="sub">在阵容页「教练组与职员」里聘请</div></div>'
+  +'</div>'
+  +'<div class="card"><h3><span class="no">情报</span>数据球探与情报<span class="hint">在信息差里赌潜力与适配</span></h3>'
+  +'<p class="desc">转会市场上的「潜力」是经纪人报的数，真假只有球探知道。派球探（8万/份，每月 3 份）拿到<b>残缺报告</b>：真实潜力只给区间，报告越完整区间越窄——首席球探和数据分析中心等级决定完整度。适配度按你当前阵型的位置缺口、和首发的差距、年龄、工资综合算。赌的就是这个信息差：区间下限都比标称高，是捡漏；上限还不如标称，是坑。</p>'
+  + missionHTML + '</div>'
+  +'<div class="card"><h3><span class="no">对比</span>市场情报对比<span class="hint">现金 '+fmt(G.cash)+' · 阵容 '+G.squad.length+'/22</span></h3>'+rows+'</div>';
+}
+
+/* ---- 2. 转会策略与足球总监 ---- */
+var DIRECTOR_MODES=[
+  {id:'manual', nm:'手动引援', ds:'一切你说了算，足球总监只看不动手。适合每笔钱都要自己拍板的人。'},
+  {id:'star', nm:'巨星路线', ds:'每月结算后，总监自动追市场里能力最高的球员（保留 300万 保底现金）；收到高于身价 35% 的报价也会自动卖。没首席球探把关时，每笔自动签约有 20% 概率看走眼（能力 -2）。'},
+  {id:'youth', nm:'青训低买高卖', ds:'每月结算后，总监专挑 20 岁以下、潜力 ≥75 的最便宜苗子自动签下（保留 200万 保底现金）；高价报价同样自动卖。买回来靠训练和青训练出来，涨了身价再卖——低买高卖的循环。'},
+  {id:'none', nm:'零引援', ds:'关窗锁门：不买任何人，买人按钮直接锁住。只靠原班人马 + 青训提拔过日子，卖人和提拔不受影响。最省钱，也最考验耐心。'}
+];
+function setDirectorMode(m){
+  if(!G.director) G.director={mode:'manual'};
+  G.director.mode=m;
+  var d=DIRECTOR_MODES.filter(function(x){ return x.id===m; })[0];
+  log('🧭 建队策略切换为「'+d.nm+'」：'+d.ds,'');
+  toast('建队策略：'+d.nm); render();
+}
+function directorAct(){
+  if(!G.director || G.director.mode==='manual' || G.director.mode==='none') return;
+  if(G.board && G.board.frozen>0) return;
+  if(G.squad.length<22){
+    if(G.director.mode==='star'){
+      var best=null; G.market.forEach(function(p){ if(!best || p.ab>best.ab) best=p; });
+      if(best && G.cash>best.price+300){
+        G.cash-=best.price; best.cost=best.price; best.signNote='';
+        var idx=G.market.indexOf(best); if(idx>=0) G.market.splice(idx,1);
+        G.squad.push(best);
+        if(!hasScout() && Math.random()<0.2){ best.ab=Math.max(40,best.ab-2); best.value=Math.round(Math.max(5,Math.pow(Math.max(best.ab-38,2),2)*0.16*(best.age>30?0.75:1))); log('🧭 足球总监签下 '+best.name+'（签约费 '+fmt(best.cost)+'），但没有首席球探把关，看走眼了：实际能力只有 '+best.ab+'。','bad'); }
+        else log('🧭 足球总监按「巨星路线」自动签下 '+best.name+'（能力 '+best.ab+'），签约费 '+fmt(best.cost)+'。','good');
+      }
+    } else if(G.director.mode==='youth'){
+      var cand=null; G.market.forEach(function(p){ if(p.age<=20 && p.pot>=75 && (!cand || p.price<cand.price)) cand=p; });
+      if(cand && G.cash>cand.price+200){
+        G.cash-=cand.price; cand.cost=cand.price; cand.signNote='';
+        var idx2=G.market.indexOf(cand); if(idx2>=0) G.market.splice(idx2,1);
+        G.squad.push(cand);
+        log('🧭 足球总监按「低买高卖」自动签下小将 '+cand.name+'（'+cand.age+' 岁，潜力 '+cand.pot+'），签约费 '+fmt(cand.cost)+'。练出来就是利润。','good');
+      }
+    }
+  }
+  if(G.offers && G.squad.length>15){
+    for(var i=0;i<G.offers.length;i++){
+      var o=G.offers[i];
+      if(o.price>o.player.value*1.35){
+        var ix=G.squad.indexOf(o.player); if(ix<0) continue;
+        G.cash+=o.price; G.squad.splice(ix,1); G.offers.splice(i,1);
+        log('🧭 足球总监自动接受高价报价：'+o.player.name+' 以 '+fmt(o.price)+' 离队（身价 '+fmt(o.player.value)+'，溢价 35% 以上，落袋为安）。','good');
+        break;
+      }
+    }
+  }
+}
+function directorCardHTML(){
+  var mode=(G.director&&G.director.mode)||'manual';
+  var cur=DIRECTOR_MODES.filter(function(m){ return m.id===mode; })[0];
+  var btns=DIRECTOR_MODES.map(function(m){ return '<button class="btn sm '+(mode===m.id?'pri':'')+'" onclick="setDirectorMode(\''+m.id+'\')">'+m.nm+'</button>'; }).join('');
+  return '<div class="card"><h3><span class="no">建队</span>转会策略与足球总监<span class="hint">当前：'+cur.nm+'</span></h3>'
+  +'<p class="desc">'+cur.ds+'</p>'
+  +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'+btns+'</div>'
+  +'<p class="mini" style="margin-top:8px;">四条建队路线：自己动手、赌巨星、赌青训低买高卖、或者干脆零引援只靠原班人马和青训。总监的眼光取决于球探团队——首席球探在队，总监从不看走眼；不在队，自动签约有翻车风险。想先看清再下手，就去「数据球探」页拿报告。</p></div>';
+}
+
+/* ---- 5+6. 更衣室与球员关系 ---- */
+function talkPlayer(name){
+  var p=playerByName(name); if(!p) return;
+  if(p.talkM===G.month){ toast('本月已经和 '+name+' 谈过了'); return; }
+  p.talkM=G.month;
+  p.mood=clamp((p.mood||60)+8,0,100); p.trust=clamp((p.trust||55)+4,0,100);
+  log('💬 你和 '+name+' 一对一谈了一次：出场、待遇、未来，他都说了，你也给了回应。他的心情 +8、信任 +4（现在心情 '+p.mood+'、信任 '+p.trust+'）。','');
+  render();
+}
+function promisePlayer(name){
+  var p=playerByName(name); if(!p) return;
+  if(p.promise){ toast(name+' 身上已经有一个承诺在等着兑现了'); return; }
+  p.promise={need:2, due:G.month+1, base:p.played||0};
+  p.mood=clamp((p.mood||60)+6,0,100); p.trust=clamp((p.trust||55)+3,0,100);
+  log('🤝 你向 '+name+' 承诺：下个月至少让他首发 2 场。承诺记在他心里——兑现了信任大涨，食言了整个更衣室都会看不起你。','');
+  render();
+}
+function renewPlayer(name){
+  var p=playerByName(name); if(!p) return;
+  var fee=Math.round(p.wage*6);
+  if(G.cash<fee){ toast('续约签字费 '+fmt(fee)+'，现金不够'); return; }
+  G.cash-=fee;
+  p.wage=Math.round(p.wage*1.2*10)/10;
+  p.trust=clamp((p.trust||55)+20,0,100); p.mood=clamp((p.mood||60)+15,0,100);
+  p.value=Math.round(p.value*1.1);
+  p.renewedUntil=G.month+3;
+  log('✍️ '+name+' 续约完成：签字费 '+fmt(fee)+'，月薪涨到 '+p.wage+'万，身价 +10% → '+fmt(p.value)+'。未来 3 个月不会有球队报价挖他，他的信任 +20、心情 +15。','good');
+  render();
+}
+function processPromises(){
+  G.squad.forEach(function(p){
+    if(p.promise && G.month>=p.promise.due){
+      var played=(p.played||0)-(p.promise.base||0);
+      if(played>=p.promise.need){ p.trust=clamp((p.trust||55)+15,0,100); p.mood=clamp((p.mood||60)+10,0,100); log('✅ 承诺兑现：'+p.name+' 上个月首发了 '+played+' 场，你说话算话。他的信任 +15、心情 +10，更衣室都看在眼里。','good'); }
+      else { p.trust=clamp((p.trust||55)-25,0,100); p.mood=clamp((p.mood||60)-20,0,100); G.morale=clamp(G.morale-3,5,100); log('❌ 承诺食言：你答应给 '+p.name+' 至少 '+p.promise.need+' 次首发，实际只有 '+played+' 次。他的信任 -25、心情 -20，全队士气 -3——球员记承诺，也记仇。','bad'); }
+      p.promise=null;
+    }
+  });
+}
+function monthlySystems(){
+  processPromises();
+  // 更衣室心情月结：能力靠前却打不上比赛的人会一直不满，长期不满拖全队士气
+  var sorted=G.squad.slice().sort(function(a,b){ return b.ab-a.ab; });
+  var unhappy=[];
+  G.squad.forEach(function(p){
+    var mp=(p.played||0)-(p.playedSnap||0); p.playedSnap=p.played||0;
+    var rank=sorted.indexOf(p);
+    if(mp===0 && rank>=0 && rank<14 && !(p.inj>0)) p.mood=clamp((p.mood||60)-6,0,100);
+    if(mp>=2) p.mood=clamp((p.mood||60)+3,0,100);
+    if(p.trust==null) p.trust=55;
+    p.trust=clamp(p.trust+(p.trust<55?1:(p.trust>55?-1:0)),0,100);
+    if((p.mood||60)<35) unhappy.push(p.name);
+  });
+  if(unhappy.length){ G.morale=clamp(G.morale-unhappy.length*2,5,100); log('😤 更衣室有 '+unhappy.length+' 名球员心情低落（'+unhappy.join('、')+'），全队士气 -'+(unhappy.length*2)+'。去阵容页的「更衣室」找他们谈话、给首发承诺，或者用轮换让他们上场。','bad'); }
+  // 董事会耐心月结：看排名与声望；耗尽会冻结下个月预算
+  var b=G.board;
+  if(b){
+    var rank=myRank();
+    var delta= rank<=2?6 : (rank<=4?2 : (rank>=7?-8 : -2));
+    if(G.rep>=60) delta+=2;
+    b.patience=clamp((b.patience==null?70:b.patience)+delta,0,100);
+    if(b.frozen>0) b.frozen--;
+    if(b.patience<=0){ b.frozen=1; b.patience=35; G.rep=clamp(G.rep-3,0,100); log('🏛️ 董事会耐心耗尽！董事会冻结下个月的引援与设施预算，并公开质疑了你的执教（声望 -3）。先把成绩打回来，再谈花钱。','bad'); }
+    else if(b.patience<30) log('🏛️ 董事会耐心只剩 '+b.patience+'：再不拿出成绩，下个月的预算可能被冻结。发布会上低调一点、把球赢下来，都能续命。','bad');
+  }
+}
+function dressingCardHTML(){
+  var rows=G.squad.slice().sort(function(a,b){ return (a.mood||60)-(b.mood||60); }).map(function(p){
+    var mood=p.mood||60, trust=p.trust||55;
+    return '<div class="item"><div class="grow"><div class="nm">'+esc(p.name)+' '+posPill(p.pos)+(p.promise?' <span class="pill">🤝 承诺待兑现</span>':'')+(p.renewedUntil&&p.renewedUntil>G.month?' <span class="pill up">已续约</span>':'')+'</div>'
+    +'<div class="meta">心情 '+mood+'/100'+(mood<35?' <b style="color:var(--red)">低落 · 在拖士气</b>':'')+' · 信任 '+trust+'/100 · 本赛季出场 '+(p.played||0)+' 次 · 月薪 '+p.wage+'万</div></div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;flex:0 0 auto;"><button class="btn sm" onclick="talkPlayer(\''+esc(p.name)+'\')">一对一谈话</button><button class="btn sm" onclick="promisePlayer(\''+esc(p.name)+'\')">承诺首发</button><button class="btn sm" onclick="renewPlayer(\''+esc(p.name)+'\')">续约 · '+fmt(Math.round(p.wage*6))+'</button></div></div>';
+  }).join('');
+  return '<div class="card"><h3><span class="no">更衣室</span>更衣室与球员关系<span class="hint">按心情从低到高排 · 最危险的在最上面</span></h3>'
+  +'<p class="desc">球员都记承诺、看待遇：<b>谈话</b>每月每人一次，心情 +8、信任 +4；<b>承诺首发</b>是下个月至少首发 2 场，兑现信任 +15、心情 +10，食言信任 -25、心情 -20 还拖全队士气；<b>续约</b>花签字费（月薪 ×6）换工资 +20%、信任 +20、身价 +10%，3 个月内不被报价挖走。能力排前 14 却整月没上场的人，心情每月 -6；心情掉到 35 以下，每人每月拖全队士气 -2。用谈话、承诺、续约和轮换，把派系不满压在冒头之前。</p>'+rows+'</div>';
+}
+
+/* ---- 3. 董事会与城市运营 ---- */
+function boardBudget(){
+  var b=G.board; if(!b) return;
+  var season=G.seasonsPlayed||0;
+  if(b.budgetSeason===season){ toast('本赛季已经申请过预算了'); return; }
+  b.budgetSeason=season;
+  if(b.patience>=60){ var amt=ri(200,400); G.cash+=amt; log('🏛️ 董事会预算申请通过：追加运营预算 '+fmt(amt)+'。董事会说：成绩摆在那儿，这钱批得痛快。','good'); }
+  else if(b.patience>=40){ var amt2=ri(100,200); G.cash+=amt2; b.patience=clamp(b.patience-3,0,100); log('🏛️ 董事会勉强批了 '+fmt(amt2)+' 预算，但撂下话：下赛季要看到回报（耐心 -3）。',''); }
+  else { b.patience=clamp(b.patience-5,0,100); log('🏛️ 预算申请被驳回：“先把成绩打出来，再来谈钱。”董事会耐心 -5。先赢球，再开口。','bad'); }
+  render();
+}
+function boardFacGrant(){
+  var b=G.board; if(!b) return;
+  var season=G.seasonsPlayed||0;
+  if(b.facGrant){ toast('已经有一笔设施拨款没用，下一次升级自动半价'); return; }
+  if(b.grantSeason===season){ toast('本赛季已经申请过设施拨款了'); return; }
+  b.grantSeason=season;
+  if(b.patience>=50){ b.facGrant=true; log('🏛️ 设施拨款申请通过：下一次设施升级半价，董事会出一半。去俱乐部页升级任意设施时自动抵扣。','good'); }
+  else { b.patience=clamp(b.patience-4,0,100); log('🏛️ 设施拨款被驳回：董事会耐心只有 '+b.patience+'，觉得你应该先证明自己（耐心 -4）。','bad'); }
+  render();
+}
+function cityAct(kind){
+  var b=G.board; if(!b) return;
+  var season=G.seasonsPlayed||0;
+  if(kind==='carnival'){
+    if(G.cash<60){ toast('嘉年华经费 60万，现金不够'); return; }
+    G.cash-=60; b.cityRep=clamp(b.cityRep+5,0,100); G.fans+=2000; G.rel.fans=clamp(G.rel.fans+3,0,100);
+    log('🎉 城市足球嘉年华办成了：球迷 +2,000、球迷会关系 +3、城市声望 +5 → '+b.cityRep+(b.cityRep>=60?'（门票 +5% 已生效）':'（到 60 解锁门票 +5%）')+'。','good');
+  } else if(kind==='invitational'){
+    if(b.citySeason===season){ toast('本赛季已经办过大型赛事了'); return; }
+    if(G.cash<120){ toast('邀请赛成本 120万，现金不够'); return; }
+    G.cash-=120; b.citySeason=season;
+    var inc=Math.round(ri(150,260)*(0.7+G.rep/100)+G.fac.stadium*30);
+    G.cash+=inc; b.cityRep=clamp(b.cityRep+8,0,100); G.fans+=3500; G.rep=clamp(G.rep+2,0,100);
+    log('🏙️ 城市邀请赛圆满落幕：你以赛事组织者的身份操盘了整届比赛，转播与赞助分成 +'+fmt(inc)+'，球迷 +3,500、声望 +2、城市声望 +8。','good');
+  } else if(kind==='hostbid'){
+    if(G.fac.stadium<3){ toast('申办全国大赛要求主场球场 ≥3 级'); return; }
+    if(b.citySeason===season){ toast('本赛季已经用过大型赛事名额了'); return; }
+    if(G.cash<300){ toast('申办费用 300万，现金不够'); return; }
+    G.cash-=300; b.citySeason=season;
+    if(Math.random() < clamp(0.3 + b.cityRep*0.005 + G.rep*0.003, 0.2, 0.9)){
+      var inc2=ri(600,1000); G.cash+=inc2; G.rep=clamp(G.rep+5,0,100); b.cityRep=clamp(b.cityRep+12,0,100); G.fans+=8000;
+      log('🏆 申办成功！全国性赛事落户本市：赛事补贴与转播分成 +'+fmt(inc2)+'，声望 +5、球迷 +8,000、城市声望 +12。这座城市开始以你的球队为荣。','good');
+    } else { b.cityRep=clamp(b.cityRep+3,0,100); log('🏙️ 申办大赛落选：评审觉得城市配套还差一点。300万打了水漂，只换来城市声望 +3 和一堆经验。把球场升上去、城市声望养高，下赛季再冲。','bad'); }
+  }
+  render();
+}
+function boardCityHTML(){
+  var b=G.board||{patience:70, cityRep:35, frozen:0, budgetSeason:-1, grantSeason:-1, facGrant:false, citySeason:-1};
+  var season=G.seasonsPlayed||0;
+  return '<div class="card"><h3><span class="no">董事会</span>董事会与预算<span class="hint">耐心 '+(b.patience==null?70:b.patience)+'/100'+(b.frozen>0?' · ⚠️ 本月预算冻结中':'')+'</span></h3>'
+  +'<div style="display:flex;align-items:center;gap:12px;margin:6px 0;"><b>董事会耐心</b><div class="bar '+((b.patience||70)<30?'r':'g')+'" style="flex:1;"><i style="width:'+(b.patience||70)+'%"></i></div><b class="num">'+(b.patience||70)+'</b></div>'
+  +'<p class="desc">排名靠前、声望高，耐心就涨；一直输，耐心耗尽时董事会会冻结一个月的引援和设施预算。耐心够高的时候可以开口要钱：追加预算直接给现金，设施拨款让下一次升级半价——这就是「成长—增值—再投资」循环里向董事会要资源的那一环。</p>'
+  +'<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn sm" '+(b.budgetSeason===season?'disabled':'')+' onclick="boardBudget()">'+(b.budgetSeason===season?'本赛季已申请预算':'申请追加预算 · 每赛季一次')+'</button><button class="btn sm" '+((b.grantSeason===season||b.facGrant)?'disabled':'')+' onclick="boardFacGrant()">'+(b.facGrant?'设施拨款待使用（下次升级半价）':(b.grantSeason===season?'本赛季已申请拨款':'申请设施拨款 · 每赛季一次'))+'</button></div></div>'
+  +'<div class="card"><h3><span class="no">城市</span>城市与赛事运营<span class="hint">城市声望 '+(b.cityRep||0)+'/100'+((b.cityRep||0)>=60?' · 门票 +5% 生效中':' · 到 60 解锁门票 +5%')+'</span></h3>'
+  +'<p class="desc">不止管球队，也能当赛事组织者经营这座城市：嘉年华攒人气，邀请赛赚分成，球场够大还能申办全国大赛。城市声望越高，申办越容易成，主场门票也卖得越贵。</p>'
+  +'<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn sm" onclick="cityAct(\'carnival\')">城市足球嘉年华 · 60万</button><button class="btn sm" '+(b.citySeason===season?'disabled':'')+' onclick="cityAct(\'invitational\')">'+(b.citySeason===season?'本赛季已办大型赛事':'城市邀请赛 · 120万（每赛季一次）')+'</button><button class="btn sm" '+(b.citySeason===season?'disabled':'')+' onclick="cityAct(\'hostbid\')">申办全国大赛 · 300万（需球场 3 级）</button></div></div>';
+}
+
+/* ---- 7. 媒体关系 ---- */
+function mediaAct(kind){
+  if(G.mediaUsed){ toast('本月已经在媒体面前表过态了，下个月再来'); return; }
+  G.mediaUsed=true;
+  if(kind==='tough'){ G.rep=clamp(G.rep+2,0,100); G.fanSat=clamp((G.fanSat==null?62:G.fanSat)+2,0,100); if(G.board) G.board.patience=clamp(G.board.patience-4,0,100); log('🎙️ 发布会强硬表态：“目标就是冠军，不接受任何借口。”球迷听得热血（满意度 +2、声望 +2），但董事会觉得你把话说太满（耐心 -4）——成绩得跟上。',''); }
+  else if(kind==='calm'){ if(G.board) G.board.patience=clamp(G.board.patience+4,0,100); G.rel.media=clamp(G.rel.media+3,0,100); log('🎙️ 发布会低调务实：“一场一场踢，先站稳再谈别的。”董事会很受用（耐心 +4），苏曼的报道也给了正面版面（媒体关系 +3）。',''); }
+  else if(kind==='hype'){ G.fans+=1500; G.heat=clamp(G.heat+3,0,100); if(Math.random()<0.55){ G.rep=clamp(G.rep+1,0,100); log('🎙️ 你向媒体放风“转会窗会有大动作”：球迷 +1,500、声望 +1，但纪检热度也 +3——话放出去了，窗口期得真有动作。',''); } else { G.rep=clamp(G.rep-2,0,100); log('🎙️ 你放风要引进强援，结果被同行记者拆穿是烟雾弹：球迷 +1,500，但声望 -2、热度 +3。放风有风险，开口需谨慎。','bad'); } }
+  else if(kind==='silent'){ if(G.board) G.board.patience=clamp(G.board.patience+2,0,100); G.rel.media=clamp(G.rel.media-3,0,100); G.heat=clamp(G.heat-4,0,100); log('🎙️ 面对追问，你选择官方沉默：不回应、不辟谣。热度 -4、董事会耐心 +2，但苏曼觉得你不给面子（媒体关系 -3）。',''); }
+  render();
+}
+function mediaPraiseCore(){
+  var core=G.squad.slice().sort(function(a,b){ return b.ab-a.ab; })[0]; if(!core) return;
+  if(core.pubM===G.month){ toast('本月已经公开表扬过 '+core.name+' 了'); return; }
+  core.pubM=G.month;
+  core.mood=clamp((core.mood||60)+8,0,100); core.trust=clamp((core.trust||55)+5,0,100); G.rel.media=clamp(G.rel.media+2,0,100);
+  log('📰 你在发布会上点名表扬 '+core.name+'：“他就是这支球队的标杆。”他的心情 +8、信任 +5，媒体关系 +2。','good');
+  render();
+}
+function mediaCriticize(){
+  var worst=null; G.squad.forEach(function(p){ if(!worst || (p.mood||60)<(worst.mood||60)) worst=p; });
+  if(!worst) return;
+  if(worst.pubM===G.month){ toast('本月已经公开点过 '+worst.name+' 了'); return; }
+  worst.pubM=G.month;
+  worst.mood=clamp((worst.mood||60)-10,0,100);
+  if(Math.random()<0.4){ worst.firedUp=true; log('📰 你公开批评 '+worst.name+' 状态低迷。他把报道贴在了更衣室柜门上——下个月训练要是还不拼，就真没机会了（被激出状态的概率不低）。',''); }
+  else { worst.trust=clamp((worst.trust||55)-10,0,100); G.morale=clamp(G.morale-2,5,100); log('📰 你公开批评 '+worst.name+'，他觉得很没面子：心情 -10、信任 -10，全队士气 -2。公开批评是双刃剑，用之前想清楚。','bad'); }
+  render();
+}
+function pageMedia(){
+  var b=G.board||{patience:70};
+  var used=G.mediaUsed;
+  function stance(kind, icon, nm, ds){ return '<div class="rel-card"><div class="nm">'+icon+' '+nm+'</div><div class="ben">'+ds+'</div><div class="acts"><button class="btn '+(used?'':'pri')+' sm" '+(used?'disabled':'')+' onclick="mediaAct(\''+kind+'\')">'+(used?'本月已表态':'就这么说')+'</button></div></div>'; }
+  var core=G.squad.slice().sort(function(a,b){ return b.ab-a.ab; })[0];
+  var worst=null; G.squad.forEach(function(p){ if(!worst || (p.mood||60)<(worst.mood||60)) worst=p; });
+  return '<div class="kpis">'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--blue)"></span>媒体关系（苏曼）</div><div class="vl num">'+G.rel.media+'</div><div class="sub">≥60 时每月声望 +1</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--gold)"></span>董事会耐心</div><div class="vl num">'+(b.patience==null?70:b.patience)+'</div><div class="sub">耗尽会冻结一个月预算</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--green)"></span>球迷满意度</div><div class="vl num">'+(G.fanSat==null?62:G.fanSat)+'</div><div class="sub">直接影响每场门票收入</div></div>'
+  +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--orange)"></span>俱乐部声望</div><div class="vl num">'+G.rep+'</div><div class="sub">发布会表态能推也能砸</div></div>'
+  +'</div>'
+  +'<div class="card"><h3><span class="no">发布会</span>赛前发布会表态<span class="hint">每月一次 · 说出去的话收不回来</span></h3>'
+  +'<p class="desc">每句话都有代价：强硬能点燃球迷，但董事会怕你把话说满；低调最稳，耐心和媒体关系都涨；放风能炒热度，也可能被拆穿；沉默能降温，但媒体会觉得你不给面子。球迷耐心和董事会耐心，都在你这张嘴上。</p>'
+  +'<div class="rel-grid">'
+  + stance('tough','🔥','强硬表态','放话冲冠军：声望 +2、球迷满意度 +2，董事会耐心 -4。')
+  + stance('calm','🧘','低调务实','一场一场踢：董事会耐心 +4、媒体关系 +3。')
+  + stance('hype','📣','放风造势','暗示有大动作：球迷 +1,500、热度 +3，声望看运气（+1 或 -2）。')
+  + stance('silent','🤐','官方沉默','不回应不辟谣：热度 -4、董事会耐心 +2，媒体关系 -3。')
+  +'</div></div>'
+  +'<div class="card"><h3><span class="no">点名</span>公开表扬与批评<span class="hint">每月每名球员限一次</span></h3>'
+  +'<p class="desc">表扬核心能稳军心；批评状态最差的人是双刃剑——四成概率把他激出状态（下月能力 +1），六成概率记恨你（信任 -10、全队士气 -2）。</p>'
+  +(core? '<div class="item"><div class="grow"><div class="nm">📰 公开表扬核心球员：'+esc(core.name)+'</div><div class="meta">当前能力最高（'+core.ab+'）· 表扬后他的心情 +8、信任 +5，媒体关系 +2</div></div><button class="btn sm" '+(core.pubM===G.month?'disabled':'')+' onclick="mediaPraiseCore()">'+(core.pubM===G.month?'本月已表扬':'开发布会表扬')+'</button></div>':'')
+  +(worst? '<div class="item"><div class="grow"><div class="nm">📰 公开批评状态最差：'+esc(worst.name)+'</div><div class="meta">当前心情最低（'+(worst.mood||60)+'）· 批评后心情 -10，结果看他的性格</div></div><button class="btn dark sm" '+(worst.pubM===G.month?'disabled':'')+' onclick="mediaCriticize()">'+(worst.pubM===G.month?'本月已批评':'公开批评')+'</button></div>':'')
+  +'</div>';
+}
 /* ---------------- 弹窗：开局 / 事件 ---------------- */
 var selOrigin='campus', selDiff='std';
 function selOpt(kind, v){ if(kind==='o') selOrigin=v; else selDiff=v; showStart(true); }
@@ -2737,7 +3142,7 @@ function beginGame(){
   if(selDiff==='hard'){ G.credit=500; G.squad.forEach(function(p){ p.wage=Math.round(p.wage*1.15*10)/10; }); }
   render();
   toast('开局：'+name+'，从中乙踢起！');
-  if(signCan()) showWeeklySign(false); // 新开局也走同一套每周签到，第一天就能领
+  if(signCan()) showWeeklySign(false); // 新开局也走同一套每周签到，第一天就能领（梅西海报已在开局界面之前弹过并删除）
 }
 function showEvent(ev){
   $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:23px;">📣 突发事件</div><div class="sub">'+G.year+' 年 '+G.mon+' 月 · '+esc(G.club)+'</div></div>'
@@ -2754,44 +3159,72 @@ function resolveEvent(i){
   if(G.cash<0 && G.negMonths>=1){ /* 破产判定在下月结算 */ }
   render();
 }
-/* ---------------- 创作人宣传弹窗：首页首次进入弹出，本次会话只弹一次 ---------------- */
-var CREATOR_SEEN_KEY='hm_creator_popup_seen_v1';
-var creatorThenStart=false;
-function creatorSeen(){
-  try{ return sessionStorage.getItem(CREATOR_SEEN_KEY)==='1'; }catch(e){ return false; }
+/* ---------------- 入口海报流程：C罗致敬海报 → 梅西反向海报（点 ✕ 永久删除）→ 每周签到 ----------------
+   C罗海报：取代原来的游戏创作者海报弹窗，本次会话弹一次（游戏创作者海报仍保留为大厅横幅）。
+   梅西海报：C罗海报关掉后弹出，点右上角 ✕ 关闭即永久删除（localStorage 标记），以后再也不弹。 */
+var CR7_SEEN_KEY='hm_cr7_popup_seen_v1';
+var MESSI_DELETED_KEY='hm_messi_poster_deleted_v1';
+var posterThenStart=false;
+function cr7Seen(){
+  try{ return sessionStorage.getItem(CR7_SEEN_KEY)==='1'; }catch(e){ return false; }
 }
-function showCreatorPopup(thenStart){
-  creatorThenStart=!!thenStart;
+function messiDeleted(){
+  try{ return localStorage.getItem(MESSI_DELETED_KEY)==='1'; }catch(e){ return false; }
+}
+function showCr7Popup(thenStart){
+  posterThenStart=!!thenStart;
   var r=document.getElementById('creator-root');
-  r.innerHTML='<div class="creator-overlay" role="dialog" aria-modal="true" aria-label="豪门缔造者 · 游戏创作者">'
+  r.innerHTML='<div class="creator-overlay" role="dialog" aria-modal="true" aria-label="致敬传奇 · C罗葡萄牙国家队谢幕海报">'
   +'<div class="creator-card">'
-  +'<button type="button" class="creator-close" aria-label="关闭" title="关闭" onclick="closeCreatorPopup()">✕</button>'
-  +'<img src="creator-poster.jpg" alt="《豪门缔造者》游戏创作者宣传海报" />'
-  +'<div class="creator-hint">点 击 右 上 角 ✕ 进 入 游 戏</div>'
+  +'<button type="button" class="creator-close" aria-label="关闭" title="关闭" onclick="closeCr7Popup()">✕</button>'
+  +'<img src="tribute-cr7.webp" alt="游戏创作者邓元元手举葡萄牙 7 号 RONALDO 球衣的致敬海报：致敬传奇 OBRIGADO CR7，C罗葡萄牙国家队 2003–2026，游戏创作者：邓元元" />'
+  +'<div class="creator-hint">致 敬 传 奇 · 点 右 上 角 ✕ 继 续</div>'
   +'</div></div>';
 }
-function chainSignAfterPoster(){
-  // 入口流程：创造人海报关掉后（或本次会话已看过海报、海报不再弹时），接着弹每周签到。
-  // 只在当天还没领时弹：已领过 signCan() 为 false，不会重复弹。奖励与规则仍走唯一一套 showWeeklySign。
-  if(typeof G!=='undefined' && G && G.started && !G.ended && signCan()) showWeeklySign(false);
-}
-function closeCreatorPopup(){
+function closeCr7Popup(){
   var r=document.getElementById('creator-root');
   if(r) r.innerHTML='';
-  try{ sessionStorage.setItem(CREATOR_SEEN_KEY,'1'); }catch(e){}
-  if(creatorThenStart){ creatorThenStart=false; showStart(false); return; }
+  try{ sessionStorage.setItem(CR7_SEEN_KEY,'1'); }catch(e){}
+  if(posterThenStart){ posterThenStart=false; if(!messiDeleted()){ window._messiThenStart=true; showMessiPopup(); return; } showStart(false); return; }
+  chainAfterCr7();
+}
+function chainAfterCr7(){
+  // C罗海报之后：梅西反向海报还没被删除过，就弹它；删过了直接进每周签到。
+  if(!messiDeleted()) showMessiPopup();
+  else chainSignAfterPoster();
+}
+function showMessiPopup(){
+  var r=document.getElementById('creator-root');
+  if(!r) return;
+  r.innerHTML='<div class="creator-overlay" role="dialog" aria-modal="true" aria-label="梅西啥也不是 · 反向海报">'
+  +'<div class="creator-card">'
+  +'<button type="button" class="creator-close" aria-label="关闭并删除这张海报" title="关闭并删除" onclick="closeMessiPopup()">✕</button>'
+  +'<img src="messi-reverse.webp" alt="游戏创作者手举打红叉的阿根廷 10 号 MESSI 球衣的反向海报：梅西啥也不是 MESSI IS NOTHING" />'
+  +'<div class="creator-hint">点 右 上 角 ✕ 关 闭 · 这 张 海 报 将 永 久 删 除</div>'
+  +'</div></div>';
+}
+function closeMessiPopup(){
+  // 点 ✕ = 关闭并永久删除这张海报：写入 localStorage 标记，以后进入游戏再也不弹。
+  try{ localStorage.setItem(MESSI_DELETED_KEY,'1'); }catch(e){}
+  var r=document.getElementById('creator-root');
+  if(r) r.innerHTML='';
+  if(window._messiThenStart){ window._messiThenStart=false; showStart(false); return; } // 新玩家：海报流程走完再进开局界面
   chainSignAfterPoster();
+}
+function chainSignAfterPoster(){
+  // 海报流程走完后，接着弹每周签到。只在当天还没领时弹：已领过 signCan() 为 false，不会重复弹。
+  if(typeof G!=='undefined' && G && G.started && !G.ended && signCan()) showWeeklySign(false);
 }
 /* ---------------- 启动：优先自动读档 ---------------- */
 if(loadAutoSave()){
   PAGE='home';
   render();
   toast('💾 已自动读取上次存档：'+G.club+' · 第 '+G.month+' 个月，接着玩！');
-  if(!creatorSeen()) showCreatorPopup(false);
-  else chainSignAfterPoster(); // 刷新/重进：海报本次会话已看过不再弹，签到也要接着自动弹（当天未领才弹）
+  if(!cr7Seen()) showCr7Popup(false);
+  else chainAfterCr7(); // 刷新/重进：C罗海报本次会话已看过不再弹，后面的海报/签到流程照常接着走
 } else {
   render();
-  if(!creatorSeen()) showCreatorPopup(true);
+  if(!cr7Seen()) showCr7Popup(true);
   else showStart(false);
 }
 </script>
