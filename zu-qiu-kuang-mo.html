@@ -15,9 +15,10 @@
     <link rel="icon" type="image/png" sizes="192x192" href="photo-09.png" />
     <title>豪门缔造者 · 从中乙到中超冠军</title>
     <script>
-      /* 启动看门狗：主脚本若因旧存档与新版不兼容、或手机浏览器异常而没能把游戏
-         渲染出来，7 秒后自动亮出修复面板，绝不让玩家对着白屏干等。点「一键修复」
-         会先把旧存档原样备份到 zuqiu-km-autosave-v1-bak，再清掉坏存档重新进入。 */
+      /* 启动看门狗：主脚本若因手机浏览器异常等原因没能把游戏渲染出来，7 秒后
+         自动亮出修复面板，绝不让玩家对着白屏干等。修复的第一选择是「备份并重新
+         读取」：旧存档先原样备份到 zuqiu-km-autosave-v1-bak，本机里的存档一个字
+         都不删，刷新后重新读档；只有玩家自己点最后一项，才会清档重新开始。 */
       window.__hmBooted = false;
       window.__hmRescue = function () {
         if (window.__hmBooted || document.getElementById('hm-rescue')) return;
@@ -28,20 +29,28 @@
         d.innerHTML = '<div style="max-width:340px;text-align:center;">'
           + '<div style="font-size:40px;">⚽</div>'
           + '<div style="font-size:19px;font-weight:800;margin:12px 0 8px;">游戏没能打开</div>'
-          + '<p style="font-size:14px;line-height:1.7;color:#a9bfd1;margin:0 0 18px;">多半是手机里存着一份和新版本对不上的旧存档，打开时卡住了。点下面的按钮自动修复：旧存档会先原样备份，不会直接删掉。</p>'
-          + '<button id="hm-rescue-fix" style="display:block;width:100%;padding:13px;border:0;border-radius:10px;background:#e85d1f;color:#fff;font-size:16px;font-weight:700;margin-bottom:10px;cursor:pointer;">一键修复并进入游戏</button>'
-          + '<button id="hm-rescue-retry" style="display:block;width:100%;padding:12px;border:1px solid #3a5069;border-radius:10px;background:transparent;color:#e8eef3;font-size:15px;cursor:pointer;">先直接刷新重试</button>'
+          + '<p style="font-size:14px;line-height:1.7;color:#a9bfd1;margin:0 0 18px;">打开时卡住了。点下面的按钮重新读取：你的存档会先原样备份一份，本机里的存档不会被删，刷新后会重新读出来接着玩。</p>'
+          + '<button id="hm-rescue-fix" style="display:block;width:100%;padding:13px;border:0;border-radius:10px;background:#e85d1f;color:#fff;font-size:16px;font-weight:700;margin-bottom:10px;cursor:pointer;">备份存档并重新读取</button>'
+          + '<button id="hm-rescue-retry" style="display:block;width:100%;padding:12px;border:1px solid #3a5069;border-radius:10px;background:transparent;color:#e8eef3;font-size:15px;cursor:pointer;margin-bottom:10px;">先直接刷新重试</button>'
+          + '<button id="hm-rescue-wipe" style="display:block;width:100%;padding:12px;border:1px solid #6e3a30;border-radius:10px;background:transparent;color:#d8a294;font-size:13.5px;cursor:pointer;">实在打不开：备份后清档重新开始（当前进度会重开）</button>'
           + '</div>';
         document.body.appendChild(d);
         document.getElementById('hm-rescue-fix').onclick = function () {
           try {
             var raw = localStorage.getItem('zuqiu-km-autosave-v1');
             if (raw) localStorage.setItem('zuqiu-km-autosave-v1-bak', raw);
-            localStorage.removeItem('zuqiu-km-autosave-v1');
           } catch (e) {}
           location.reload();
         };
         document.getElementById('hm-rescue-retry').onclick = function () { location.reload(); };
+        document.getElementById('hm-rescue-wipe').onclick = function () {
+          try {
+            var raw2 = localStorage.getItem('zuqiu-km-autosave-v1');
+            if (raw2) localStorage.setItem('zuqiu-km-autosave-v1-bak', raw2);
+            localStorage.removeItem('zuqiu-km-autosave-v1');
+          } catch (e) {}
+          location.reload();
+        };
       };
       window.addEventListener('error', function (e) {
         if (!window.__hmBooted && e && e.message) setTimeout(window.__hmRescue, 300);
@@ -522,6 +531,20 @@ function rnd(a,b){ return a+Math.random()*(b-a); }
 function ri(a,b){ return Math.floor(rnd(a,b+1)); }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+/* ---------------- 深度经营默认数据 ----------------
+   defaultBiz 必须定义在主脚本里、且排在读档逻辑之前：sanitizeSaveData / newGame
+   都要用它。它原先只写在文末的深度经营脚本块里，而启动读档在那个脚本块执行
+   之前就先跑了——老存档没有 biz 字段，一补默认值就报「defaultBiz is not
+   defined」，异常被 loadAutoSave 吞掉后返回 false，玩家被当成新玩家送去开局，
+   海报按钮变「去开局」、老存档入口消失。这就是老存档读不出来的根源。 */
+function defaultBiz(){
+  return {
+    overseas:{}, ovCum:0,
+    brand:{ founded:false, name:'', color:'#e85d1f', mark:'⚡', price:1, lines:{jersey:1, scarf:1, shoe:0}, value:0, cum:0, lastNet:0, mktUntil:0, star:'', starUntil:0, lt:0 },
+    deal:null, dealCum:0, dealTitles:0,
+    cross:{}, crossCum:0, crossNet:0
+  };
+}
 /* ---------------- 自动存档（本机） ---------------- */
 var SAVE_KEY='zuqiu-km-autosave-v1';
 var lastSaveAt=null, saveAvailable=true;
@@ -577,8 +600,12 @@ function loadAutoSave(){
     var raw=localStorage.getItem(SAVE_KEY);
     if(!raw) return false;
     var obj=JSON.parse(raw);
-    if(!obj || !obj.data || !obj.data.club || !obj.data.started) return false;
-    var data=sanitizeSaveData(obj.data);
+    if(!obj) return false;
+    /* 兼容最老的存档格式：极早期版本直接存游戏对象、没有 {v,savedAt,data} 外壳，
+       这种存档也要认——取出里面的游戏对象照常补字段读入，绝不因为外壳不同就丢档。 */
+    var rawData=obj.data? obj.data : (obj.club? obj : null);
+    if(!rawData || !rawData.club || !rawData.started) return false;
+    var data=sanitizeSaveData(rawData);
     if(!data) return false;
     G=data;
     lastSaveAt= obj.savedAt? new Date(obj.savedAt) : null;
@@ -2304,7 +2331,16 @@ function confirmClearSave(btn){
 function exportSave(){ var el=document.getElementById('save-code'); el.value=btoa(unescape(encodeURIComponent(JSON.stringify(G)))); el.select(); toast('存档码已生成，复制保存好'); }
 function importSave(){
   var el=document.getElementById('save-code');
-  try{ var obj=JSON.parse(decodeURIComponent(escape(atob(el.value.trim())))); if(!obj.club) throw 0; stopAuto(); G=obj; PAGE='home'; log('💾 存档导入成功，回到第 '+G.month+' 个月。此后会自动存档，退出重开接着玩。','good'); render(); autoSave(); toast('导入成功，已自动存档'); }
+  try{
+    var obj=JSON.parse(decodeURIComponent(escape(atob(el.value.trim()))));
+    /* 和自动读档走同一套修复：兼容带外壳 {data:...} 与直接存游戏对象的老格式，
+       并用 sanitizeSaveData 把旧存档缺的新字段全部补齐——之前导入不走修复，
+       老存档码导入后渲染报错、还误报「存档码不对」。 */
+    var rawData=(obj && obj.data)? obj.data : obj;
+    var data=sanitizeSaveData(rawData);
+    if(!data) throw 0;
+    stopAuto(); G=data; PAGE='home'; log('💾 存档导入成功，回到第 '+G.month+' 个月。此后会自动存档，退出重开接着玩。','good'); render(); autoSave(); toast('导入成功，已自动存档');
+  }
   catch(e){ toast('存档码不对，导入失败'); }
 }
 function pagePay(){
@@ -3446,9 +3482,10 @@ function wallDeletePoster(id){
   showPosterWall();
 }
 /* ---------------- 启动：优先自动读档 ----------------
-   整个启动包在 try 里：万一旧存档还是和新版对不上、渲染时报错，也不能白屏——
-   先把原始存档备份到 SAVE_KEY+'-bak'（数据不丢），清掉坏档，干净地进开局界面；
-   连这一步都失败时，<head> 里的看门狗会亮出修复面板兜底。 */
+   整个启动包在 try 里：万一读档 / 首屏渲染还是报错，也不能白屏、更不能清档——
+   原始存档先原样备份到 SAVE_KEY+'-bak'，然后做「二次抢救」：重新读档、强制回
+   大厅再渲染一次；连抢救都失败才进开局界面，但自动存档一个字都不删，原样留在
+   本机（玩家手动点「清除存档」或之后版本修好，都还能接着用）。 */
 try{
   if(loadAutoSave()){
     PAGE='home';
@@ -3465,11 +3502,20 @@ try{
     var badRaw=null;
     try{ badRaw=localStorage.getItem(SAVE_KEY); }catch(e1){}
     if(badRaw){ try{ localStorage.setItem(SAVE_KEY+'-bak', badRaw); }catch(e2){} }
-    clearAutoSave();
-    G=null; PAGE='home';
-    render();
-    startPosterChain(true);
-    toast('⚠️ 旧存档和新版本对不上，已自动修复：原存档已备份，新开一局就能玩。');
+    var rescued=false;
+    try{ rescued=loadAutoSave(); }catch(e3){ rescued=false; }
+    if(rescued){
+      PAGE='home';
+      render();
+      toast('💾 已自动读取上次存档：'+G.club+' · 第 '+G.month+' 个月，接着玩！');
+      startPosterChain(false);
+    } else {
+      /* 抢救失败也绝不自动清档：存档原样保留，只进开局界面兜底显示。 */
+      G=null; PAGE='home';
+      render();
+      startPosterChain(true);
+      toast('⚠️ 这次没能读出旧存档，但它还完整保存在本机、没有被删除。退出重开一次通常就能恢复。');
+    }
     window.__hmBooted=true;
   }catch(fallbackErr){ /* 看门狗接管，显示一键修复面板 */ }
 }
@@ -3481,15 +3527,8 @@ try{
    每个都有明确成就门槛（集团阶段 / 估值 / 声望 / 球迷），未达成显示锁定页 + 条件 + 当前进度；
    达成后进入真实经营：投钱、升级、签约、定价、输送球员、看月度账目，全部月末随主账结算。
    与旧板块联动：板块「海外卫星俱乐部」让第一家海外俱乐部打八折；板块「自有运动品牌」
-   让自有品牌创立费减半、品牌价值涨得更快。老存档没有 biz 字段时由 defaultBiz 补齐，不清进度。 */
-function defaultBiz(){
-  return {
-    overseas:{}, ovCum:0,
-    brand:{ founded:false, name:'', color:'#e85d1f', mark:'⚡', price:1, lines:{jersey:1, scarf:1, shoe:0}, value:0, cum:0, lastNet:0, mktUntil:0, star:'', starUntil:0, lt:0 },
-    deal:null, dealCum:0, dealTitles:0,
-    cross:{}, crossCum:0, crossNet:0
-  };
-}
+   让自有品牌创立费减半、品牌价值涨得更快。老存档没有 biz 字段时由 defaultBiz 补齐，不清进度。
+   （defaultBiz 定义在主脚本的存档区上方——读档在启动时先于本脚本块执行，必须提前。） */
 function ensureBiz(){
   if(!G) return;
   if(!G.biz || typeof G.biz!=='object') G.biz=defaultBiz();
