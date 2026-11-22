@@ -10,8 +10,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="豪门缔造者" />
-    <link rel="manifest" href="manifest.webmanifest" /> />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" /> />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="photo-09.png" />
     <title>豪门缔造者 · 从中乙到中超冠军</title>
     <script>
@@ -3482,10 +3482,19 @@ function wallDeletePoster(id){
   showPosterWall();
 }
 /* ---------------- 启动：优先自动读档 ----------------
+   ⚠️ 启动必须等整个文档解析完（DOMContentLoaded）再跑，绝不能在本脚本块里
+   立刻执行：大厅 render() 要用 ensureBiz() / bizValue()，它们定义在后面的
+   「深度经营」脚本块里；本脚本块执行时那个脚本块还没跑，直接启动会报
+   「ensureBiz is not defined」——有存档时首屏渲染必炸，启动 try/catch 里的
+   二次抢救再渲染还是同一个错，于是黑屏 + 看门狗修复面板，点哪个按钮刷新
+   都是同样的死循环（新玩家路径在 render 里提前返回、不用 ensureBiz，所以
+   空存档看起来正常，偏偏老玩家进不去）。等 DOMContentLoaded 时全部脚本块
+   都已执行完，顺序问题不复存在。
    整个启动包在 try 里：万一读档 / 首屏渲染还是报错，也不能白屏、更不能清档——
    原始存档先原样备份到 SAVE_KEY+'-bak'，然后做「二次抢救」：重新读档、强制回
    大厅再渲染一次；连抢救都失败才进开局界面，但自动存档一个字都不删，原样留在
    本机（玩家手动点「清除存档」或之后版本修好，都还能接着用）。 */
+function hmBoot(){
 try{
   if(loadAutoSave()){
     PAGE='home';
@@ -3519,6 +3528,9 @@ try{
     window.__hmBooted=true;
   }catch(fallbackErr){ /* 看门狗接管，显示一键修复面板 */ }
 }
+}
+if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', hmBoot); }
+else{ hmBoot(); }
 </script>
 <script>
 "use strict";
