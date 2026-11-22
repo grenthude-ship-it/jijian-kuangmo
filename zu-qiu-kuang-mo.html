@@ -10,9 +10,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="豪门缔造者" />
-    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="manifest" href="data:application/octet-stream;base64,eyJiYWNrZ3JvdW5kX2NvbG9yIjoiIzEwMWQyOSIsImRlc2NyaXB0aW9uIjoi6Laz55CD5L+x5LmQ6YOo57uP6JCl5qih5ouf77ya5peg6ZmQ55Sf5rav44CB6L2s5Lya5biC5Zy644CB6Z2S6K6t5L2T57O744CB6ZuG5Zui5omp5byg77yM5LuO5Lit5LmZ5LiA6Lev6Lii5Yiw5Lit6LaF5Yag5Yab44CCIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJpY29ucyI6W3sicHVycG9zZSI6ImFueSIsInNpemVzIjoiMTkyeDE5MiIsInNyYyI6Imljb24tMTkyLnBuZyIsInR5cGUiOiJpbWFnZS9wbmcifSx7InB1cnBvc2UiOiJhbnkiLCJzaXplcyI6IjUxMng1MTIiLCJzcmMiOiJpY29uLTUxMi5wbmciLCJ0eXBlIjoiaW1hZ2UvcG5nIn0seyJwdXJwb3NlIjoibWFza2FibGUiLCJzaXplcyI6IjUxMng1MTIiLCJzcmMiOiJpY29uLTUxMi5wbmciLCJ0eXBlIjoiaW1hZ2UvcG5nIn1dLCJsYW5nIjoiemgtQ04iLCJuYW1lIjoi6LGq6Zeo57yU6YCg6ICFIMK3IOS7juS4reS5meWIsOS4rei2heWGoOWGmyIsIm9yaWVudGF0aW9uIjoicG9ydHJhaXQiLCJzY29wZSI6Ii4uLyIsInNob3J0X25hbWUiOiLosarpl6jnvJTpgKDogIUiLCJzdGFydF91cmwiOiIuLi9pbmRleC5odG1sIiwidGhlbWVfY29sb3IiOiIjMTAxZDI5In0=" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="photo-09.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
     <title>豪门缔造者 · 从中乙到中超冠军</title>
     <script>
       /* 启动看门狗：主脚本若因手机浏览器异常等原因没能把游戏渲染出来，7 秒后
@@ -247,6 +247,44 @@
       .opt span{ font-size:12px; color:var(--ink2); display:block; margin-top:3px; line-height:1.5; }
       .opt.on{ border-color:var(--orange); background:#fff7f1; box-shadow:inset 3px 0 0 var(--orange); }
       .modal .foot{ padding:0 26px 22px; display:flex; gap:10px; flex-wrap:wrap; }
+      /* 赛后战报 + 直播观赛 */
+      .mr-score{ display:flex; align-items:center; justify-content:center; gap:14px; padding:12px 10px 4px; }
+      .mr-score .tm{ font-weight:800; font-size:16px; text-align:center; flex:1; }
+      .mr-score .sc{ font-size:38px; font-weight:900; letter-spacing:.04em; white-space:nowrap; }
+      .mr-sec{ margin-top:14px; }
+      .mr-sec h4{ margin:0 0 7px; font-size:13px; color:var(--ink2); letter-spacing:.05em; }
+      .mr-goals{ display:grid; grid-template-columns:1fr 1fr; gap:4px 18px; font-size:13.5px; }
+      .mr-goals .gl{ display:flex; gap:7px; }
+      .mr-goals .gl.opp{ justify-content:flex-end; text-align:right; }
+      .mr-goals .mn{ color:var(--orange); font-weight:800; min-width:36px; }
+      .mr-goals .gl.opp .mn{ order:2; min-width:0; }
+      .mr-ev{ display:flex; gap:9px; padding:5px 0; border-bottom:1px dashed var(--line); font-size:13px; line-height:1.55; }
+      .mr-ev:last-child{ border-bottom:none; }
+      .mr-ev .mn{ flex:0 0 40px; font-weight:800; color:var(--ink2); }
+      .mr-ev.goal{ font-weight:700; }
+      .mr-list{ display:flex; flex-direction:column; gap:7px; }
+      .mr-row{ display:flex; align-items:center; gap:10px; background:#f7fafc; border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-size:13.5px; }
+      .mr-row .grow{ flex:1; min-width:0; }
+      .live-modal{ max-width:860px; }
+      .live-head{ background:linear-gradient(120deg,#173550,#0e2233); color:#fff; padding:16px 20px 12px; }
+      .live-title{ font-size:12.5px; color:#a9bfd1; font-weight:700; letter-spacing:.04em; }
+      .live-score{ display:flex; align-items:center; justify-content:center; gap:16px; margin-top:6px; }
+      .live-score .lt-name{ flex:1; font-weight:800; font-size:16px; }
+      .live-score .lt-name.r{ text-align:right; }
+      .live-score .lt-sc{ font-size:36px; font-weight:900; white-space:nowrap; }
+      .live-clock{ text-align:center; margin-top:2px; color:#ffd76a; font-weight:800; font-size:14px; }
+      .live-stats{ text-align:center; color:#c8d8e4; font-size:12.5px; margin-top:5px; }
+      .live-cols{ display:grid; grid-template-columns:1.6fr 1fr; max-height:52vh; }
+      .live-feed{ overflow-y:auto; padding:12px 16px; }
+      .live-side{ overflow-y:auto; padding:12px 16px; border-left:1px solid var(--line); background:#f7fafc; }
+      .live-side h4{ margin:0 0 6px; font-size:12.5px; color:var(--ink2); }
+      .live-side .lu{ font-size:12.5px; line-height:1.75; margin-bottom:12px; }
+      .live-ev{ display:flex; gap:8px; padding:4px 0; font-size:13px; line-height:1.55; border-bottom:1px dashed #e6edf2; }
+      .live-ev .mn{ flex:0 0 38px; font-weight:800; color:var(--ink2); }
+      .live-ev.goal{ font-weight:800; background:#fff6e0; border-radius:6px; padding:4px 6px; }
+      .live-controls{ display:flex; gap:7px; flex-wrap:wrap; padding:12px 16px 16px; border-top:1px solid var(--line); }
+      .live-controls .btn.on{ background:var(--orange); color:#fff; border-color:var(--orange); }
+      @media (max-width:640px){ .live-cols{ grid-template-columns:1fr; max-height:58vh; } .live-side{ border-left:none; border-top:1px solid var(--line); } .mr-score .sc{ font-size:30px; } }
       .btn-start{ background:var(--orange); color:#fff; border:none; font-size:16px; font-weight:800; padding:12px 30px; border-radius:10px; }
       .btn-start:hover{ background:var(--orange-d); }
       .ev-choices{ display:flex; flex-direction:column; gap:9px; margin-top:12px; }
@@ -303,7 +341,7 @@
       /* ---------- 游戏大厅（按用户截图：球场夜景大厅布局） ---------- */
       body.home-dark{ background:#060d16; }
       .lobby{ position:relative; border-radius:18px; overflow:hidden; color:#eef3f8; margin-bottom:14px;
-        background:#0a1622 url('photo-01.jpg') center 32%/cover no-repeat; box-shadow:0 10px 34px rgba(3,8,14,.45); }
+        background:#0a1622 url('photo-25.jpg') center 32%/cover no-repeat; box-shadow:0 10px 34px rgba(3,8,14,.45); }
       .lobby::before{ content:''; position:absolute; inset:0;
         background:linear-gradient(180deg, rgba(5,11,20,.62) 0%, rgba(5,11,20,.34) 34%, rgba(5,11,20,.55) 68%, rgba(4,9,16,.92) 100%); }
       .lobby-in{ position:relative; z-index:1; padding:14px 14px 12px; display:flex; flex-direction:column; gap:12px; }
@@ -1067,14 +1105,16 @@ function playSingleMatch(fx){
   }
   // 首发体能消耗与伤病：踢满一场的球员疲劳上升，疲劳越高越容易受伤；没上场的恢复
   var starters={};
-  pickLineup().forEach(function(s){ starters[s.p.name]=s.p; });
+  var lineupSlots=pickLineup();
+  lineupSlots.forEach(function(s){ starters[s.p.name]=s.p; });
+  var matchInj=[];
   G.squad.forEach(function(p){
     if(starters[p.name]){
       p.played=(p.played||0)+1; // 出场计数：出场承诺兑现、更衣室心情都看它
       var intenFat=(G.train&&G.train.intensity)==='高强度'?6:((G.train&&G.train.intensity)==='恢复调养'?-5:0);
       p.fat=clamp((p.fat||0)+Math.round(ri(16,26)*fatScale)+intenFat,0,100);
       var injCh=(0.035 + ((p.fat||0)>=70?0.06:0) - G.fac.medical*0.006 - ((G.train&&G.train.physio)||0)*0.004 + ((G.train&&G.train.intensity)==='高强度'?0.015:0)) * injScale;
-      if(p.inj===0 && Math.random()<injCh){ p.inj=ri(10,40); log('🚑 '+p.name+' 在对阵 '+fx.opp+' 的比赛中受伤，预计缺阵约 '+p.inj+' 天（医疗中心等级越高、轮换越合理，伤病越少）。','bad'); }
+      if(p.inj===0 && Math.random()<injCh){ p.inj=ri(10,40); matchInj.push({name:p.name, days:p.inj}); log('🚑 '+p.name+' 在对阵 '+fx.opp+' 的比赛中受伤，预计缺阵约 '+p.inj+' 天（医疗中心等级越高、轮换越合理，伤病越少）。','bad'); }
     } else {
       p.fat=clamp((p.fat||0)-12,0,100);
     }
@@ -1094,13 +1134,16 @@ function playSingleMatch(fx){
   if(prep && prep.type==='speech' && res==='负'){ G.morale=clamp(G.morale-5,0,100); log('🗣️ 赛前那番激情演讲没换来胜利，更衣室士气额外 -5——话说得太满，是要还的。','bad'); }
   var result={opp:fx.opp, score:gf+':'+ga, res:res, home:fx.home, cls:cls, scorers:scorers, day:fx.day, tag:fx.tag||'', prep:prepName, gate:gate};
   fx.played=true; fx.result=result;
+  // 赛后战报明细：由本场已结算的真实赛果生成（进球分钟/牌/事件线/最佳球员），直播回放也读这一份，比分与结算永远一致
+  result.detail=buildMatchDetail({fx:fx, gf:gf, ga:ga, myScorers:scorers, lineup:lineupSlots, injuries:matchInj, xg:xg, xa:xa, pens:null});
+  queueMatchReport(result);
   if(!G.monthResults) G.monthResults=[];
   G.monthResults.push(result);
   log('⚽ '+G.mon+'月'+fx.day+'日 '+(fx.home?'主场':'客场')+' '+gf+':'+ga+' '+fx.opp+'（'+res+'）'+(scorers.length?'，进球：'+scorers.join('、'):'')+(fx.home?'，门票 +'+fmt(gate):'')+(prepName?'｜本场部署：'+prepName:'')+'。', cls);
   return result;
 }
 function playFixture(fx){
-  if(fx.cup){ fx.played=true; cupMatch(); fx.result={cup:true}; return; }
+  if(fx.cup){ fx.played=true; fx.result=cupMatch(fx); return; }
   playSingleMatch(fx);
 }
 function opponentDrift(){
@@ -1208,7 +1251,7 @@ function mkBoardTarget(){
   if(G.div===1) return {desc:'升入中超（赛季前 2 名）', kind:'promote', bonus:500};
   return {desc:'夺得中超冠军', kind:'champion', bonus:900};
 }
-function cupMatch(){
+function cupMatch(fx){
   var upDiv = G.div>0 ? DIVS[G.div-1] : DIVS[0];
   var oppName = pick(upDiv.clubs);
   var oppStr = upDiv.base + 8;
@@ -1224,6 +1267,14 @@ function cupMatch(){
     G.morale=clamp(G.morale-2,0,100);
     log('🏆 足协杯 '+scoreTxt+' 不敌 '+oppName+'，止步本轮。杯赛每年 6 月都有，练兵的机会明年再来。','bad');
   }
+  // 杯赛同样生成赛后战报（进球者仅作展示，不计入联赛射手榜，与原有规则一致）
+  var cupScorers=[];
+  for(var ci=0; ci<gf; ci++){ var cp=pickScorer(); if(cp) cupScorers.push(cp.name); }
+  var cupFx=fx||{opp:oppName, home:true, cup:true, day:12, tag:'🏆 足协杯'};
+  var cupResult={cup:true, opp:oppName, score:scoreTxt, res:win?'胜':'负', home:true, cls:win?'good':'bad', scorers:cupScorers, day:cupFx.day, tag:'🏆 足协杯'};
+  cupResult.detail=buildMatchDetail({fx:cupFx, oppName:oppName, gf:gf, ga:ga, myScorers:cupScorers, lineup:pickLineup(), injuries:[], xg:1.3+diff*0.09, xa:1.3-diff*0.09, pens:(gf===ga? (win?'胜':'负') : null)});
+  queueMatchReport(cupResult);
+  return cupResult;
 }
 /* ---------------- 赛季颁奖：金靴 / 最佳球员 / 金手套 / 最佳新星 / 最佳主帅 ----------------
    每年 12 月赛季结算时揭晓，依据本赛季真实数据（进球、能力、年龄、球队失球与名次）。
@@ -1386,12 +1437,14 @@ function endMonth(auto){
   if(!G || G.ended) return;
   advanceDays(31-G.day, !auto);
   render();
+  if(batchDepth===0 && !autoOn) flushReports();
 }
 function simDays(n){
   if(!G || G.ended) return;
   var m0=G.month;
   advanceDays(n, true);
   render();
+  flushReports();
   toast('已模拟 '+n+' 天 · 现在是 '+G.year+' 年 '+G.mon+' 月 '+G.day+' 日'+(G.month!==m0?'（已跨月结算）':''));
 }
 function simToNextMatch(){
@@ -1401,6 +1454,7 @@ function simToNextMatch(){
   if(!fx){ endMonth(false); return; }
   advanceDays(Math.max(0, fx.day-G.day), true);
   render();
+  flushReports();
   toast(fx.cup? '🏆 足协杯比赛日到了，结果已出' : '⚽ 比赛日：'+(fx.home?'主场':'客场')+' vs '+fx.opp+(fx.tag?' · '+fx.tag:'')+'，结果已出');
 }
 function endGame(kind){
@@ -1798,9 +1852,9 @@ function relActSilent(id){ if(G.relUsed[id]) return; G.cash-=15; G.relUsed[id]=t
 function buyVentureSilent(d){ if(!G.ventures) G.ventures={}; G.cash-=d.cost; G.ventures[d.id]=1; log('🤖 自动经营：成立'+d.name+'，投入 '+fmt(d.cost)+'，集团板块 +1。',''); }
 function startAuto(){ if(!G||G.ended) return; autoOn=true; autoTimer=setInterval(autoStep, 650); render(); }
 function stopAuto(){ autoOn=false; if(autoTimer){ clearInterval(autoTimer); autoTimer=null; } }
-function toggleAuto(){ if(autoOn){ stopAuto(); render(); } else startAuto(); }
-function endThree(){ if(!G||G.ended) return; for(var i=0;i<3 && !G.ended;i++) endMonth(true); render(); toast('已连推三个月'); }
-function endYear(){ if(!G||G.ended) return; for(var i=0;i<12 && !G.ended;i++) endMonth(true); render(); toast('已连推一整年（12 个月）· 当前第 '+G.month+' 个月，赛季无限循环，想玩多久玩多久'); }
+function toggleAuto(){ if(autoOn){ stopAuto(); render(); flushReports(); } else startAuto(); }
+function endThree(){ if(!G||G.ended) return; batchDepth++; for(var i=0;i<3 && !G.ended;i++) endMonth(true); batchDepth--; render(); flushReports(); toast('已连推三个月'); }
+function endYear(){ if(!G||G.ended) return; batchDepth++; for(var i=0;i<12 && !G.ended;i++) endMonth(true); batchDepth--; render(); flushReports(); toast('已连推一整年（12 个月）· 当前第 '+G.month+' 个月，赛季无限循环，想玩多久玩多久'); }
 function restart(){ stopAuto(); clearAutoSave(); G=null; PAGE='home'; showStart(); render(); }
 </script>
 <script>
@@ -2009,20 +2063,20 @@ function pageEmpire(){
 }
 function scheduleCardHTML(){
   ensureFixtures();
-  var rows=(G.fixtures||[]).map(function(fx){
-    if(fx.cup) return '<div class="fx-row"><span class="fd num">'+G.mon+'月'+fx.day+'日</span><span class="fo">🏆 足协杯 · 主场迎战高一级联赛球队</span>'+(fx.played?'<span class="pill up">已赛</span>':'<span class="pill">待赛</span>')+'</div>';
+  var rows=(G.fixtures||[]).map(function(fx,fi){
+    if(fx.cup) return '<div class="fx-row"><span class="fd num">'+G.mon+'月'+fx.day+'日</span><span class="fo">🏆 足协杯 · 主场迎战高一级联赛球队</span>'+(fx.played?'<span class="pill up">已赛</span>'+(fx.result&&fx.result.detail?'<button class="btn sm" onclick="viewStoredReport(\'fx\','+fi+')">📋 战报</button>':''):'<span class="pill">待赛</span>')+'</div>';
     var r=fx.result;
-    return '<div class="fx-row"><span class="fd num">'+G.mon+'月'+fx.day+'日</span><span class="fo">'+(fx.home?'主场':'客场')+' vs '+esc(fx.opp)+(fx.tag?' · '+fx.tag:'')+'</span>'+(r? '<span class="pill '+(r.res==='胜'?'up':(r.res==='负'?'dn':''))+'">'+r.score+' '+r.res+'</span>' : '<span class="pill">待赛</span>')+'</div>';
+    return '<div class="fx-row"><span class="fd num">'+G.mon+'月'+fx.day+'日</span><span class="fo">'+(fx.home?'主场':'客场')+' vs '+esc(fx.opp)+(fx.tag?' · '+fx.tag:'')+'</span>'+(r? '<span class="pill '+(r.res==='胜'?'up':(r.res==='负'?'dn':''))+'">'+r.score+' '+r.res+'</span>'+(r.detail?'<button class="btn sm" onclick="viewStoredReport(\'fx\','+fi+')">📋 战报</button>':'') : '<span class="pill">待赛</span>')+'</div>';
   }).join('');
   var nf=nextFixture();
   return '<div class="card"><h3><span class="no">赛程</span>本月赛程<span class="hint">'+G.year+' 年 '+G.mon+' 月 · 今天 '+G.day+' 日 · 每月 3 场联赛分散在全月，不会扎堆</span></h3>'+rows
-  +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"><button class="btn sm" onclick="simDays(1)">模拟 1 天</button><button class="btn sm" onclick="simDays(3)">模拟 3 天</button><button class="btn sm" onclick="simDays(7)">模拟 7 天</button>'+(nf?'<button class="btn pri sm" onclick="simToNextMatch()">直达下一场（'+G.mon+'月'+nf.day+'日）</button>':'')+'<button class="btn sm" onclick="endMonth(false)">结束本月</button></div>'
-  +'<p class="mini" style="margin-top:8px;">推进粒度随你选：按天慢慢过、直达下一场，或整月结算。门票在比赛日当天入账（球迷满意度越高卖得越好）；工资、赞助、转播在月末统一结算。赛前部署在「运营活动」页，只对下一场生效。</p></div>';
+  +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"><button class="btn sm" onclick="simDays(1)">模拟 1 天</button><button class="btn sm" onclick="simDays(3)">模拟 3 天</button><button class="btn sm" onclick="simDays(7)">模拟 7 天</button>'+(nf?'<button class="btn pri sm" onclick="watchLive()">📺 观看直播（下一场）</button><button class="btn pri sm" onclick="simToNextMatch()">直达下一场（'+G.mon+'月'+nf.day+'日）</button>':'')+'<button class="btn sm" onclick="endMonth(false)">结束本月</button></div>'
+  +'<p class="mini" style="margin-top:8px;">推进粒度随你选：按天慢慢过、直达下一场，或整月结算。每场比赛踢完都会弹出赛后战报（比分、进球时间、红黄牌、伤病、事件时间线、最佳球员）；下一场点「观看直播」能按分钟看球，可暂停、快进、跳关键时刻，直播比分与赛季结算完全一致。不想看就直接模拟，战报照样出。门票在比赛日当天入账（球迷满意度越高卖得越好）；工资、赞助、转播在月末统一结算。赛前部署在「运营活动」页，只对下一场生效。</p></div>';
 }
 function pageHome(){
   var fin=G.lastFinance;
   var finHTML= fin? '<div class="item"><div class="grow"><div class="nm">上月账目</div><div class="meta">门票 '+fmt(fin.gate)+' · 赞助 '+fmt(fin.sponsor)+' · 转播 '+fmt(fin.tv)+' ｜ 工资 '+fmt(fin.wages)+' · 运营 '+fmt(fin.ops)+' · 利息 '+fmt(fin.interest)+'</div></div><b class="num" style="color:'+(fin.net>=0?'var(--green-d)':'var(--red)')+'">'+(fin.net>=0?'+':'')+fmt(fin.net)+'</b></div>' : '<p class="desc">本月比赛按赛程逐场踢：门票当天入账，月末统一发工资、结赞助和转播。</p>';
-  var resHTML= G.lastResults.length? G.lastResults.map(function(r){ return '<div class="item"><span class="pill '+(r.res==='胜'?'up':(r.res==='负'?'dn':''))+'">'+r.res+'</span><div class="grow"><div class="nm num">'+esc(G.club)+' '+r.score+' '+esc(r.opp)+'</div><div class="meta">'+(r.home?'主场':'客场')+'</div>'+(r.scorers&&r.scorers.length?'<div class="scorer-line">⚽ 进球：'+r.scorers.map(function(n){ return esc(n); }).join('、')+'</div>':'')+'</div></div>'; }).join('') : '<p class="desc">本赛季还没有比赛记录。</p>';
+  var resHTML= G.lastResults.length? G.lastResults.map(function(r,idx){ return '<div class="item"><span class="pill '+(r.res==='胜'?'up':(r.res==='负'?'dn':''))+'">'+r.res+'</span><div class="grow"><div class="nm num">'+esc(G.club)+' '+r.score+' '+esc(r.opp)+'</div><div class="meta">'+(r.home?'主场':'客场')+'</div>'+(r.scorers&&r.scorers.length?'<div class="scorer-line">⚽ 进球：'+r.scorers.map(function(n){ return esc(n); }).join('、')+'</div>':'')+'</div>'+(r.detail?'<button class="btn sm" onclick="viewStoredReport(\'lr\','+idx+')">📋 战报</button>':'')+'</div>'; }).join('') : '<p class="desc">本赛季还没有比赛记录。</p>';
   var warn='';
   if(G.heat>=60) warn+='<div class="warn-strip">🚨 纪检热度已达 '+G.heat+'：随时可能被调查，罚款、扣分甚至取消资格。去灰色账本收手，或者到充值中心找危机公关。</div>';
   if(G.cash<300) warn+='<div class="warn-strip">💸 现金只剩 '+fmt(G.cash)+'：工资快发不出来了。可以卖球员、去俱乐部页借银行授信，或到转会市场回血。</div>';
@@ -2360,7 +2414,7 @@ function pagePay(){
   return '<div class="card"><h3><span class="no">充值</span>充值中心<span class="hint">余额 💎 '+G.diamonds+' 钻 · 累计 ¥'+G.spent+' · VIP'+G.vip+'</span></h3>'
   +'<p class="desc">选档位 → 微信扫码付款 → 点「我已付款，领取钻石」。每个档位首充双倍。VIP 等级按累计消费计算，赞助收入有 VIP 加成。</p>'
   +'<div class="tiers">'+tiers+'</div>'
-  +'<div class="qr-box" style="margin-top:16px;"><img src="photo-02.jpg" alt="微信收款码，收款人 Deng Yy(**元）">'
+  +'<div class="qr-box" style="margin-top:16px;"><img src="photo-26.jpg" alt="微信收款码，收款人 Deng Yy(**元）">'
   +'<div style="flex:1;min-width:200px;"><div style="font-weight:800;font-size:16px;">微信扫码付款 ¥'+t.amt+'</div><p class="desc">收款人：Deng Yy(**元）。付款后点下面的按钮，'+( !G.claimed[t.amt]? '本档首充双倍，到账 💎 '+(t.dia*2)+' 钻。' : '到账 💎 '+t.dia+' 钻。')+'</p>'
   +'<button class="btn grn" onclick="claimDiamonds()">我已付款，领取钻石</button></div></div></div>'
   +'<div class="card"><h3>💎 钻石商城</h3><div class="shop-grid">'+shopHTML+'</div></div>';
@@ -2395,10 +2449,10 @@ var STARS=[
   {id:'vinicius', name:'维尼修斯', en:'Vinícius Júnior', nat:'巴西', club:'皇家马德里', league:'西甲', pos:'前锋', age:26, ab:91, fee:2100, img:'photo-14.jpg', tag:'皇马左路核心，欧冠决赛进球功臣，爆点型边锋。'},
   {id:'dembele', name:'登贝莱', en:'Ousmane Dembélé', nat:'法国', club:'巴黎圣日耳曼', league:'法甲', pos:'前锋', age:29, ab:90, fee:1900, img:'photo-15.jpg', tag:'大巴黎爆点，2025 年金球奖得主，双足均衡。'},
   {id:'salah', name:'萨拉赫', en:'Mohamed Salah', nat:'埃及', club:'利物浦', league:'英超', pos:'前锋', age:34, ab:90, fee:1700, img:'photo-16.jpg', tag:'“埃及法老”，利物浦右路核心，常年英超顶级射手。'},
-  {id:'kane', name:'凯恩', en:'Harry Kane', nat:'英格兰', club:'拜仁慕尼黑', league:'德甲', pos:'前锋', age:33, ab:90, fee:1600, img:'photo-03.jpg', tag:'英格兰队长，拜仁中锋，进球和做球都是顶级。'},
-  {id:'lautaro', name:'劳塔罗', en:'Lautaro Martínez', nat:'阿根廷', club:'国际米兰', league:'意甲', pos:'前锋', age:29, ab:89, fee:1700, img:'photo-04.jpg', tag:'国米队长，禁区嗅觉顶级，阿根廷主力前锋。'},
+  {id:'kane', name:'凯恩', en:'Harry Kane', nat:'英格兰', club:'拜仁慕尼黑', league:'德甲', pos:'前锋', age:33, ab:90, fee:1600, img:'photo-27.jpg', tag:'英格兰队长，拜仁中锋，进球和做球都是顶级。'},
+  {id:'lautaro', name:'劳塔罗', en:'Lautaro Martínez', nat:'阿根廷', club:'国际米兰', league:'意甲', pos:'前锋', age:29, ab:89, fee:1700, img:'photo-28.jpg', tag:'国米队长，禁区嗅觉顶级，阿根廷主力前锋。'},
   {id:'musiala', name:'穆西亚拉', en:'Jamal Musiala', nat:'德国', club:'拜仁慕尼黑', league:'德甲', pos:'中场', age:23, ab:89, fee:1800, img:'photo-17.jpg', tag:'拜仁“魔术师”，小空间盘带如穿花蝴蝶。'},
-  {id:'saka', name:'萨卡', en:'Bukayo Saka', nat:'英格兰', club:'阿森纳', league:'英超', pos:'前锋', age:25, ab:88, fee:1600, img:'photo-05.jpg', tag:'阿森纳自家青训出品，右路核心，枪迷的宠儿。'},
+  {id:'saka', name:'萨卡', en:'Bukayo Saka', nat:'英格兰', club:'阿森纳', league:'英超', pos:'前锋', age:25, ab:88, fee:1600, img:'photo-29.jpg', tag:'阿森纳自家青训出品，右路核心，枪迷的宠儿。'},
   {id:'leao', name:'莱奥', en:'Rafael Leão', nat:'葡萄牙', club:'AC米兰', league:'意甲', pos:'前锋', age:27, ab:87, fee:1400, img:'photo-18.jpg', tag:'AC米兰左路爆点，速度型突击手，笑起来很治愈。'},
   {id:'wulei', name:'武磊', en:'Wu Lei', nat:'中国', club:'上海海港', league:'中超', pos:'前锋', age:35, ab:82, fee:800, img:'photo-19.jpg', tag:'海港 7 号，中超历史射手王，中国球员留洋代表。'},
   {id:'wangdalei', name:'王大雷', en:'Wang Dalei', nat:'中国', club:'山东泰山', league:'中超', pos:'门将', age:37, ab:80, fee:600, img:'photo-20.jpg', tag:'泰山 14 号门将，性格门神，手抛球发动进攻一绝。'},
@@ -2832,8 +2886,9 @@ function lobbyHTML(){
   +'</div></div>'
   + posterCarouselHTML()
   +'<div class="lobby-actions">'
-  +'<button class="myteam" onclick="go(\'squad\')"><img src="stadium-bg.jpg" alt="夜晚灯光下的足球场航拍真实照片"><span class="mt-t">我的球队 · 阵容<small>'+esc(G.club)+' · '+d.short+' · 阵容 '+G.squad.length+' 人 · 教练与更衣室都在这</small></span><span class="mt-go">›</span></button>'
+  +'<button class="myteam" onclick="go(\'squad\')"><img src="photo-30.jpg" alt="夜晚灯光下的足球场航拍真实照片"><span class="mt-t">我的球队 · 阵容<small>'+esc(G.club)+' · '+d.short+' · 阵容 '+G.squad.length+' 人 · 教练与更衣室都在这</small></span><span class="mt-go">›</span></button>'
   + startBtn
+  +((!G.ended && nfx)? '<button class="startmatch" style="background:linear-gradient(120deg,#8e2323,#5f1616);" onclick="watchLive()"><span class="big">📺 观看直播 ›</span><span class="en">WATCH LIVE</span><small>下一场按分钟直播：可暂停、快进、只看关键时刻，比分与结算一致</small></button>' : '')
   +'</div>'
   +'<div class="lobby-sec">核心入口</div>'
   +'<div class="lobby-grid">'+coreTilesHTML+'</div>'
@@ -2851,7 +2906,7 @@ function pageLeague(){
   +'<p class="mini" style="margin-top:8px;">规则：每赛季 12 个月、每月 3 场比赛分散在全月（约上旬/中旬/下旬各一场，可按天模拟）；赛季末前 2 名升级、后 2 名降级（中乙不再降级，中超第 1 名夺冠）；每年 6 月打一场足协杯。你现在排第 '+myRank()+' 名，董事会目标：'+(G.boardTarget?G.boardTarget.desc:'—')+'。</p></div>'
   +'<div class="card"><h3><span class="no">联赛</span>三级联赛体系</h3>'+others+'</div>'
   +'<div class="grid2"><div class="card"><h3>🏆 我的荣誉</h3><p class="desc">中超冠军 '+(G.titles||0)+' 次 · 足协杯关键战 '+(G.cupWins||0)+' 胜 · 累计胜场 '+(G.totalWins||0)+' · 王朝评级 '+dynastyGrade().grade+'（'+dynastyGrade().title+'）</p><img src="photo-08.webp" alt="球队捧起冠军奖杯的真实照片" style="width:100%;border-radius:10px;display:block;"></div>'
-  +'<div class="card"><h3>🏟️ 我的主场</h3><p class="desc">'+esc(G.club)+' · 主场 '+G.fac.stadium+' 级 · 球迷 '+fmtFans(G.fans)+' 人 · 声望 '+G.rep+' · 俱乐部估值 '+fmt(valuation())+'</p><img src="stadium-bg.jpg" alt="夜晚灯光下的足球场航拍真实照片" style="width:100%;border-radius:10px;display:block;"></div></div>';
+  +'<div class="card"><h3>🏟️ 我的主场</h3><p class="desc">'+esc(G.club)+' · 主场 '+G.fac.stadium+' 级 · 球迷 '+fmtFans(G.fans)+' 人 · 声望 '+G.rep+' · 俱乐部估值 '+fmt(valuation())+'</p><img src="photo-30.jpg" alt="夜晚灯光下的足球场航拍真实照片" style="width:100%;border-radius:10px;display:block;"></div></div>';
 }
 function pageCareer(){
   var dg=dynastyGrade();
@@ -3394,7 +3449,7 @@ var POSTERS=[
   { id:'messi', delKey:'hm_poster_del_messi_v1', src:'messi-reverse-fixed.jpg', name:'梅西啥也不是 · 反向海报',
     alt:'游戏创作者手举打红叉的阿根廷 10 号 MESSI 球衣的反向海报：梅西啥也不是 MESSI IS NOTHING',
     cap:'梅 西 啥 也 不 是 · MESSI IS NOTHING' },
-  { id:'creator', delKey:'hm_poster_del_creator_v1', src:'creator-poster.jpg', name:'游戏创作者海报',
+  { id:'creator', delKey:'hm_poster_del_creator_v1', src:'photo-32.jpg', name:'游戏创作者海报',
     alt:'《豪门缔造者》游戏创作者宣传海报：游戏创作者邓元元',
     cap:'游 戏 创 作 者 ：邓 元 元' }
 ];
@@ -4063,5 +4118,275 @@ function processBiz(){
   notes.forEach(function(n){ log(n,'good'); });
 }
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});}</script></body>
+<script>
+"use strict";
+/* ================= 赛后战报 + 直播观赛 =================
+   战报明细由比赛结算的那一刻、按已定的真实赛果生成（进球分钟、红黄牌、
+   伤病、事件时间线、最佳球员、双方阵容与数据），挂在 result.detail 上随
+   存档保存。直播观赛先用正式引擎把下一场结算掉，再把这份明细按分钟
+   逐条放出来——所以直播里看到的比分、进球者与积分/射手榜结算完全一致，
+   不存在看一场算一场。每场踢完把战报排进 pendingReports，推进动作结束
+   后统一弹：单场弹完整战报，连推多场弹汇总（可逐场看详情），一场不丢。
+   全自动模拟期间只攒不弹，停下时再出汇总。 */
+var pendingReports=[], reportOpen=false, reportFromQueue=false, batchDepth=0, flushTries=0;
+function queueMatchReport(result){ if(result && result.detail) pendingReports.push(result); }
+function flushReports(){
+  if(reportOpen || !pendingReports.length || !G || G.ended) return;
+  if($modal.innerHTML.trim()){ if(flushTries++<60) setTimeout(flushReports, 700); return; } // 有别的弹窗（如突发事件）先让它处理完
+  flushTries=0; reportOpen=true; reportFromQueue=true;
+  if(pendingReports.length===1) showReportDetail(pendingReports[0], false);
+  else showReportSummary();
+}
+function closeReport(){
+  reportOpen=false;
+  if(reportFromQueue){ pendingReports=[]; reportFromQueue=false; }
+  $modal.innerHTML='';
+}
+function showReportSummary(){
+  var rows=pendingReports.map(function(rec,i){
+    var d=rec.detail; if(!d) return '';
+    return '<div class="mr-row"><span class="pill '+(d.res==='胜'?'up':(d.res==='负'?'dn':''))+'">'+d.res+'</span><div class="grow"><div style="font-weight:700;" class="num">'+esc(G.club)+' '+d.gf+' : '+d.ga+' '+esc(d.opp)+'</div><div class="mini">'+d.dateTxt+(d.cup?' · 🏆 足协杯':' · 联赛')+(d.myGoals.length?' · 进球：'+d.myGoals.map(function(g){ return esc(g.name)+' '+g.min+'\''; }).join('、'):' · 无进球')+'</div></div><button class="btn sm" onclick="showQueuedReport('+i+')">详情</button></div>';
+  }).join('');
+  $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:22px;">📋 比赛战报汇总</div><div class="sub">这段时间一共踢了 '+pendingReports.length+' 场，逐场结果都在这里，点「详情」看完整战报</div></div>'
+  +'<div class="body"><div class="mr-list">'+rows+'</div></div>'
+  +'<div class="foot"><button class="btn pri" onclick="closeReport()">关闭，继续经营</button></div></div></div>';
+}
+function showQueuedReport(i){ var rec=pendingReports[i]; if(rec && rec.detail) showReportDetail(rec, true); }
+function showReportDetail(rec, fromList){
+  var d=rec.detail; if(!d) return;
+  $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:22px;">📋 赛后战报</div><div class="sub">'+d.dateTxt+' · '+(d.cup?'🏆 足协杯':'联赛')+(d.tag?' · '+esc(d.tag):'')+'</div></div>'
+  +'<div class="body">'+reportBodyHTML(rec)+'</div>'
+  +'<div class="foot">'+(fromList?'<button class="btn" onclick="showReportSummary()">← 返回汇总</button>':'')+'<button class="btn pri" onclick="closeReport()">关闭，继续</button></div></div></div>';
+}
+function reportBodyHTML(rec){
+  var d=rec.detail;
+  var myG= d.myGoals.length? d.myGoals.map(function(g){ return '<div class="gl"><span class="mn num">'+g.min+'\'</span><span>⚽ '+esc(g.name)+'</span></div>'; }).join('') : '<div class="gl"><span class="mini">无进球</span></div>';
+  var opG= d.oppGoals.length? d.oppGoals.map(function(g){ return '<div class="gl opp"><span>⚽ '+esc(g.name)+'</span><span class="mn num">'+g.min+'\'</span></div>'; }).join('') : '<div class="gl opp"><span class="mini">无进球</span></div>';
+  var evs=d.events.map(function(e){
+    var cls= e.type==='goal'?'goal':'';
+    var icon= e.type==='goal'?'⚽': e.type==='yellow'?'🟨': e.type==='red'?'🟥': e.type==='injury'?'🚑': e.type==='chance'?'🎯': e.type==='sub'?'🔄': e.type==='pens'?'🎲': e.type==='ht'?'⏸️': e.type==='ft'?'🏁':'📣';
+    return '<div class="mr-ev '+cls+'"><span class="mn num">'+e.min+'\'</span><span>'+icon+' '+esc(e.text)+'</span></div>';
+  }).join('');
+  var disc= d.cards.length? d.cards.map(function(c){ return (c.color==='红牌'?'🟥':'🟨')+' '+esc(c.name)+'（'+(c.side==='me'?esc(G.club):esc(d.opp))+'）'+c.min+'\' '+c.color; }).join('<br>') : '全场无红黄牌，踢得干净。';
+  var injT= d.injuries.length? d.injuries.map(function(x){ return '🚑 '+esc(x.name)+'（'+x.min+'\' 受伤，预计缺阵约 '+x.days+' 天）'; }).join('<br>') : '双方均无新增伤病。';
+  var poss=d.stats.poss;
+  return '<div class="mr-score"><span class="tm">'+esc(G.club)+'</span><span class="sc num">'+d.gf+' : '+d.ga+'</span><span class="tm">'+esc(d.opp)+'</span></div>'
+  +'<div style="text-align:center;"><span class="pill '+(d.res==='胜'?'up':(d.res==='负'?'dn':''))+'">'+d.res+'</span><span class="mini" style="margin-left:8px;">'+(d.home?'主场':'客场')+(rec.gate?' · 门票 +'+fmt(rec.gate):'')+'</span></div>'
+  +'<div class="mr-sec"><h4>⚽ 进球时间</h4><div class="mr-goals"><div>'+myG+'</div><div>'+opG+'</div></div></div>'
+  +(d.motm? '<div class="mr-sec"><h4>⭐ 全场最佳球员</h4><div style="font-size:14px;"><b>'+esc(d.motm.name)+'</b>（'+(d.motm.side==='me'?esc(G.club):esc(d.opp))+'）· 评分 <b class="num">'+d.motm.rating.toFixed(1)+'</b></div></div>' : '')
+  +'<div class="mr-sec"><h4>📊 本场数据</h4><div class="mini" style="font-size:12.5px;line-height:1.9;">射门 '+d.stats.myShots+' : '+d.stats.oppShots+' · 射正 '+d.stats.myOT+' : '+d.stats.oppOT+' · 控球率 '+poss+'% : '+(100-poss)+'%</div></div>'
+  +'<div class="mr-sec"><h4>🟨 红黄牌</h4><div style="font-size:13px;line-height:1.8;">'+disc+'</div></div>'
+  +'<div class="mr-sec"><h4>🚑 伤病</h4><div style="font-size:13px;line-height:1.8;">'+injT+'</div></div>'
+  +'<div class="mr-sec"><h4>🕐 关键事件时间线</h4>'+evs+'</div>';
+}
+function viewStoredReport(src, idx){
+  var rec=null;
+  if(src==='fx' && G && G.fixtures && G.fixtures[idx]) rec=G.fixtures[idx].result;
+  if(src==='lr' && G && G.lastResults && G.lastResults[idx]) rec=G.lastResults[idx];
+  if(!rec || !rec.detail){ toast('这场比赛没有详细战报（新版本之前踢的比赛只有比分）'); return; }
+  reportOpen=true; reportFromQueue=false;
+  showReportDetail(rec, false);
+}
+/* ---------------- 战报明细生成：只吃已结算的赛果，不碰任何结算数值 ---------------- */
+function buildMatchDetail(o){
+  var fx=o.fx||{};
+  var oppName=o.oppName||fx.opp||'对手';
+  var gf=o.gf, ga=o.ga;
+  var oppPos=['门将','后卫','后卫','后卫','后卫','中场','中场','中场','前锋','前锋','前锋','中场','前锋','后卫'];
+  var oppPool=[], usedN={};
+  for(var i=0;i<oppPos.length;i++){
+    var nm=randName(), tr=0;
+    while(usedN[nm] && tr++<8) nm=randName();
+    usedN[nm]=1; oppPool.push({name:nm, pos:oppPos[i]});
+  }
+  function oppAttacker(){ var c=oppPool.filter(function(p){ return p.pos==='前锋'||p.pos==='中场'; }); return pick(c.length?c:oppPool); }
+  var usedMin={};
+  function goalMin(){ var m, t=0; do{ m=ri(2,90); }while(usedMin[m] && t++<12); usedMin[m]=1; return m; }
+  var lineupNames=(o.lineup||[]).map(function(s){ return s.p.name; });
+  var myGoals=(o.myScorers||[]).map(function(n){ return {name:n, min:goalMin()}; });
+  while(myGoals.length<gf && lineupNames.length) myGoals.push({name:pick(lineupNames), min:goalMin()});
+  myGoals.sort(function(a,b){ return a.min-b.min; });
+  var oppGoals=[];
+  for(var gi=0; gi<ga; gi++) oppGoals.push({name:oppAttacker().name, min:goalMin()});
+  oppGoals.sort(function(a,b){ return a.min-b.min; });
+  var evs=[{min:0, type:'info', key:false, side:'', text:'比赛开始！'+G.club+(fx.home?'坐镇主场迎战':'客场挑战')+oppName+'。'}];
+  var myAtt=(o.lineup||[]).filter(function(s){ return s.slot==='前锋'||s.slot==='中场'; }).map(function(s){ return s.p.name; });
+  function myShooter(){ return pick(myAtt.length?myAtt:(lineupNames.length?lineupNames:[G.club])); }
+  var chanceTxt=['的射门被对方门将奋力扑出','的头球攻门稍稍偏出立柱','的远射擦着横梁飞出底线','的单刀被门将用脚挡出','的凌空抽射打在边网上','的任意球绕过人墙，可惜高出横梁','的低射被后卫在门线上解围','的推射滑门而过，看台上一片叹息'];
+  var myCh=ri(2,6), oppCh=ri(2,5), ci2;
+  for(ci2=0; ci2<myCh; ci2++) evs.push({min:ri(3,89), type:'chance', side:'me', key:true, text:myShooter()+pick(chanceTxt)+'。'});
+  for(ci2=0; ci2<oppCh; ci2++) evs.push({min:ri(3,89), type:'chance', side:'opp', key:true, text:oppAttacker().name+pick(chanceTxt)+'。'});
+  var cards=[], nCards=ri(0,4);
+  for(ci2=0; ci2<nCards; ci2++){
+    var cSide=Math.random()<0.5?'me':'opp';
+    var cWho= cSide==='me'? pick(lineupNames.length?lineupNames:[G.club]) : pick(oppPool).name;
+    var isRed=Math.random()<0.10, cm=ri(8,88);
+    cards.push({min:cm, side:cSide, name:cWho, color:isRed?'红牌':'黄牌'});
+    evs.push({min:cm, type:isRed?'red':'yellow', side:cSide, key:true, text:(cSide==='me'?G.club:oppName)+'的 '+cWho+' 吃到'+(isRed?'红牌，被直接罚下！':'一张黄牌')+'。'});
+  }
+  cards.sort(function(a,b){ return a.min-b.min; });
+  var inj=(o.injuries||[]).map(function(x){
+    var im=ri(10,85);
+    evs.push({min:im, type:'injury', side:'me', key:true, text:x.name+' 在拼抢中受伤倒地，队医进场处理后确认无法坚持（预计缺阵约 '+x.days+' 天）。'});
+    return {name:x.name, days:x.days, min:im};
+  });
+  var bench=G.squad.filter(function(p){ return lineupNames.indexOf(p.name)<0 && p.inj===0; }).map(function(p){ return p.name; });
+  var nSub=ri(1,3);
+  for(ci2=0; ci2<nSub; ci2++){
+    var sm=ri(55,86);
+    if(Math.random()<0.6 && bench.length && lineupNames.length){
+      var off=pick(lineupNames), on=bench.splice(Math.floor(Math.random()*bench.length),1)[0];
+      evs.push({min:sm, type:'sub', side:'me', key:false, text:'换人调整：'+on+' 替补登场，换下 '+off+'。'});
+    } else {
+      evs.push({min:sm, type:'sub', side:'opp', key:false, text:'换人调整：'+oppName+' 用 '+pick(oppPool).name+' 换下 '+pick(oppPool).name+'。'});
+    }
+  }
+  myGoals.forEach(function(g){ evs.push({min:g.min, type:'goal', side:'me', key:true, scorer:g.name, text:''}); });
+  oppGoals.forEach(function(g){ evs.push({min:g.min, type:'goal', side:'opp', key:true, scorer:g.name, text:''}); });
+  evs.push({min:45, type:'ht', key:false, side:'', text:''});
+  evs.push({min:90, type:'ft', key:true, side:'', text:''});
+  if(o.pens) evs.push({min:91, type:'pens', key:true, side:'me', text:'点球大战：'+G.club+(o.pens==='胜'?'顶住压力，点球击败 '+oppName+'，晋级下一轮！':'遗憾落败，止步本轮。')});
+  evs.sort(function(a,b){ return a.min-b.min; });
+  var s1=0, s2=0;
+  evs.forEach(function(e){
+    if(e.type==='goal'){ if(e.side==='me') s1++; else s2++; e.text='进球！'+(e.side==='me'?G.club:oppName)+'的 '+e.scorer+' 在第 '+e.min+' 分钟破门，比分 '+s1+' : '+s2+'。'; }
+    else if(e.type==='ht'){ e.text='上半场比赛结束，'+G.club+' '+s1+' : '+s2+' '+oppName+'。'; }
+    else if(e.type==='ft'){ e.text='全场比赛结束！'+G.club+' '+gf+' : '+ga+' '+oppName+'。'; }
+  });
+  var stats={ myShots:gf+myCh, oppShots:ga+oppCh, myOT:gf+ri(0,myCh), oppOT:ga+ri(0,oppCh), poss:clamp(Math.round(50+((o.xg||1.3)-(o.xa||1.2))*5+ri(-5,5)),30,70) };
+  var motm=null, cnt={};
+  myGoals.forEach(function(g){ cnt[g.name]=(cnt[g.name]||0)+1; });
+  var bestMy=null;
+  Object.keys(cnt).forEach(function(n){ if(!bestMy || cnt[n]>cnt[bestMy]) bestMy=n; });
+  if(bestMy) motm={name:bestMy, side:'me', rating:Math.min(9.9, Math.round((7.4+cnt[bestMy]*0.8+rnd(0,0.4))*10)/10)};
+  else if(ga>gf && oppGoals.length) motm={name:oppGoals[0].name, side:'opp', rating:Math.round(rnd(7.8,9.2)*10)/10};
+  else if(o.lineup && o.lineup.length){ var bs=o.lineup.slice().sort(function(a,b){ return b.p.ab-a.p.ab; })[0]; motm={name:bs.p.name, side:'me', rating:Math.round(rnd(7.2,8.5)*10)/10}; }
+  return {
+    opp:oppName, home:!!fx.home, cup:!!fx.cup, tag:fx.tag||'',
+    dateTxt:G.year+' 年 '+G.mon+' 月 '+(fx.day||G.day)+' 日',
+    gf:gf, ga:ga, res:(o.pens? o.pens : (gf>ga?'胜':(gf===ga?'平':'负'))),
+    myGoals:myGoals, oppGoals:oppGoals, events:evs, cards:cards, injuries:inj, motm:motm, stats:stats,
+    myLineup:(o.lineup||[]).map(function(s){ return {name:s.p.name, pos:s.slot, ab:s.p.ab}; }),
+    oppLineup:oppPool.slice(0,11)
+  };
+}
+/* ---------------- 直播观赛：先结算、后呈现，逐分钟放出同一份战报明细 ---------------- */
+var LIVE=null;
+function watchLive(){
+  if(!G || G.ended || LIVE) return;
+  ensureFixtures();
+  var fx=nextFixture();
+  if(!fx){ toast('本月比赛已踢完，去结束本月结算吧'); return; }
+  var guard=0;
+  while(G.day<fx.day && guard++<40){ G.day++; dailyRecovery(); } // 推进到比赛日（下一场之前没有别的比赛）
+  playFixture(fx); // 正式引擎结算：积分、进球、射手榜、伤病、门票全部在这一步落账
+  render();
+  var rec=fx.result;
+  if(!rec || !rec.detail){ flushReports(); return; }
+  LIVE={ fx:fx, det:rec.detail, min:0, speed:1, paused:false, keyOnly:false, done:false, timer:null };
+  showLive();
+  LIVE.timer=setInterval(liveTick, 200);
+}
+function liveEventIcon(t){ return t==='goal'?'⚽': t==='yellow'?'🟨': t==='red'?'🟥': t==='injury'?'🚑': t==='chance'?'🎯': t==='sub'?'🔄': t==='pens'?'🎲': t==='ht'?'⏸️': t==='ft'?'🏁':'📣'; }
+function showLive(){
+  var d=LIVE.det;
+  var myLU=d.myLineup.map(function(p){ return esc(p.name)+'（'+p.pos+' · 能力 '+p.ab+'）'; }).join('<br>')||'—';
+  var opLU=d.oppLineup.map(function(p){ return esc(p.name)+'（'+p.pos+'）'; }).join('<br>')||'—';
+  $modal.innerHTML='<div class="overlay"><div class="modal live-modal">'
+  +'<div class="live-head"><div class="live-title">📺 比赛直播 · '+d.dateTxt+' · '+(d.cup?'🏆 足协杯':'联赛')+(d.tag?' · '+esc(d.tag):'')+'</div>'
+  +'<div class="live-score"><span class="lt-name">'+esc(G.club)+'</span><span class="lt-sc num" id="lv-score">0 : 0</span><span class="lt-name r">'+esc(d.opp)+'</span></div>'
+  +'<div class="live-clock"><span id="lv-clock">0\'</span> · <span id="lv-phase">上半场</span></div>'
+  +'<div class="live-stats" id="lv-stats">射门 0 : 0 · 控球 '+d.stats.poss+'% : '+(100-d.stats.poss)+'%</div></div>'
+  +'<div class="live-cols"><div class="live-feed" id="lv-feed"></div>'
+  +'<div class="live-side"><h4>🏠 '+esc(G.club)+' 首发</h4><div class="lu">'+myLU+'</div><h4>🚌 '+esc(d.opp)+' 首发</h4><div class="lu">'+opLU+'</div><h4>📊 全场数据（终场）</h4><div class="lu">射门 '+d.stats.myShots+' : '+d.stats.oppShots+'<br>射正 '+d.stats.myOT+' : '+d.stats.oppOT+'<br>控球 '+d.stats.poss+'% : '+(100-d.stats.poss)+'%</div></div></div>'
+  +'<div class="live-controls">'
+  +'<button class="btn sm" id="lv-pause" onclick="liveTogglePause()">⏸ 暂停</button>'
+  +'<button class="btn sm lv-spd on" onclick="liveSetSpeed(1,this)">1× 速度</button>'
+  +'<button class="btn sm lv-spd" onclick="liveSetSpeed(2,this)">2× 速度</button>'
+  +'<button class="btn sm lv-spd" onclick="liveSetSpeed(4,this)">4× 速度</button>'
+  +'<button class="btn sm" onclick="liveNextKey()">⏭ 下一关键时刻</button>'
+  +'<button class="btn sm" id="lv-key" onclick="liveToggleKey()">⭐ 只看关键时刻</button>'
+  +'<button class="btn sm" onclick="liveSkipEnd()">⏩ 跳到终场</button>'
+  +'<button class="btn pri sm" id="lv-exit" onclick="liveExit()">退出直播</button>'
+  +'</div></div></div>';
+  liveReveal();
+}
+function liveNextKeyMin(from){
+  var evs=LIVE.det.events;
+  for(var i=0;i<evs.length;i++){ if(evs[i].key && evs[i].min>from) return evs[i].min; }
+  return null;
+}
+function liveTick(){
+  if(!LIVE || LIVE.paused || LIVE.done) return;
+  var step=LIVE.speed;
+  if(LIVE.keyOnly){
+    var nk=liveNextKeyMin(LIVE.min);
+    step= nk!=null? Math.min(LIVE.speed*6, Math.max(1, nk-LIVE.min)) : LIVE.speed*6;
+  }
+  LIVE.min+=step;
+  liveReveal();
+  if(LIVE.min>=91) liveFinish();
+}
+function liveReveal(){
+  if(!LIVE) return;
+  var feed=document.getElementById('lv-feed'); if(!feed) return;
+  var d=LIVE.det, s1=0, s2=0, sh1=0, sh2=0, html='';
+  d.events.forEach(function(e){
+    if(e.min>LIVE.min) return;
+    if(e.type==='goal'){ if(e.side==='me'){ s1++; sh1++; } else { s2++; sh2++; } }
+    else if(e.type==='chance'){ if(e.side==='me') sh1++; else sh2++; }
+    html+='<div class="live-ev'+(e.type==='goal'?' goal':'')+'"><span class="mn num">'+e.min+'\'</span><span>'+liveEventIcon(e.type)+' '+esc(e.text)+'</span></div>';
+  });
+  feed.innerHTML=html||'<div class="live-ev"><span class="mn num">0\'</span><span>📣 双方球员入场，比赛马上开始。</span></div>';
+  feed.scrollTop=feed.scrollHeight;
+  var sc=document.getElementById('lv-score'); if(sc) sc.textContent=s1+' : '+s2;
+  var ck=document.getElementById('lv-clock'); if(ck) ck.textContent=Math.min(90,LIVE.min)+'\'';
+  var ph=document.getElementById('lv-phase'); if(ph && !LIVE.done) ph.textContent= LIVE.min<45?'上半场':(LIVE.min<90?'下半场':'全场结束');
+  var st=document.getElementById('lv-stats'); if(st) st.textContent='射门 '+sh1+' : '+sh2+' · 控球 '+d.stats.poss+'% : '+(100-d.stats.poss)+'%';
+}
+function liveFinish(){
+  if(!LIVE || LIVE.done) return;
+  LIVE.min=999; liveReveal();
+  LIVE.done=true;
+  if(LIVE.timer){ clearInterval(LIVE.timer); LIVE.timer=null; }
+  var ph=document.getElementById('lv-phase'); if(ph) ph.textContent='全场结束';
+  var ck=document.getElementById('lv-clock'); if(ck) ck.textContent='90\'';
+  var ex=document.getElementById('lv-exit'); if(ex) ex.textContent='📋 查看赛后战报';
+  var pb=document.getElementById('lv-pause'); if(pb){ pb.disabled=true; pb.style.opacity='.5'; }
+}
+function liveTogglePause(){
+  if(!LIVE || LIVE.done) return;
+  LIVE.paused=!LIVE.paused;
+  var pb=document.getElementById('lv-pause'); if(pb) pb.textContent= LIVE.paused?'▶ 继续':'⏸ 暂停';
+}
+function liveSetSpeed(s, btn){
+  if(!LIVE) return;
+  LIVE.speed=s;
+  var bs=document.querySelectorAll('.lv-spd');
+  for(var i=0;i<bs.length;i++) bs[i].classList.remove('on');
+  if(btn) btn.classList.add('on');
+}
+function liveNextKey(){
+  if(!LIVE || LIVE.done) return;
+  var nk=liveNextKeyMin(LIVE.min);
+  if(nk==null){ liveSkipEnd(); return; }
+  LIVE.min=nk; liveReveal();
+  if(LIVE.min>=91) liveFinish();
+}
+function liveToggleKey(){
+  if(!LIVE) return;
+  LIVE.keyOnly=!LIVE.keyOnly;
+  var kb=document.getElementById('lv-key'); if(kb) kb.classList.toggle('on', LIVE.keyOnly);
+  toast(LIVE.keyOnly?'⭐ 只看关键时刻：自动快进无事件的分钟':'已恢复正常速度推进');
+}
+function liveSkipEnd(){ liveFinish(); }
+function liveExit(){
+  if(LIVE && LIVE.timer) clearInterval(LIVE.timer);
+  LIVE=null;
+  $modal.innerHTML='';
+  render();
+  flushReports(); // 退出直播后照常弹本场赛后战报（同一份已结算赛果）
+}
+</script>
+</body>
 </html>

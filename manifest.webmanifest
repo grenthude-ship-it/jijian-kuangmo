@@ -1,32 +1,26 @@
 {
-  "background_color": "#101d29",
-  "description": "足球俱乐部经营模拟：无限生涯、转会市场、青训体系、集团扩张，从中乙一路踢到中超冠军。",
+  "name": "豪门缔造者 · 从中乙到中超冠军",
+  "short_name": "豪门缔造者",
   "display": "standalone",
+  "start_url": "zu-qiu-kuang-mo.html",
+  "scope": "./",
+  "background_color": "#101d29",
+  "theme_color": "#101d29",
   "icons": [
     {
-      "purpose": "any",
-      "sizes": "192x192",
       "src": "icon-192.png",
+      "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "purpose": "any",
-      "sizes": "512x512",
       "src": "icon-512.png",
+      "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "purpose": "maskable",
-      "sizes": "512x512",
-      "src": "icon-512.png",
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
       "type": "image/png"
     }
-  ],
-  "lang": "zh-CN",
-  "name": "豪门缔造者 · 从中乙到中超冠军",
-  "orientation": "portrait",
-  "scope": "./",
-  "short_name": "豪门缔造者",
-  "start_url": "zu-qiu-kuang-mo.html",
-  "theme_color": "#101d29"
+  ]
 }

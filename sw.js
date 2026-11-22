@@ -1,5 +1,5 @@
-const CACHE = 'haomen-v13';
-const ASSETS = ['apple-touch-icon.png', 'creator-poster.jpg', 'icon-192.png', 'icon-512.png', 'logo.png', 'manifest.webmanifest', 'messi-reverse-fixed.jpg', 'photo-01.jpg', 'photo-02.jpg', 'photo-03.jpg', 'photo-04.jpg', 'photo-05.jpg', 'photo-08.webp', 'photo-09.png', 'photo-10.jpg', 'photo-11.jpg', 'photo-12.jpg', 'photo-13.jpg', 'photo-14.jpg', 'photo-15.jpg', 'photo-16.jpg', 'photo-17.jpg', 'photo-18.jpg', 'photo-19.jpg', 'photo-20.jpg', 'photo-21.jpg', 'photo-22.jpg', 'photo-23.jpg', 'photo-24.jpg', 'stadium-bg.jpg', 'tribute-cr7.webp', 'zu-qiu-kuang-mo.html'];
+const CACHE = 'haomen-v14';
+const ASSETS = ["zu-qiu-kuang-mo.html", "manifest.webmanifest", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "logo.png", "messi-reverse-fixed.jpg", "photo-08.webp", "photo-10.jpg", "photo-11.jpg", "photo-12.jpg", "photo-13.jpg", "photo-14.jpg", "photo-15.jpg", "photo-16.jpg", "photo-17.jpg", "photo-18.jpg", "photo-19.jpg", "photo-20.jpg", "photo-21.jpg", "photo-22.jpg", "photo-23.jpg", "photo-24.jpg", "photo-25.jpg", "photo-26.jpg", "photo-27.jpg", "photo-28.jpg", "photo-29.jpg", "photo-30.jpg", "photo-32.jpg", "tribute-cr7.webp"];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => Promise.all(ASSETS.map((a) => c.add(a).catch(() => {})))).then(() => self.skipWaiting()));
 });
