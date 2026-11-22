@@ -209,7 +209,7 @@
       .ev-choices{ display:flex; flex-direction:column; gap:9px; margin-top:12px; }
       .ev-choices button{ text-align:left; }
       .end-grade{ font-size:54px; font-weight:900; color:var(--orange); line-height:1; }
-      /* ---------- 游戏创作者宣传弹窗（首页首次进入，本次会话只弹一次） ---------- */
+      /* ---------- 入口海报弹窗（每次进游戏，未删除的海报依次全弹；右上角 ✕ = 永久删除） ---------- */
       .creator-overlay{ position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center; padding:24px 16px; overflow-y:auto;
         background:
           radial-gradient(420px 200px at 12% -40px, rgba(255,214,120,.28), rgba(255,214,120,0) 70%),
@@ -222,6 +222,10 @@
         max-width:min(430px,94vw); animation:creatorPop .3s ease-out; }
       .creator-card img{ display:block; width:auto; height:auto; max-width:100%; max-height:min(76vh,760px); margin:0 auto; border-radius:10px; }
       .creator-hint{ text-align:center; color:#e8cf8a; font-size:12.5px; letter-spacing:.14em; padding:8px 4px 4px; }
+      .creator-del-note{ text-align:center; color:#c3cedb; font-size:11.5px; line-height:1.55; padding:2px 8px 0; }
+      .creator-next{ display:block; margin:10px auto 5px; background:linear-gradient(180deg,#f3cd6b,#d4af37); color:#241a02; border:none; font-size:15px; font-weight:800; padding:10px 36px; border-radius:10px; cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,.4); }
+      .creator-next:active{ transform:scale(.97); }
+      .pw-item img{ width:52px; height:70px; object-fit:cover; object-position:top center; border-radius:8px; border:1.5px solid #d4af37; cursor:pointer; flex:0 0 52px; display:block; }
       .creator-close{ position:absolute; top:-15px; right:-9px; width:46px; height:46px; min-height:46px; border-radius:50%; z-index:2;
         background:radial-gradient(circle at 32% 30%, #ffe9a8, #e3b93e 55%, #b8860b); border:2px solid #fff3c4; color:#2a1e02;
         font-size:23px; font-weight:900; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;
@@ -576,14 +580,14 @@ function showInstallGuide(){
   }
   var directBtn = deferredInstallPrompt? '<button class="btn-start" onclick="doInstall()">立即安装</button>' : '';
   $modal.innerHTML='<div class="overlay"><div class="modal">'
-  +'<div class="hero"><div style="display:flex;gap:14px;align-items:center;"><img class="game-logo" src="logo.png" alt="豪门缔造者" style="height:54px;width:auto;"><div><div class="big" style="font-size:23px;">装成 <em>App</em></div><div class="sub">把豪门缔造者放进手机主屏幕，点图标直接开玩</div></div></div></div>'
+  +'<div class="hero"><div style="display:flex;gap:14px;align-items:center;"><img class="game-logo" src="photo-26.webp" alt="豪门缔造者" style="height:54px;width:auto;"><div><div class="big" style="font-size:23px;">装成 <em>App</em></div><div class="sub">把豪门缔造者放进手机主屏幕，点图标直接开玩</div></div></div></div>'
   +'<div class="body"><div style="font-weight:800;font-size:15px;">安装方法（免费，不用去应用商店）</div>'+steps+'</div>'
   +'<div class="foot">'+directBtn+'<button class="btn" onclick="closeInstallGuide()">知道了</button></div>'
   +'</div></div>';
 }
 function installCardHTML(){
   if(isStandaloneApp()) return '';
-  return '<div class="app-install-card" id="app-install-card"><img class="game-logo" src="logo.png" alt="豪门缔造者"><div><div class="t">📲 把豪门缔造者装成 App</div><div class="d">添加到手机主屏幕，点图标全屏开玩，不用每次找链接；进度照样自动存档。</div></div><div class="acts"><button class="btn pri" onclick="doInstall()">装成 App</button><button class="btn sm" onclick="toggleFullscreen()">⛶ 全屏玩</button></div></div>';
+  return '<div class="app-install-card" id="app-install-card"><img class="game-logo" src="photo-26.webp" alt="豪门缔造者"><div><div class="t">📲 把豪门缔造者装成 App</div><div class="d">添加到手机主屏幕，点图标全屏开玩，不用每次找链接；进度照样自动存档。</div></div><div class="acts"><button class="btn pri" onclick="doInstall()">装成 App</button><button class="btn sm" onclick="toggleFullscreen()">⛶ 全屏玩</button></div></div>';
 }
 </script>
 <script>
@@ -1748,7 +1752,7 @@ function render(){
   ensureFixtures();
   var d=DIVS[G.div];
   var side=''
-  +'<div><img class="game-logo" src="logo.png" alt="豪门缔造者"></div>'
+  +'<div><img class="game-logo" src="photo-26.webp" alt="豪门缔造者"></div>'
   +'<div><div class="club-name">'+esc(G.club)+'</div><div class="club-sub">江州 · '+d.name+' · 第 '+Math.ceil(G.month/12)+' 赛季</div></div>'
   +'<div class="month-box"><div class="m num">'+G.mon+'月'+G.day+'日<span>'+G.year+'年 · 第 '+G.month+' 个月 · 无限生涯</span></div><div class="s">联赛排名 第 '+myRank()+' · 积分 '+G.pts+' · 🏆 冠军×'+(G.titles||0)+' · 王朝评级 '+dynastyGrade().grade+'</div></div>'
   +'<div class="tag-row"><span class="tag hot">'+d.short+'</span><span class="tag">声望 '+G.rep+'</span><span class="tag">🏢 '+STAGES[groupStage()].name+(ventCount()?' · '+ventCount()+'板块':'')+'</span>'+(G.champion?'<span class="tag hot">🏆 已夺冠</span>':'')+(G.vip?'<span class="tag hot">VIP'+G.vip+'</span>':'')+'</div>'
@@ -1772,7 +1776,7 @@ function render(){
   +'<button class="btn-ghost" onclick="restart()">重新开局</button>'
   +'<div class="credit">游戏创作者：邓元元</div>'
   +'</div>';
-  var top='<div class="topbar"><div class="r1"><img class="game-logo" src="logo.png" alt="豪门缔造者"><span class="cn">'+esc(G.club)+'</span><span class="mm"><b class="num">'+G.mon+'月'+G.day+'日</b> '+G.year+' · '+d.short+'第'+myRank()+' · 💾 '+saveTimeText()+'</span></div>'
+  var top='<div class="topbar"><div class="r1"><img class="game-logo" src="photo-26.webp" alt="豪门缔造者"><span class="cn">'+esc(G.club)+'</span><span class="mm"><b class="num">'+G.mon+'月'+G.day+'日</b> '+G.year+' · '+d.short+'第'+myRank()+' · 💾 '+saveTimeText()+'</span></div>'
   +'<nav>'+NAV.map(function(n){ return '<button class="'+(PAGE===n[0]?'on':'')+'" onclick="go(\''+n[0]+'\')">'+n[2]+' '+n[1]+'</button>'; }).join('')+'</nav>'
   +'<div class="r3"><button class="btn-ghost" onclick="simDays(1)">模拟 1 天</button><button class="btn-ghost" onclick="simDays(7)">7 天</button><button class="btn-end" onclick="endMonth(false)" '+(G.ended?'disabled style="opacity:.5"':'')+'>结束本月 →</button><button class="btn-ghost" onclick="endThree()">连推三月</button><button class="btn-ghost js-install-btn" onclick="doInstall()">📲 装成 App</button><button class="btn-ghost" onclick="toggleFullscreen()">⛶</button></div></div>';
   var body='';
@@ -2484,7 +2488,7 @@ function showTribute(){
   $modal.innerHTML='<div class="tribute-overlay" role="dialog" aria-modal="true" aria-label="致敬传奇 · OBRIGADO CR7 海报">'
   +'<div class="tribute-card">'
   +'<button type="button" class="creator-close" aria-label="关闭" title="关闭" onclick="closeModal()">✕</button>'
-  +'<img src="tribute-cr7.webp" alt="游戏创作者邓元元手举葡萄牙 7 号 RONALDO 球衣的致敬海报：致敬传奇 OBRIGADO CR7，C罗葡萄牙国家队 2003–2026" />'
+  +'<img src="photo-27.webp" alt="游戏创作者邓元元手举葡萄牙 7 号 RONALDO 球衣的致敬海报：致敬传奇 OBRIGADO CR7，C罗葡萄牙国家队 2003–2026" />'
   +'<div class="tribute-cap">致 敬 传 奇 · OBRIGADO CR7</div>'
   +'</div></div>';
 }
@@ -2574,6 +2578,7 @@ function lobbyHTML(){
   var tilesHTML=tiles.map(function(t){
     return '<button class="ltile" onclick="go(\''+t[0]+'\')"><span class="ti">'+t[1]+'</span>'+t[2]+'<small>'+t[3]+'</small>'+(t[4]!==''?'<span class="bdg">'+t[4]+'</span>':'')+'</button>';
   }).join('')+'<button class="ltile" onclick="showTribute()"><span class="ti">🐐</span>致敬传奇<small>游戏创作者 × C罗国家队谢幕海报</small></button>'
+  +'<button class="ltile" onclick="showPosterWall()"><span class="ti">🖼️</span>海报墙<small>三张海报 · 查看 / 删除 / 恢复</small></button>'
   +'<button class="ltile" onclick="doInstall()"><span class="ti">📲</span>装成 App<small>添加到主屏幕全屏玩</small></button>';
   var nfx=nextFixture();
   var startBtn= G.ended
@@ -2582,7 +2587,7 @@ function lobbyHTML(){
       ? '<button class="startmatch" onclick="simToNextMatch()"><span class="big">下一场 ›</span><span class="en">NEXT MATCH</span><small>'+G.mon+'月'+nfx.day+'日 · '+(nfx.home?'主场':'客场')+' vs '+esc(nfx.opp)+(nfx.tag?' · '+nfx.tag:'')+' · 点一下模拟到比赛日</small></button>'
       : '<button class="startmatch" onclick="endMonth(false)"><span class="big">结算本月 ›</span><span class="en">SETTLE MONTH</span><small>本月比赛已踢完，点一下发工资、结赞助、过完这个月</small></button>');
   return '<section class="lobby"><div class="lobby-in">'
-  +'<div class="lobby-top"><img class="game-logo" src="logo.png" alt="豪门缔造者">'
+  +'<div class="lobby-top"><img class="game-logo" src="photo-26.webp" alt="豪门缔造者">'
   +'<div class="resbar">'
   +'<div class="respill"><button class="rmain" onclick="go(\'club\')" title="金币 = 俱乐部现金，点开看银行与账目">🪙 <b class="num">'+fmt(G.cash)+'</b></button><button class="rplus" onclick="go(\'pay\')" aria-label="去充值中心" title="去充值中心">+</button></div>'
   +'<div class="respill"><button class="rmain" onclick="go(\'pay\')" title="钻石余额，点开充值中心">💎 <b class="num">'+G.diamonds+'</b></button><button class="rplus" onclick="go(\'pay\')" aria-label="去充值中心" title="去充值中心">+</button></div>'
@@ -2602,10 +2607,10 @@ function lobbyHTML(){
   +'<button onclick="showRanking()"><span class="ri">📊</span>排行</button>'
   +'<button onclick="go(\'rel\')"><span class="ri">🤝</span>人脉</button>'
   +'</div>'
-  +'<div class="hero-poster"><img src="creator-poster.jpg" alt="《豪门缔造者》游戏创作者宣传海报"></div>'
+  +'<div class="hero-poster"><img src="photo-06.jpg" alt="《豪门缔造者》游戏创作者宣传海报"></div>'
   +'<div class="rail">'
   +'<button class="photocard" onclick="go(\'market\')"><img src="photo-25.jpg" alt="身穿 10 号球衣的球员背影真实照片"><span class="pc-t">球员招募<small>转会市场 · 本月 '+G.market.length+' 名球员在售</small></span></button>'
-  +'<button class="photocard" onclick="go(\'ops\')"><img src="photo-06.jpg" alt="足球战术板真实照片"><span class="pc-t">战术中心<small>当前战术：'+(G.tactic||'均衡攻守')+'</small></span></button>'
+  +'<button class="photocard" onclick="go(\'ops\')"><img src="photo-07.jpg" alt="足球战术板真实照片"><span class="pc-t">战术中心<small>当前战术：'+(G.tactic||'均衡攻守')+'</small></span></button>'
   +'<button class="photocard" onclick="go(\'career\')"><img src="photo-08.webp" alt="球队捧起冠军奖杯的真实照片"><span class="pc-t">荣誉生涯<small>冠军 ×'+(G.titles||0)+' · 王朝评级 '+dynastyGrade().grade+'</small></span></button>'
   +'</div></div>'
   +'<div class="lobby-actions">'
@@ -2616,7 +2621,7 @@ function lobbyHTML(){
   +'<button class="lobby-banner" onclick="go(\'honors\')"><img src="photo-08.webp" alt="球队捧起冠军奖杯的真实照片"><span class="lb-t">🎖️ 荣誉中心 · 颁奖'+(monthsToAwards()<=1?'本月揭晓！':'倒计时 '+monthsToAwards()+' 个月')+'<small>俱乐部荣誉 · 球员荣誉全在这查 · 当前金靴领跑：'+(awardScores().boot? esc(awardScores().boot.name)+'（'+((G.seasonGoals&&G.seasonGoals[awardScores().boot.name])||0)+' 球）':'暂无进球')+'，点开看谁最接近每个奖项</small></span></button>'
   +'<div class="lobby-sec">功能大厅 · 每个入口都能打开</div>'
   +'<div class="lobby-grid">'+tilesHTML+'</div>'
-  +'<button class="lobby-banner" onclick="go(\'youth\')"><img src="photo-07.jpg" alt="青训营小球员训练的真实照片"><span class="lb-t">青训营<small>梯队 '+(G.youth||[]).length+' 人在训'+(youthReady?' · '+youthReady+' 人可提拔一线队':'')+' · 点开签苗子、定培养方案</small></span></button>'
+  +'<button class="lobby-banner" onclick="go(\'youth\')"><img src="photo-08.jpg" alt="青训营小球员训练的真实照片"><span class="lb-t">青训营<small>梯队 '+(G.youth||[]).length+' 人在训'+(youthReady?' · '+youthReady+' 人可提拔一线队':'')+' · 点开签苗子、定培养方案</small></span></button>'
   +'</div>'
   +'</section>';
 }
@@ -3119,7 +3124,7 @@ function showStart(keep){
     {id:'hard', t:'困难', d:'对手更强、工资更高，调查也更勤。'}
   ];
   $modal.innerHTML='<div class="overlay"><div class="modal">'
-  +'<div class="hero"><img class="game-logo" src="logo.png" alt="豪门缔造者"><div class="sub">从一支中乙小球队，到中超冠军与体育帝国 —— 无限生涯，想玩多久玩多久</div></div>'
+  +'<div class="hero"><img class="game-logo" src="photo-26.webp" alt="豪门缔造者"><div class="sub">从一支中乙小球队，到中超冠军与体育帝国 —— 无限生涯，想玩多久玩多久</div></div>'
   +'<div class="body">'
   +'<div style="font-weight:800;font-size:16px;">新开局 · 从哪里起步？</div>'
   +'<label class="fl">俱乐部名称</label><input type="text" id="club-name" maxlength="10" value="'+esc(nameVal)+'">'
@@ -3142,7 +3147,7 @@ function beginGame(){
   if(selDiff==='hard'){ G.credit=500; G.squad.forEach(function(p){ p.wage=Math.round(p.wage*1.15*10)/10; }); }
   render();
   toast('开局：'+name+'，从中乙踢起！');
-  if(signCan()) showWeeklySign(false); // 新开局也走同一套每周签到，第一天就能领（梅西海报已在开局界面之前弹过并删除）
+  if(signCan()) showWeeklySign(false); // 新开局也走同一套每周签到，第一天就能领（海报已在开局界面之前依次弹过）
 }
 function showEvent(ev){
   $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:23px;">📣 突发事件</div><div class="sub">'+G.year+' 年 '+G.mon+' 月 · '+esc(G.club)+'</div></div>'
@@ -3159,73 +3164,115 @@ function resolveEvent(i){
   if(G.cash<0 && G.negMonths>=1){ /* 破产判定在下月结算 */ }
   render();
 }
-/* ---------------- 入口海报流程：C罗致敬海报 → 梅西反向海报（点 ✕ 永久删除）→ 每周签到 ----------------
-   C罗海报：取代原来的游戏创作者海报弹窗，本次会话弹一次（游戏创作者海报仍保留为大厅横幅）。
-   梅西海报：C罗海报关掉后弹出，点右上角 ✕ 关闭即永久删除（localStorage 标记），以后再也不弹。 */
-var CR7_SEEN_KEY='hm_cr7_popup_seen_v1';
-var MESSI_DELETED_KEY='hm_messi_poster_deleted_v1';
-var posterThenStart=false;
-function cr7Seen(){
-  try{ return sessionStorage.getItem(CR7_SEEN_KEY)==='1'; }catch(e){ return false; }
+/* ---------------- 入口海报流程（新规则）：每次进游戏，未删除的海报全部依次弹出 ----------------
+   顺序：C罗致敬海报 → 梅西反向海报 → 游戏创作者海报 → 每周签到。
+   没有「每会话只弹一次」：每次页面加载都重新弹。点海报右上角 ✕ = 永久删除这张海报
+   （localStorage 按海报单独记标记，互不影响），删了以后不再自动弹；点「下一张 / 进入游戏」
+   只是关掉这张，下次进游戏还会弹。大厅「海报墙」可随时查看三张海报，已删除的能在那里恢复。
+   （旧版的会话标记和梅西删除标记不再读取：新规则下三张海报重新全部弹出，删除从这次开始算。） */
+var POSTERS=[
+  { id:'cr7', delKey:'hm_poster_del_cr7_v1', src:'photo-27.webp', name:'致敬传奇 · C罗谢幕海报',
+    alt:'游戏创作者邓元元手举葡萄牙 7 号 RONALDO 球衣的致敬海报：致敬传奇 OBRIGADO CR7，C罗葡萄牙国家队 2003–2026，游戏创作者：邓元元',
+    cap:'致 敬 传 奇 · OBRIGADO CR7' },
+  { id:'messi', delKey:'hm_poster_del_messi_v1', src:'photo-28.webp', name:'梅西啥也不是 · 反向海报',
+    alt:'游戏创作者手举打红叉的阿根廷 10 号 MESSI 球衣的反向海报：梅西啥也不是 MESSI IS NOTHING',
+    cap:'梅 西 啥 也 不 是 · MESSI IS NOTHING' },
+  { id:'creator', delKey:'hm_poster_del_creator_v1', src:'photo-06.jpg', name:'游戏创作者海报',
+    alt:'《豪门缔造者》游戏创作者宣传海报：游戏创作者邓元元',
+    cap:'游 戏 创 作 者 ：邓 元 元' }
+];
+function posterById(id){ for(var i=0;i<POSTERS.length;i++){ if(POSTERS[i].id===id) return POSTERS[i]; } return null; }
+function posterDeleted(p){ try{ return localStorage.getItem(p.delKey)==='1'; }catch(e){ return false; } }
+function setPosterDeleted(p, del){
+  try{ if(del) localStorage.setItem(p.delKey,'1'); else localStorage.removeItem(p.delKey); }catch(e){}
 }
-function messiDeleted(){
-  try{ return localStorage.getItem(MESSI_DELETED_KEY)==='1'; }catch(e){ return false; }
-}
-function showCr7Popup(thenStart){
+var posterQueue=[], posterThenStart=false, curPosterId='';
+function startPosterChain(thenStart){
+  // 每次进游戏都跑：把还没被删除的海报按顺序排队，逐张弹出；全删了就直接走后面的流程。
   posterThenStart=!!thenStart;
+  posterQueue=POSTERS.filter(function(p){ return !posterDeleted(p); });
+  nextPoster();
+}
+function nextPoster(){
+  var p=posterQueue.shift();
+  if(!p){ endPosterChain(); return; }
+  curPosterId=p.id;
   var r=document.getElementById('creator-root');
-  r.innerHTML='<div class="creator-overlay" role="dialog" aria-modal="true" aria-label="致敬传奇 · C罗葡萄牙国家队谢幕海报">'
+  if(!r){ endPosterChain(); return; }
+  var last=posterQueue.length===0;
+  r.innerHTML='<div class="creator-overlay" role="dialog" aria-modal="true" aria-label="'+p.name+'">'
   +'<div class="creator-card">'
-  +'<button type="button" class="creator-close" aria-label="关闭" title="关闭" onclick="closeCr7Popup()">✕</button>'
-  +'<img src="tribute-cr7.webp" alt="游戏创作者邓元元手举葡萄牙 7 号 RONALDO 球衣的致敬海报：致敬传奇 OBRIGADO CR7，C罗葡萄牙国家队 2003–2026，游戏创作者：邓元元" />'
-  +'<div class="creator-hint">致 敬 传 奇 · 点 右 上 角 ✕ 继 续</div>'
+  +'<button type="button" class="creator-close" aria-label="永久删除这张海报" title="永久删除这张海报" onclick="deleteCurrentPoster()">✕</button>'
+  +'<img src="'+p.src+'" alt="'+p.alt+'" />'
+  +'<div class="creator-hint">'+p.cap+'</div>'
+  +'<div class="creator-del-note">点右上角 ✕ 永久删除这张海报（删了不再自动弹，可在大厅「海报墙」恢复）</div>'
+  +'<button type="button" class="creator-next" onclick="nextPoster()">'+(last?(posterThenStart?'去开局 ›':'进入游戏 ›'):'下一张 ›')+'</button>'
   +'</div></div>';
 }
-function closeCr7Popup(){
+function deleteCurrentPoster(){
+  // 点 ✕ = 永久删除当前这张海报（只删这一张），然后接着弹下一张。
+  var p=posterById(curPosterId);
+  if(p){ setPosterDeleted(p,true); toast('已永久删除「'+p.name+'」，大厅海报墙里可恢复'); }
+  nextPoster();
+}
+function endPosterChain(){
   var r=document.getElementById('creator-root');
   if(r) r.innerHTML='';
-  try{ sessionStorage.setItem(CR7_SEEN_KEY,'1'); }catch(e){}
-  if(posterThenStart){ posterThenStart=false; if(!messiDeleted()){ window._messiThenStart=true; showMessiPopup(); return; } showStart(false); return; }
-  chainAfterCr7();
-}
-function chainAfterCr7(){
-  // C罗海报之后：梅西反向海报还没被删除过，就弹它；删过了直接进每周签到。
-  if(!messiDeleted()) showMessiPopup();
-  else chainSignAfterPoster();
-}
-function showMessiPopup(){
-  var r=document.getElementById('creator-root');
-  if(!r) return;
-  r.innerHTML='<div class="creator-overlay" role="dialog" aria-modal="true" aria-label="梅西啥也不是 · 反向海报">'
-  +'<div class="creator-card">'
-  +'<button type="button" class="creator-close" aria-label="关闭并删除这张海报" title="关闭并删除" onclick="closeMessiPopup()">✕</button>'
-  +'<img src="messi-reverse.webp" alt="游戏创作者手举打红叉的阿根廷 10 号 MESSI 球衣的反向海报：梅西啥也不是 MESSI IS NOTHING" />'
-  +'<div class="creator-hint">点 右 上 角 ✕ 关 闭 · 这 张 海 报 将 永 久 删 除</div>'
-  +'</div></div>';
-}
-function closeMessiPopup(){
-  // 点 ✕ = 关闭并永久删除这张海报：写入 localStorage 标记，以后进入游戏再也不弹。
-  try{ localStorage.setItem(MESSI_DELETED_KEY,'1'); }catch(e){}
-  var r=document.getElementById('creator-root');
-  if(r) r.innerHTML='';
-  if(window._messiThenStart){ window._messiThenStart=false; showStart(false); return; } // 新玩家：海报流程走完再进开局界面
+  curPosterId='';
+  if(posterThenStart){ posterThenStart=false; showStart(false); return; } // 新玩家：海报看完再进开局界面
   chainSignAfterPoster();
 }
 function chainSignAfterPoster(){
   // 海报流程走完后，接着弹每周签到。只在当天还没领时弹：已领过 signCan() 为 false，不会重复弹。
   if(typeof G!=='undefined' && G && G.started && !G.ended && signCan()) showWeeklySign(false);
 }
+/* ---------------- 海报墙（大厅入口）：三张海报随时查看，已删除的可恢复 ---------------- */
+function showPosterWall(){
+  var items=POSTERS.map(function(p){
+    var del=posterDeleted(p);
+    return '<div class="item pw-item">'
+    +'<img src="'+p.src+'" alt="'+p.alt+'" onclick="viewPoster(\''+p.id+'\')" />'
+    +'<div class="grow"><div class="nm">'+p.name+'</div>'
+    +'<div class="meta">'+(del?'已删除 · 进游戏时不再自动弹出':'每次进游戏都会弹出 · 点图片放大看')+'</div></div>'
+    +(del?'<button class="btn pri sm" onclick="restorePoster(\''+p.id+'\')">恢复</button>'
+         :'<button class="btn sm" onclick="wallDeletePoster(\''+p.id+'\')">删除</button>')
+    +'</div>';
+  }).join('');
+  $modal.innerHTML='<div class="overlay"><div class="modal">'
+  +'<div class="hero"><div class="big" style="font-size:23px;">🖼️ 海报墙</div><div class="sub">三张海报都在这里 · 已删除的点「恢复」，下次进游戏就会重新弹出</div></div>'
+  +'<div class="body">'+items+'</div>'
+  +'<div class="foot"><button class="btn" onclick="closeModal()">关闭</button></div></div></div>';
+}
+function viewPoster(id){
+  var p=posterById(id); if(!p) return;
+  $modal.innerHTML='<div class="tribute-overlay" role="dialog" aria-modal="true" aria-label="'+p.name+'">'
+  +'<div class="tribute-card">'
+  +'<button type="button" class="creator-close" aria-label="返回海报墙" title="返回海报墙" onclick="showPosterWall()">✕</button>'
+  +'<img src="'+p.src+'" alt="'+p.alt+'" />'
+  +'<div class="tribute-cap">'+p.cap+'</div>'
+  +'</div></div>';
+}
+function restorePoster(id){
+  var p=posterById(id); if(!p) return;
+  setPosterDeleted(p,false);
+  toast('已恢复「'+p.name+'」，下次进游戏会重新弹出');
+  showPosterWall();
+}
+function wallDeletePoster(id){
+  var p=posterById(id); if(!p) return;
+  setPosterDeleted(p,true);
+  toast('已删除「'+p.name+'」，进游戏时不再弹出');
+  showPosterWall();
+}
 /* ---------------- 启动：优先自动读档 ---------------- */
 if(loadAutoSave()){
   PAGE='home';
   render();
   toast('💾 已自动读取上次存档：'+G.club+' · 第 '+G.month+' 个月，接着玩！');
-  if(!cr7Seen()) showCr7Popup(false);
-  else chainAfterCr7(); // 刷新/重进：C罗海报本次会话已看过不再弹，后面的海报/签到流程照常接着走
+  startPosterChain(false); // 每次进游戏：未删除的海报依次全弹（C罗 → 梅西 → 游戏创作者），然后接每周签到
 } else {
   render();
-  if(!cr7Seen()) showCr7Popup(true);
-  else showStart(false);
+  startPosterChain(true); // 新玩家：先依次看完未删除的海报，再进开局界面
 }
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});}</script></body>
