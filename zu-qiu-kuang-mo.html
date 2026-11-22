@@ -14,6 +14,40 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png" /> />
     <link rel="icon" type="image/png" sizes="192x192" href="photo-09.png" />
     <title>豪门缔造者 · 从中乙到中超冠军</title>
+    <script>
+      /* 启动看门狗：主脚本若因旧存档与新版不兼容、或手机浏览器异常而没能把游戏
+         渲染出来，7 秒后自动亮出修复面板，绝不让玩家对着白屏干等。点「一键修复」
+         会先把旧存档原样备份到 zuqiu-km-autosave-v1-bak，再清掉坏存档重新进入。 */
+      window.__hmBooted = false;
+      window.__hmRescue = function () {
+        if (window.__hmBooted || document.getElementById('hm-rescue')) return;
+        if (!document.body) { setTimeout(window.__hmRescue, 1000); return; }
+        var d = document.createElement('div');
+        d.id = 'hm-rescue';
+        d.setAttribute('style', 'position:fixed;inset:0;z-index:99999;background:#101d29;color:#e8eef3;display:flex;align-items:center;justify-content:center;padding:24px;font-family:sans-serif;');
+        d.innerHTML = '<div style="max-width:340px;text-align:center;">'
+          + '<div style="font-size:40px;">⚽</div>'
+          + '<div style="font-size:19px;font-weight:800;margin:12px 0 8px;">游戏没能打开</div>'
+          + '<p style="font-size:14px;line-height:1.7;color:#a9bfd1;margin:0 0 18px;">多半是手机里存着一份和新版本对不上的旧存档，打开时卡住了。点下面的按钮自动修复：旧存档会先原样备份，不会直接删掉。</p>'
+          + '<button id="hm-rescue-fix" style="display:block;width:100%;padding:13px;border:0;border-radius:10px;background:#e85d1f;color:#fff;font-size:16px;font-weight:700;margin-bottom:10px;cursor:pointer;">一键修复并进入游戏</button>'
+          + '<button id="hm-rescue-retry" style="display:block;width:100%;padding:12px;border:1px solid #3a5069;border-radius:10px;background:transparent;color:#e8eef3;font-size:15px;cursor:pointer;">先直接刷新重试</button>'
+          + '</div>';
+        document.body.appendChild(d);
+        document.getElementById('hm-rescue-fix').onclick = function () {
+          try {
+            var raw = localStorage.getItem('zuqiu-km-autosave-v1');
+            if (raw) localStorage.setItem('zuqiu-km-autosave-v1-bak', raw);
+            localStorage.removeItem('zuqiu-km-autosave-v1');
+          } catch (e) {}
+          location.reload();
+        };
+        document.getElementById('hm-rescue-retry').onclick = function () { location.reload(); };
+      };
+      window.addEventListener('error', function (e) {
+        if (!window.__hmBooted && e && e.message) setTimeout(window.__hmRescue, 300);
+      }, true);
+      setTimeout(window.__hmRescue, 7000);
+    </script>
     <style>
       button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
       * { box-sizing: border-box; }
@@ -499,13 +533,52 @@ function autoSave(){
     saveAvailable=true;
   }catch(e){ saveAvailable=false; }
 }
+function sanitizeSaveData(d){
+  /* 旧版本存档缺新字段时逐个补默认值：游戏一路加了签到、集团、球探、董事会、
+     按天赛程等系统，老存档里没有这些字段，读档后渲染会报 undefined 直接白屏。
+     这里把当前版本需要的字段全部补齐，老存档才能接着玩；实在补不齐（没有
+     俱乐部 / 没有阵容）返回 null，按新开局处理。 */
+  if(!d || typeof d!=='object') return null;
+  if(!d.club || !d.started) return null;
+  if(!(d.squad instanceof Array) || !d.squad.length) return null;
+  if(!(d.table instanceof Array)) d.table=[];
+  var monWasMissing=(d.mon===undefined);
+  var defs={ month:1, year:2026, mon:1, day:1, fixtures:null, fixturesMonth:0, monthResults:[], monthGate:0,
+    fanSat:62, prep:null, sign:{last:0,streak:0}, sponsorBoost:1, sponsorDealSeason:-1,
+    cash:0, debt:0, credit:800, rep:0, fans:0, heat:0, morale:62,
+    div:2, pts:0, gf:0, ga:0, wins:0, champion:false, promoted:0,
+    coach:{name:'周卫东', spec:'体能储备', ab:5, wage:2.2}, staff:[], focus:'体能储备',
+    relUsed:{}, grayUsed:{}, market:[], offers:[], hist:[], log:[], lastResults:[], lastFinance:null,
+    diamonds:0, vip:0, spent:0, claimed:{}, ended:false, ending:null,
+    grayWinBoost:0, seasonRank:0, negMonths:0, ventures:{}, ventureNet:0,
+    tactic:'均衡攻守', titles:0, cupWins:0, seasonsPlayed:0, totalWins:0,
+    boardTarget:null, achClaimed:{}, opsUsed:{},
+    youth:[], youthCandidates:[], youthBudget:30, youthPromoted:0, youthSold:0, youthSoldIncome:0, youthLog:[],
+    formation:'4-3-3', seasonGoals:{}, goalTable:{}, awards:[], playerHonors:{}, seasonHistory:[],
+    train:{intensity:'标准', physio:1}, scout:{reports:{}, used:0, mission:null}, director:{mode:'manual'},
+    board:{patience:70, cityRep:35, frozen:0, budgetSeason:-1, grantSeason:-1, facGrant:false, citySeason:-1},
+    mediaUsed:false };
+  for(var k in defs){ if(d[k]===undefined) d[k]=JSON.parse(JSON.stringify(defs[k])); }
+  if(!d.fac || typeof d.fac!=='object') d.fac={stadium:1, academy:1, training:1, medical:0, data:0};
+  var fd={stadium:1, academy:1, training:1, medical:0, data:0};
+  for(var fk in fd){ if(d.fac[fk]===undefined) d.fac[fk]=fd[fk]; }
+  if(!d.rel || typeof d.rel!=='object') d.rel={fa:30, sponsor:35, fans:40, media:25, ref:20, youth:45};
+  var rd={fa:30, sponsor:35, fans:40, media:25, ref:20, youth:45};
+  for(var rk in rd){ if(d.rel[rk]===undefined) d.rel[rk]=rd[rk]; }
+  if(typeof d.div!=='number' || d.div<0 || d.div>2) d.div=2;
+  if(typeof d.month!=='number' || d.month<1) d.month=1;
+  if(monWasMissing || !d.mon || d.mon<1 || d.mon>12) d.mon=((d.month-1)%12)+1;
+  return d;
+}
 function loadAutoSave(){
   try{
     var raw=localStorage.getItem(SAVE_KEY);
     if(!raw) return false;
     var obj=JSON.parse(raw);
     if(!obj || !obj.data || !obj.data.club || !obj.data.started) return false;
-    G=obj.data;
+    var data=sanitizeSaveData(obj.data);
+    if(!data) return false;
+    G=data;
     lastSaveAt= obj.savedAt? new Date(obj.savedAt) : null;
     return true;
   }catch(e){ return false; }
@@ -1749,6 +1822,7 @@ function render(){
   if(!G.director) G.director={mode:'manual'};
   if(!G.board) G.board={patience:70, cityRep:35, frozen:0, budgetSeason:-1, grantSeason:-1, facGrant:false, citySeason:-1};
   if(G.mediaUsed==null) G.mediaUsed=false;
+  if(!G.fac) G.fac={stadium:1, academy:1, training:1, medical:0, data:0};
   if(G.fac.data==null) G.fac.data=0;
   G.squad.forEach(function(p){ if(p.fat==null) p.fat=0; if(p.rest==null) p.rest=false; if(p.trust==null) p.trust=55; if(p.mood==null) p.mood=60; if(p.played==null) p.played=0; if(p.promise===undefined) p.promise=null; });
   ensureFixtures();
@@ -3358,15 +3432,33 @@ function wallDeletePoster(id){
   toast('已删除「'+p.name+'」，进游戏时不再弹出');
   showPosterWall();
 }
-/* ---------------- 启动：优先自动读档 ---------------- */
-if(loadAutoSave()){
-  PAGE='home';
-  render();
-  toast('💾 已自动读取上次存档：'+G.club+' · 第 '+G.month+' 个月，接着玩！');
-  startPosterChain(false); // 每次进游戏：未删除的海报依次全弹（C罗 → 梅西 → 游戏创作者），然后接每周签到
-} else {
-  render();
-  startPosterChain(true); // 新玩家：先依次看完未删除的海报，再进开局界面
+/* ---------------- 启动：优先自动读档 ----------------
+   整个启动包在 try 里：万一旧存档还是和新版对不上、渲染时报错，也不能白屏——
+   先把原始存档备份到 SAVE_KEY+'-bak'（数据不丢），清掉坏档，干净地进开局界面；
+   连这一步都失败时，<head> 里的看门狗会亮出修复面板兜底。 */
+try{
+  if(loadAutoSave()){
+    PAGE='home';
+    render();
+    toast('💾 已自动读取上次存档：'+G.club+' · 第 '+G.month+' 个月，接着玩！');
+    startPosterChain(false); // 每次进游戏：未删除的海报依次全弹（C罗 → 梅西 → 游戏创作者），然后接每周签到
+  } else {
+    render();
+    startPosterChain(true); // 新玩家：先依次看完未删除的海报，再进开局界面
+  }
+  window.__hmBooted=true;
+}catch(bootErr){
+  try{
+    var badRaw=null;
+    try{ badRaw=localStorage.getItem(SAVE_KEY); }catch(e1){}
+    if(badRaw){ try{ localStorage.setItem(SAVE_KEY+'-bak', badRaw); }catch(e2){} }
+    clearAutoSave();
+    G=null; PAGE='home';
+    render();
+    startPosterChain(true);
+    toast('⚠️ 旧存档和新版本对不上，已自动修复：原存档已备份，新开一局就能玩。');
+    window.__hmBooted=true;
+  }catch(fallbackErr){ /* 看门狗接管，显示一键修复面板 */ }
 }
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});}</script></body>
