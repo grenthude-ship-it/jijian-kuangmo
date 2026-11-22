@@ -288,21 +288,27 @@
       .qbtn .dot{ position:absolute; top:1px; right:7px; background:#e03226; color:#fff; font-size:10px; font-weight:800;
         min-width:16px; height:16px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px;
         border:1.5px solid rgba(255,255,255,.85); }
-      .lobby-mid{ display:grid; grid-template-columns:82px minmax(0,1fr) 148px; gap:10px; align-items:stretch; }
-      .rail{ display:flex; flex-direction:column; gap:10px; }
-      .rail>button{ background:rgba(6,14,24,.82); border:1px solid rgba(255,205,110,.42); border-radius:12px; color:#f3e3bb;
-        padding:12px 4px; font-size:13px; font-weight:700; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-        position:relative; flex:1; }
-      .rail>button .ri{ font-size:22px; line-height:1.1; }
-      .rail>button .bdg{ position:absolute; top:6px; right:6px; background:#e03226; color:#fff; font-size:10px; font-weight:800;
-        min-width:17px; height:17px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px; }
-      .hero-poster{ border:2px solid #d4af37; border-radius:14px; overflow:hidden; background:#0a0e13; aspect-ratio:3/4; max-height:480px;
-        box-shadow:0 14px 34px rgba(0,0,0,.5), 0 0 26px rgba(212,175,55,.18); }
-      .hero-poster img{ width:100%; height:100%; object-fit:cover; object-position:top center; display:block; }
-      .photocard{ padding:0 !important; overflow:hidden; text-align:left; align-items:stretch !important; justify-content:flex-start !important; }
-      .photocard img{ width:100%; aspect-ratio:2/1; object-fit:cover; object-position:center; display:block; }
-      .photocard .pc-t{ padding:7px 9px 8px; color:#fff; font-size:13.5px; font-weight:800; line-height:1.3; }
-      .photocard .pc-t small{ display:block; color:#a9bfd1; font-size:10.5px; font-weight:500; margin-top:2px; line-height:1.4; }
+      /* ---------- 大厅海报滚动区（独立整行：画面上不压任何按钮/角标/浮层，箭头与圆点都在画面下方的控制条里） ---------- */
+      .pcar{ background:rgba(6,14,24,.86); border:1px solid rgba(212,175,55,.5); border-radius:14px; padding:10px 12px 9px;
+        box-shadow:0 14px 34px rgba(0,0,0,.45); }
+      .pcar-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+      .pcar-head .pcar-t{ font-size:13px; font-weight:800; color:#e8cf8a; letter-spacing:.08em; }
+      .pcar-head .pcar-count{ font-size:12px; font-weight:700; color:#a9bfd1; }
+      .pcar-view{ overflow:hidden; border-radius:10px; background:#05090f; max-width:340px; margin:0 auto; }
+      .pcar-track{ display:flex; transition:transform .38s ease; }
+      .pcar-slide{ flex:0 0 100%; width:100%; background:none; border:none; padding:0; margin:0; cursor:pointer; min-height:0; }
+      .pcar-slide img{ display:block; width:100%; aspect-ratio:3/4; object-fit:contain; background:#05090f; }
+      .pcar-bar{ display:flex; align-items:center; justify-content:space-between; gap:10px; max-width:340px; margin:9px auto 0; }
+      .pcar-arrow{ width:40px; height:40px; min-height:40px; flex:0 0 40px; border-radius:50%; border:1px solid rgba(212,175,55,.65);
+        background:rgba(212,175,55,.14); color:#ffd968; font-size:24px; font-weight:900; line-height:1;
+        display:flex; align-items:center; justify-content:center; padding:0 0 3px; }
+      .pcar-arrow:active{ background:rgba(212,175,55,.32); }
+      .pcar-dots{ display:flex; gap:8px; align-items:center; justify-content:center; flex:1; }
+      .pcar-dot{ width:11px; height:11px; min-height:11px; border-radius:50%; border:1.5px solid rgba(212,175,55,.8);
+        background:transparent; padding:0; cursor:pointer; }
+      .pcar-dot.on{ background:#ffd968; box-shadow:0 0 8px rgba(212,175,55,.6); }
+      .pcar-cap{ text-align:center; font-size:12px; color:#a9bfd1; margin-top:7px; line-height:1.5; }
+      @media (prefers-reduced-motion: reduce){ .pcar-track{ transition:none; } }
       .lobby-actions{ display:grid; grid-template-columns:5fr 7fr; gap:10px; }
       .myteam{ position:relative; border-radius:12px; overflow:hidden; border:1px solid rgba(140,190,255,.55); padding:0; min-height:92px; background:#0a1420; text-align:left; }
       .myteam img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
@@ -350,9 +356,6 @@
       }
       @media (max-width:640px){
         .lobby-top .game-logo{ width:106px; }
-        .lobby-mid{ grid-template-columns:60px minmax(0,1fr) 102px; gap:8px; }
-        .rail>button{ font-size:12px; padding:10px 2px; }
-        .photocard .pc-t{ font-size:12px; padding:6px 7px 7px; }
         .lobby-banner{ height:108px; }
         .lobby-grid{ grid-template-columns:repeat(3,1fr); }
         .lobby-actions{ grid-template-columns:4fr 6fr; }
@@ -1798,6 +1801,8 @@ function render(){
   else if(PAGE==='pay') body+=pagePay();
   else if(PAGE==='auto') body+=pageAuto();
   $app.innerHTML='<div class="layout'+(PAGE==='home'?' lobby-mode':'')+'"><aside>'+side+'</aside><div style="flex:1;min-width:0;">'+top+'<main>'+body+'</main></div></div>'+bottomTabsHTML();
+  if(PAGE==='home' && typeof startPosterCarousel==='function') startPosterCarousel();
+  else if(typeof stopPosterCarousel==='function') stopPosterCarousel();
   autoSave();
   if(window.refreshInstallUI) refreshInstallUI();
 }
@@ -2424,13 +2429,19 @@ function pageStars(){
 </script>
 <script>
 "use strict";
-/* ---------------- 游戏大厅（截图同款布局，每个按钮都有真实功能） ----------------
+/* ---------------- 游戏大厅（精简布局：核心入口直达 + 玩法按分类收起，每个按钮都有真实功能） ----------------
    顶部资源栏：金币=俱乐部现金（点开俱乐部页看银行账目，+ 去充值中心）
                钻石=钻石余额（点开充值中心，+ 同样去充值中心）
                体力=球队士气（点开阵容页，+ 去运营活动提升士气）
-   福利=福利中心弹窗（签到/成就/VIP） 签到=每周签到板（7 天循环，与入口弹窗同一套） 活动=运营活动页 商城=充值中心
-   任务=任务弹窗（董事会目标+长期目标） 排行=积分榜弹窗 致敬传奇=游戏创作者 × C罗谢幕海报全屏查看
-   球员招募=转会市场 战术中心=运营页战术 我的球队=阵容页 下一场=模拟到下一场比赛日
+   快捷行：福利=福利中心弹窗（签到/成就/VIP） 签到=每周签到板（7 天循环，与入口弹窗同一套） 海报墙=三张海报查看/删除/恢复
+   海报滚动区：未删除的海报整行独立展示，左右滑动/箭头/圆点切换、自动轮播，点海报放大看；
+               画面上不压任何按钮、角标或浮层，箭头和圆点都在画面下方的控制条里。
+   核心入口：我的球队（阵容页）+ 开始比赛/下一场 + 生涯/联盟/签到/充值/海报墙。
+   玩法分类（点开分类弹窗，再点里面的玩法进入，showLobbyCat）：
+     俱乐部类=集团扩张/董事会与设施（俱乐部页）/灰色账本/全自动模拟
+     球队球员类=转会市场/数据球探/青训体系/球星图鉴/训练·更衣室·球员关系（阵容页内）
+     赛事活动类=运营活动/荣誉中心/任务中心/联盟排行
+     更多=人脉关系/媒体中心/致敬传奇/装成 App
    底部五栏（bottomTabsHTML 由 render() 全局渲染，所有页面常驻，点任意页签直接切换）：
    首页=大厅 球队=俱乐部页 阵容=阵容页（球队强度/一线队名单/主教练）
    生涯=独立生涯页（王朝评级/成就墙/长期目标/历届冠军/我的荣誉） 联盟=联盟联赛页 */
@@ -2547,38 +2558,135 @@ function bottomTabsHTML(){
   +tab('league','🛡️','联盟')
   +'</nav>';
 }
+/* ---------------- 大厅海报滚动区 ----------------
+   未被删除的海报（与入口弹窗同一份 POSTERS / 同一套删除标记）在大厅整行独立滚动展示：
+   左右滑动、点箭头、点圆点都能切换，停留时自动轮播；点海报放大看（全屏查看）。
+   画面里只有海报本身——没有任何按钮、角标、文字压在画面上；标题、计数、箭头、圆点
+   全部在画面外的框里（上方标题行 + 下方控制条），与海报彻底分开。海报按原比例完整
+   显示（object-fit:contain，不裁剪、不拉伸）。已删除的海报不进滚动区，去海报墙恢复后
+   下次进大厅自动回来；三张全删时整个滚动区不显示。 */
+var _pcIdx=0, _pcTimer=null, _pcTx=null, _pcSuppress=false;
+function pcList(){ return POSTERS.filter(function(p){ return !posterDeleted(p); }); }
+function posterCarouselHTML(){
+  var list=pcList();
+  if(!list.length) return '';
+  if(_pcIdx>=list.length || _pcIdx<0) _pcIdx=0;
+  var slides=list.map(function(p){
+    return '<button type="button" class="pcar-slide" onclick="viewLobbyPoster(\''+p.id+'\')" aria-label="放大看：'+p.name+'"><img src="'+p.src+'" alt="'+p.alt+'"></button>';
+  }).join('');
+  var dots=list.map(function(p,i){
+    return '<button type="button" class="pcar-dot'+(i===_pcIdx?' on':'')+'" onclick="pcGo('+i+')" aria-label="切换到第 '+(i+1)+' 张海报"></button>';
+  }).join('');
+  return '<div class="pcar">'
+  +'<div class="pcar-head"><span class="pcar-t">🖼️ 海报精选</span><span class="pcar-count" id="pcar-count">'+(_pcIdx+1)+' / '+list.length+'</span></div>'
+  +'<div class="pcar-view" ontouchstart="pcTouchStart(event)" ontouchend="pcTouchEnd(event)"><div class="pcar-track" id="pcar-track" style="transform:translateX(-'+(_pcIdx*100)+'%)">'+slides+'</div></div>'
+  +'<div class="pcar-bar"><button type="button" class="pcar-arrow" onclick="pcPrev()" aria-label="上一张海报">‹</button><div class="pcar-dots" id="pcar-dots">'+dots+'</div><button type="button" class="pcar-arrow" onclick="pcNext()" aria-label="下一张海报">›</button></div>'
+  +'<div class="pcar-cap" id="pcar-cap">'+list[_pcIdx].name+' · 点海报放大看</div>'
+  +'</div>';
+}
+function pcGo(i, auto){
+  var list=pcList(); if(!list.length) return;
+  _pcIdx=((i%list.length)+list.length)%list.length;
+  var tr=document.getElementById('pcar-track');
+  if(tr) tr.style.transform='translateX(-'+(_pcIdx*100)+'%)';
+  var dots=document.getElementById('pcar-dots');
+  if(dots){ for(var k=0;k<dots.children.length;k++){ dots.children[k].className='pcar-dot'+(k===_pcIdx?' on':''); } }
+  var cap=document.getElementById('pcar-cap'); if(cap) cap.textContent=list[_pcIdx].name+' · 点海报放大看';
+  var cnt=document.getElementById('pcar-count'); if(cnt) cnt.textContent=(_pcIdx+1)+' / '+list.length;
+  if(!auto) startPosterCarousel(); // 手动切换后重新计时，不跟自动轮播抢
+}
+function pcNext(){ pcGo(_pcIdx+1); }
+function pcPrev(){ pcGo(_pcIdx-1); }
+function pcTouchStart(e){ _pcTx=e.changedTouches[0].clientX; }
+function pcTouchEnd(e){
+  if(_pcTx==null) return;
+  var dx=e.changedTouches[0].clientX-_pcTx; _pcTx=null;
+  if(dx<=-40){ _pcSuppress=true; setTimeout(function(){ _pcSuppress=false; },350); pcNext(); }
+  else if(dx>=40){ _pcSuppress=true; setTimeout(function(){ _pcSuppress=false; },350); pcPrev(); }
+}
+function startPosterCarousel(){
+  stopPosterCarousel();
+  if(pcList().length<2) return;
+  try{ if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; }catch(e){}
+  _pcTimer=setInterval(function(){ pcGo(_pcIdx+1, true); }, 4500);
+}
+function stopPosterCarousel(){ if(_pcTimer){ clearInterval(_pcTimer); _pcTimer=null; } }
+function viewLobbyPoster(id){
+  if(_pcSuppress) return; // 刚滑动过，这一下是滑动带起的误触，不打开
+  var p=posterById(id); if(!p) return;
+  $modal.innerHTML='<div class="tribute-overlay" role="dialog" aria-modal="true" aria-label="'+p.name+'">'
+  +'<div class="tribute-card">'
+  +'<button type="button" class="creator-close" aria-label="关闭" title="关闭" onclick="closeModal()">✕</button>'
+  +'<img src="'+p.src+'" alt="'+p.alt+'" />'
+  +'<div class="tribute-cap">'+p.cap+'</div>'
+  +'</div></div>';
+}
+/* ---------------- 大厅玩法分类（点分类 → 弹窗里列出该类的全部玩法 → 点「打开」直达） ----------------
+   大厅删掉的重复入口（活动/商城快捷键、左右侧栏、球员招募/战术中心/荣誉生涯照片卡、
+   球星图鉴/荣誉中心/青训营三条横幅、15 个功能瓷砖）去向都在这里或核心入口里，一个没丢：
+   转会/球探/青训/球星图鉴→球队球员类；运营/荣誉/任务/排行→赛事活动类；
+   集团/灰色账本/自动模拟→俱乐部类；人脉/媒体/致敬传奇/装成App→更多；
+   俱乐部（董事会与设施）→俱乐部类；训练/更衣室/球员关系在阵容页内→球队球员类里有直达行。 */
+function showLobbyCat(key){
+  var claim=claimableAchCount();
+  var youthReady=(G.youth||[]).filter(function(p){ return p.age>=16 && p.ab>=50; }).length;
+  var opsLeft=OPS.filter(function(o){ return !(G.opsUsed && G.opsUsed[o.id]); }).length;
+  var cats={
+    club:{ t:'🏛️ 俱乐部类', rows:[
+      ['go','empire','🏢','集团扩张','电竞 · 篮球 · 自有品牌 · 海外卫星队，板块每月结算 · 当前 '+ventCount()+' 个板块'],
+      ['go','club','📋','董事会与设施','俱乐部页：设施升级 · 银行授信 · 董事会目标与耐心 · 王朝评级'],
+      ['go','gray','🕶️','灰色账本','来钱快，但纪检热度会涨'+(G.heat>=60?' · 当前热度 '+G.heat+'，危险':' · 当前热度 '+G.heat)],
+      ['go','auto','🤖','全自动模拟','托管经营：自动买人、自动推进，无限玩下去']
+    ]},
+    team:{ t:'👥 球队球员类', rows:[
+      ['go','market','🔁','转会市场','买人卖人 · 每笔报价都标签约价盈亏 · 本月 '+G.market.length+' 名球员在售'],
+      ['go','intel','🔭','数据球探','球探报告完整度 · 适配度评分 · 考察任务带回独家候选'],
+      ['go','youth','🌱','青训体系','签苗子 · 定培养方案 · 提拔一线队'+(youthReady?' · '+youthReady+' 人已可提拔':'')],
+      ['go','stars','⭐','球星图鉴','世界球星 · 五大联赛 · 中超名将，真实照片一一对应，可真签进队'],
+      ['go','squad','🏋️','训练 · 更衣室 · 球员关系','在阵容页下方：训练强度与理疗、球员谈话、首发承诺、续约都在那']
+    ]},
+    event:{ t:'🎪 赛事活动类', rows:[
+      ['go','ops','🎪','运营活动','战术体系 · 赛前部署 · 每月活动 · 足协杯'+(opsLeft?' · 本月还剩 '+opsLeft+' 项可办':'')],
+      ['go','honors','🎖️','荣誉中心','俱乐部荣誉 · 球员荣誉 · 赛季颁奖倒计时 '+monthsToAwards()+' 个月'],
+      ['fn','tasks','📋','任务中心','董事会赛季目标 + 长期目标'+(claim?' · '+claim+' 个成就奖励可领':'')],
+      ['fn','ranking','📊','联盟排行','当前联赛积分榜 · 我的王朝评级']
+    ]},
+    more:{ t:'⋯ 更多', rows:[
+      ['go','rel','🤝','人脉关系','六位关键人物打点：赞助商、足协、青训总监、媒体…'],
+      ['go','media','🎙️','媒体中心','发布会四种表态 · 公开表扬与批评球员'],
+      ['fn','tribute','🐐','致敬传奇','游戏创作者 × C罗国家队谢幕海报，全屏看'],
+      ['fn','install','📲','装成 App','添加到手机主屏幕，点图标全屏开玩']
+    ]}
+  };
+  var c=cats[key]; if(!c) return;
+  var fnMap={ tasks:'showTasks()', ranking:'showRanking()', tribute:'showTribute()', install:'doInstall()' };
+  var rows=c.rows.map(function(r){
+    var oc= r[0]==='go' ? 'closeModal();go(\''+r[1]+'\')' : fnMap[r[1]];
+    return '<div class="item"><span style="font-size:22px;line-height:1.2;">'+r[2]+'</span><div class="grow"><div class="nm">'+r[3]+'</div><div class="meta">'+r[4]+'</div></div><button class="btn pri sm" onclick="'+oc+'">打开</button></div>';
+  }).join('');
+  $modal.innerHTML='<div class="overlay"><div class="modal">'
+  +'<div class="hero"><div class="big" style="font-size:23px;">'+c.t+'</div><div class="sub">这一类的玩法都在这里，点任意一行「打开」直接进去</div></div>'
+  +'<div class="body">'+rows+'</div>'
+  +'<div class="foot"><button class="btn" onclick="closeModal()">关闭</button></div></div></div>';
+}
 function lobbyHTML(){
   var d=DIVS[G.div];
   var lv=managerLevel(), pct=managerLevelPct();
   var claim=claimableAchCount();
   var signed=!signCan();
-  var youthReady=(G.youth||[]).filter(function(p){ return p.age>=16 && p.ab>=50; }).length;
-  var signedStars=(typeof STARS!=='undefined' && G.squad)? STARS.filter(function(s){ return starInSquad(s); }).length : 0;
-  var opsLeft=OPS.filter(function(o){ return !(G.opsUsed && G.opsUsed[o.id]); }).length;
-  var firstLeft=TIERS.filter(function(t){ return !G.claimed[t.amt]; }).length;
   var welfareN=claim+(signed?0:1);
-  var tiles=[
-    ['stars','⭐','球星图鉴','世界球星 · 中超名将 · 真实照片', signedStars||''],
-    ['market','🔁','转会市场','买人卖人 · 报价盈亏', G.market.length||''],
-    ['ops','🎪','运营活动','战术 · 活动 · 杯赛', opsLeft||''],
-    ['squad','👕','阵容教练','球场阵型图 · 特训 · 换帅', ''],
-    ['honors','🎖️','荣誉中心','俱乐部荣誉 · 球员荣誉 · 颁奖倒计时', monthsToAwards()<=1?'本月颁奖':('颁奖 '+monthsToAwards()+' 月')],
-    ['youth','🌱','青训体系','签苗子 · 提拔一线队', youthReady||''],
-    ['rel','🤝','人脉关系','六位关键人物打点', ''],
-    ['intel','🔭','数据球探','残缺报告 · 适配度 · 独家候选', ''],
-    ['media','🎙️','媒体中心','发布会表态 · 表扬与批评', ''],
-    ['gray','🕶️','灰色账本','来钱快 · 热度危险', G.heat>=60?('热度'+G.heat):''],
-    ['club','🏛️','俱乐部','设施 · 银行 · 成就', claim||''],
-    ['empire','🏢','集团扩张','电竞 · 篮球 · 海外', ventCount()||''],
-    ['league','🏆','联盟联赛','积分榜 · 升降级', ''],
-    ['pay','💎','充值商城','钻石 · VIP · 道具', ''],
-    ['auto','🤖','自动模拟','托管经营 · 无限推进', '']
-  ];
-  var tilesHTML=tiles.map(function(t){
-    return '<button class="ltile" onclick="go(\''+t[0]+'\')"><span class="ti">'+t[1]+'</span>'+t[2]+'<small>'+t[3]+'</small>'+(t[4]!==''?'<span class="bdg">'+t[4]+'</span>':'')+'</button>';
-  }).join('')+'<button class="ltile" onclick="showTribute()"><span class="ti">🐐</span>致敬传奇<small>游戏创作者 × C罗国家队谢幕海报</small></button>'
-  +'<button class="ltile" onclick="showPosterWall()"><span class="ti">🖼️</span>海报墙<small>三张海报 · 查看 / 删除 / 恢复</small></button>'
-  +'<button class="ltile" onclick="doInstall()"><span class="ti">📲</span>装成 App<small>添加到主屏幕全屏玩</small></button>';
+  /* 大厅只留核心入口，其余玩法按分类收进 showLobbyCat 的分类弹窗（一个玩法只出现一次，不再重复摆） */
+  var coreTilesHTML=''
+  +'<button class="ltile" onclick="go(\'career\')"><span class="ti">🏆</span>生涯<small>王朝评级 · 成就墙 · 历届冠军</small>'+((G.titles||0)?'<span class="bdg">冠军 ×'+G.titles+'</span>':'')+'</button>'
+  +'<button class="ltile" onclick="go(\'league\')"><span class="ti">🛡️</span>联盟<small>积分榜 · 升降级 · 三级联赛</small></button>'
+  +'<button class="ltile" onclick="lobbySignIn()"><span class="ti">📅</span>签到<small>每周签到 · 7 天循环领钻石</small>'+(signed?'':'<span class="bdg">可领</span>')+'</button>'
+  +'<button class="ltile" onclick="go(\'pay\')"><span class="ti">💎</span>充值<small>钻石 · VIP · 钻石商城</small></button>'
+  +'<button class="ltile" onclick="showPosterWall()"><span class="ti">🖼️</span>海报墙<small>三张海报 · 查看 / 删除 / 恢复</small></button>';
+  var catTilesHTML=''
+  +'<button class="ltile" onclick="showLobbyCat(\'club\')"><span class="ti">🏛️</span>俱乐部类<small>集团扩张 · 董事会与设施 · 灰色账本 · 自动模拟</small></button>'
+  +'<button class="ltile" onclick="showLobbyCat(\'team\')"><span class="ti">👥</span>球队球员类<small>转会 · 球探 · 青训 · 球星图鉴 · 训练更衣室</small></button>'
+  +'<button class="ltile" onclick="showLobbyCat(\'event\')"><span class="ti">🎪</span>赛事活动类<small>运营活动 · 荣誉中心 · 任务 · 排行</small>'+(claim?'<span class="bdg">'+claim+' 个奖励可领</span>':'')+'</button>'
+  +'<button class="ltile" onclick="showLobbyCat(\'more\')"><span class="ti">⋯</span>更多<small>人脉关系 · 媒体中心 · 致敬传奇 · 装成 App</small>'+(G.heat>=60?'<span class="bdg">热度 '+G.heat+'</span>':'')+'</button>';
   var nfx=nextFixture();
   var startBtn= G.ended
     ? '<button class="startmatch" onclick="revive()"><span class="big">注资续命 ›</span><span class="en">REVIVE CLUB</span><small>俱乐部已停摆，注资后继续经营</small></button>'
@@ -2597,30 +2705,17 @@ function lobbyHTML(){
   +'<div class="lobby-quick">'
   +'<button class="qbtn" onclick="showWelfare()"><span class="qi">🎁</span>福利'+(welfareN?'<span class="dot">'+welfareN+'</span>':'')+'</button>'
   +'<button class="qbtn" onclick="lobbySignIn()"><span class="qi">📅</span>签到'+(signed?'':'<span class="dot">1</span>')+'</button>'
-  +'<button class="qbtn" onclick="go(\'ops\')"><span class="qi">🏆</span>活动'+(opsLeft?'<span class="dot">'+opsLeft+'</span>':'')+'</button>'
-  +'<button class="qbtn" onclick="go(\'pay\')"><span class="qi">🛒</span>商城'+(firstLeft?'<span class="dot">'+firstLeft+'</span>':'')+'</button>'
+  +'<button class="qbtn" onclick="showPosterWall()"><span class="qi">🖼️</span>海报墙</button>'
   +'</div></div>'
-  +'<div class="lobby-mid">'
-  +'<div class="rail">'
-  +'<button onclick="showTasks()"><span class="ri">📋</span>任务'+(claim?'<span class="bdg">'+claim+'</span>':'')+'</button>'
-  +'<button onclick="showRanking()"><span class="ri">📊</span>排行</button>'
-  +'<button onclick="go(\'rel\')"><span class="ri">🤝</span>人脉</button>'
-  +'</div>'
-  +'<div class="hero-poster"><img src="creator-poster.jpg" alt="《豪门缔造者》游戏创作者宣传海报"></div>'
-  +'<div class="rail">'
-  +'<button class="photocard" onclick="go(\'market\')"><img src="photo-25.jpg" alt="身穿 10 号球衣的球员背影真实照片"><span class="pc-t">球员招募<small>转会市场 · 本月 '+G.market.length+' 名球员在售</small></span></button>'
-  +'<button class="photocard" onclick="go(\'ops\')"><img src="photo-06.jpg" alt="足球战术板真实照片"><span class="pc-t">战术中心<small>当前战术：'+(G.tactic||'均衡攻守')+'</small></span></button>'
-  +'<button class="photocard" onclick="go(\'career\')"><img src="photo-08.webp" alt="球队捧起冠军奖杯的真实照片"><span class="pc-t">荣誉生涯<small>冠军 ×'+(G.titles||0)+' · 王朝评级 '+dynastyGrade().grade+'</small></span></button>'
-  +'</div></div>'
+  + posterCarouselHTML()
   +'<div class="lobby-actions">'
-  +'<button class="myteam" onclick="go(\'squad\')"><img src="stadium-bg.jpg" alt="夜晚灯光下的足球场航拍真实照片"><span class="mt-t">我的球队<small>'+esc(G.club)+' · '+d.short+' · 阵容 '+G.squad.length+' 人</small></span><span class="mt-go">›</span></button>'
+  +'<button class="myteam" onclick="go(\'squad\')"><img src="stadium-bg.jpg" alt="夜晚灯光下的足球场航拍真实照片"><span class="mt-t">我的球队 · 阵容<small>'+esc(G.club)+' · '+d.short+' · 阵容 '+G.squad.length+' 人 · 教练与更衣室都在这</small></span><span class="mt-go">›</span></button>'
   + startBtn
   +'</div>'
-  +'<button class="lobby-banner" onclick="go(\'stars\')"><img src="photo-10.jpg" alt="姆巴佩身穿皇家马德里球衣的真实比赛照片"><span class="lb-t">⭐ 球星图鉴<small>姆巴佩 · 哈兰德 · 亚马尔 · 武磊——世界球星与中超名将，真实照片一一对应，签下来为你进球'+(signedStars?' · 已签下 '+signedStars+' 位':'')+'</small></span></button>'
-  +'<button class="lobby-banner" onclick="go(\'honors\')"><img src="photo-08.webp" alt="球队捧起冠军奖杯的真实照片"><span class="lb-t">🎖️ 荣誉中心 · 颁奖'+(monthsToAwards()<=1?'本月揭晓！':'倒计时 '+monthsToAwards()+' 个月')+'<small>俱乐部荣誉 · 球员荣誉全在这查 · 当前金靴领跑：'+(awardScores().boot? esc(awardScores().boot.name)+'（'+((G.seasonGoals&&G.seasonGoals[awardScores().boot.name])||0)+' 球）':'暂无进球')+'，点开看谁最接近每个奖项</small></span></button>'
-  +'<div class="lobby-sec">功能大厅 · 每个入口都能打开</div>'
-  +'<div class="lobby-grid">'+tilesHTML+'</div>'
-  +'<button class="lobby-banner" onclick="go(\'youth\')"><img src="photo-07.jpg" alt="青训营小球员训练的真实照片"><span class="lb-t">青训营<small>梯队 '+(G.youth||[]).length+' 人在训'+(youthReady?' · '+youthReady+' 人可提拔一线队':'')+' · 点开签苗子、定培养方案</small></span></button>'
+  +'<div class="lobby-sec">核心入口</div>'
+  +'<div class="lobby-grid">'+coreTilesHTML+'</div>'
+  +'<div class="lobby-sec">玩法分类 · 点开分类，再点里面的玩法</div>'
+  +'<div class="lobby-grid">'+catTilesHTML+'</div>'
   +'</div>'
   +'</section>';
 }
