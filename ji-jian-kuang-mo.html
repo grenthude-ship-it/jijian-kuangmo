@@ -142,6 +142,19 @@ input.txt{width:100%;padding:10px 12px;border:1px solid #aaa;font-size:16px;font
 .qr-start .qrbox{display:inline-block;border:1px solid var(--line)}
 .qr-start .qs-t{font-weight:900;font-size:14px;margin-bottom:3px}
 .qr-start .qs-s{font-size:12px;color:var(--muted);line-height:1.7}
+/* ceo mode */
+.cmdbox{display:flex;gap:7px;flex-wrap:wrap}
+.cmdbox input{flex:1;min-width:200px;padding:10px 12px;border:1px solid #aaa;font-size:14px}
+.cmdlog{font-size:12.5px;line-height:1.85;max-height:240px;overflow:auto}
+.cmdlog .ok{color:var(--green);font-weight:700}
+.cmdlog .no{color:var(--red);font-weight:700}
+.neg{border:1px solid var(--line);background:#fff;padding:11px 12px;margin-bottom:9px}
+.neg .round{font-size:12.5px;line-height:1.75;margin-top:5px}
+.neg .who{font-weight:900;color:var(--ink2)}
+.neg .me{color:var(--orange-d);font-weight:700}
+.polrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed #e2ddd0;font-size:13px;flex-wrap:wrap}
+.polrow select{padding:6px 8px;border:1px solid #bbb;background:#fff}
+.report{font-size:12.5px;line-height:1.9;background:#fbf6e9;border-left:3px solid var(--gold);padding:9px 12px}
 @media(max-width:860px){
   .wrap{flex-direction:column}
   .side{width:100%;flex:none;height:auto;position:static;padding:12px}
@@ -171,6 +184,7 @@ input.txt{width:100%;padding:10px 12px;border:1px solid #aaa;font-size:16px;font
     <div class="qual-tags"><span id="uiQualF">房建三级</span><span id="uiQualS">市政未取</span></div>
     <nav class="nav" id="mainNav">
       <button data-view="ops" class="on">▦ 经营 <span class="pill" id="navTenderCt">0</span></button>
+      <button data-view="ceo">🤵 职业经理人 <span class="pill" id="navCeo">未聘请</span></button>
       <button data-view="gov">🏛 政商关系 <span class="pill" id="navRelAvg">0</span></button>
       <button data-view="grey">🧾 灰色账本 <span class="pill" id="navOwe">0</span></button>
       <button data-view="co">▤ 公司与结局</button>
@@ -273,6 +287,43 @@ input.txt{width:100%;padding:10px 12px;border:1px solid #aaa;font-size:16px;font
             <div class="log" id="logBox"></div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- CEO VIEW -->
+    <section class="view" id="view-ceo">
+      <div class="card">
+        <h3>职业经理人 · 托管经营</h3>
+        <div class="sub">你当董事长，只下口令、定授权；职业经理人拿着授权去投标、处关系、谈判、还人情，每月交一份执行月报。谈判桌上他怎么开口、对方怎么还价，谈判记录里一字不落——谈崩了、被推回来的指令，也都如实报给你。托管在每月「结束本月」时自动执行。</div>
+        <div id="ceoMain"></div>
+      </div>
+      <div class="card" id="ceoCmdCard" style="display:none">
+        <h3>董事长指令台</h3>
+        <div class="sub">直接打字下令，就像跟真人说话。例如：「把王建国的关系做到60」「政府项目全投，内定可以谈」「先把欠的回扣还了」「热度压到50以下」「这个月先保现金，别碰回扣」「去跟银行谈授信」。经理人当场回执：能办的写进授权照单执行，办不了的说明原因——太出格的指令，他会推回来。</div>
+        <div class="cmdbox">
+          <input type="text" id="cmdInput" placeholder="输入你的口令，回车或点右侧下达…" maxlength="60">
+          <button class="btn primary" id="btnCmd">下达指令</button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px" id="cmdQuick">
+          <button class="btn sm" data-cmd="政府项目全投，内定可以谈">政府项目全投 · 可内定</button>
+          <button class="btn sm" data-cmd="先保现金，别碰回扣">保现金 · 不碰回扣</button>
+          <button class="btn sm" data-cmd="把欠的回扣都还了">还清回扣</button>
+          <button class="btn sm" data-cmd="热度压到50以下">热度压到 50</button>
+          <button class="btn sm" data-cmd="激进扩张，能拿的地都拿">激进扩张</button>
+          <button class="btn sm" data-cmd="稳健经营，只投高毛利的项目">稳健经营</button>
+          <button class="btn sm" data-cmd="去跟银行谈，扩授信">谈银行授信</button>
+        </div>
+        <h3 style="margin-top:14px;font-size:15px">指令台账</h3>
+        <div class="cmdlog" id="cmdLogBox"><span class="mini">暂无指令。</span></div>
+      </div>
+      <div class="card" id="ceoNegCard" style="display:none">
+        <h3>自动谈判记录</h3>
+        <div class="sub">经理人每月按你定的谈判重点自动出面谈判：压材料价、谈内定折扣、扩银行授信、砍土地款。全过程实录，成败都写明。</div>
+        <div id="negLogBox"></div>
+      </div>
+      <div class="card" id="ceoRepCard" style="display:none">
+        <h3>经理人月报（上月执行回执）</h3>
+        <div class="report" id="mgrReportBox">尚未生成月报。开启托管后点「结束本月」，经理人会照单执行并在此汇报。</div>
       </div>
     </section>
 
@@ -384,7 +435,7 @@ input.txt{width:100%;padding:10px 12px;border:1px solid #aaa;font-size:16px;font
     <div style="background:var(--ink);color:#fff;padding:16px;margin:-20px -20px 14px">
       <div style="font-family:'Songti SC','STSong','SimSun','Source Han Serif SC','Noto Serif SC',serif;font-size:30px;font-weight:900">基建<span style="color:var(--orange)">狂魔</span> <span style="font-size:14px;color:#ffb38f">政商版</span></div>
       <div style="font-size:13px;color:#ffb38f;font-weight:700;margin-top:5px">创作人：邓元元</div>
-      <div style="font-size:12.5px;color:#b9c7d1;margin-top:4px">从一支施工队，到特级资质、上市公司——这一版，你还能经营另一张网：和当地政府、官员处关系，靠内部消息与内定中标弯道超车。只是网织得越密，巡视组来的时候越难脱身。</div>
+      <div style="font-size:12.5px;color:#b9c7d1;margin-top:4px">从一支施工队，到特级资质、上市公司——这一版，你还能经营另一张网：和当地政府、官员处关系，靠内部消息与内定中标弯道超车。只是网织得越密，巡视组来的时候越难脱身。这一版还新增<b style="color:#ffb38f">职业经理人模式</b>：聘一位总经理托管经营，你只下口令、定授权，投标、政商、谈判都由他自动执行，每月交月报。</div>
       <div style="font-size:12px;color:#8fa2b1;margin-top:5px">🌐 国内直连版 · 网页版游戏：在中国境内联网，用浏览器打开本页即可直接游玩，无需 VPN、无需下载安装。本页零境外资源加载，打开不卡在字体和脚本上。</div>
     </div>
     <label class="mini">公司名称</label>
@@ -511,7 +562,10 @@ function newGame(){
   bribeOut:0, kickPaid:0, kickIn:0, insiderWins:0, insiderUsed:0,
   managers:[JSON.parse(JSON.stringify(MGR_POOL[0])),JSON.parse(JSON.stringify(MGR_POOL[1]))],
   hire:JSON.parse(JSON.stringify(pick(MGR_POOL))), supplier:null, subcon:null,
-  supplierStreak:0, gameOver:false
+  supplierStreak:0, gameOver:false,
+  ceo:null, ceoOn:false, ceoTrust:70, negFeeMul:null, bankNegCD:0,
+  policy:{style:"balanced",autoBid:true,bidScope:"all",bidMax:2,autoInsider:true,autoGov:true,govBudget:40,govTier:"gift",relTarget:60,autoNeg:true,negFocus:"supplier",payOwes:true,takeKick:false,heatCap:60,cashLine:120,autoLoan:true,autoLand:false,focusOfficial:null},
+  cmdLog:[], negLog:[], mgrReport:[]
  };
  if(bg==="soe"){S.cash=1500;S.qualF=2;S.creditScore=75;S.creditLine=1100;off("陈志远").relation=32;}
  if(bg==="attach"){S.cash=600;S.creditScore=60;off("王建国").relation=38;}
@@ -571,7 +625,7 @@ function doBid(id){
  if(useInfo){ if(!o||o.relation<30){toast("关系不到 30，还打听不到内部消息");return;} o.favor=clamp((o.favor||0)-3,-60,60); }
  if(useInsider){
    if(!o||o.relation<60){toast("关系不到 60，对方不敢帮你内定");return;}
-   fee=Math.round(t.value*rnd(0.03,0.05));
+   fee=Math.round(t.value*rnd(0.03,0.05)*(S.negFeeMul||1)); if(S.negFeeMul){S.negFeeMul=null;log("（经理人此前谈下的内定折扣生效，这笔打点费打了折。）");}
    if(S.cash<fee+ t.value*0.03){toast("现金不够付打点费 "+fmt(fee));return;}
    S.cash-=fee; S.bribeOut+=fee; o.bribes+=fee; o.exposure=clamp((o.exposure||0)+ri(16,26),0,100); o.favor=clamp((o.favor||0)-10,-60,60); S.insiderUsed++; addHeat(ri(7,13));
    log("给 <b>"+o.name+"</b> 送去打点费 "+fmt(fee)+"，对方只回了四个字：<b>「等消息吧。」</b>");
@@ -812,7 +866,7 @@ function stepMonth(){
  // cycle rotation
  S.cycleTimer++; if(S.cycleTimer>=6){S.cycleTimer=0;S.cycleIdx=(S.cycleIdx+1)%CYCLES.length;log("📈 行业周期切换：<b>"+CYCLES[S.cycleIdx].name+"</b> —— "+CYCLES[S.cycleIdx].note);headline();}
  // managers salary + overhead
- var salary=S.managers.reduce(function(s,m){return s+m.salary},0)+2.0;
+ var salary=S.managers.reduce(function(s,m){return s+m.salary},0)+2.0+(S.ceo?S.ceo.salary:0);
  S.cash-=salary;
  // debt interest
  var interest=S.debt*0.008; S.cash-=interest;
@@ -888,6 +942,8 @@ function stepMonth(){
  if(!modalShown&&Math.random()<0.55)showEvent();
  // local inspection check
  if(!modalShown&&S.heat>=70&&Math.random()<0.30){ inspection(); }
+ // professional manager executes standing orders for the month
+ managerAct();
  // bankruptcy
  if(S.cash< -200){ gameEnd("bankrupt"); return; }
  if(S.totalMonths>=36){ gameEnd("settle"); return; }
@@ -992,6 +1048,328 @@ function gameEnd(kind){
  else{title="🌧 结局：草草收场";score="D";body="36 个月下来，公司勉强还在，你的头发白了一半。这一行不好混——标、人情、账期，哪一样都够喝一壶。";}
  $("endTitle").textContent=title; $("endScore").textContent=score+" 级"; $("endBody").innerHTML=body; $("endStats").innerHTML=stats;
  $("endModal").classList.add("show");
+}
+
+/* ---------- professional manager (CEO mode) ---------- */
+var CEO_POOL=[
+ {name:"沈砚秋",age:47,from:"前省属国企副总",skill:9,neg:9,gov:9,salary:6.0,fee:30,style:"政商老手",desc:"在江州官场和国企圈混了二十年，饭局上三句话能探出对方的底价。胆子大、路子野，要价也高。",trait:"谈判压价狠、政商推进快；但他敢接大额打点这种活，热度你得替他盯着。"},
+ {name:"林晚晴",age:39,from:"前四大会计师事务所合伙人",skill:7,neg:7,gov:5,salary:4.5,fee:20,style:"稳健财务派",desc:"账算得比谁都清，最擅长在规则边缘把风险摁住。让她托管，现金流和热度都稳。",trait:"自动控热度、保现金一流；但大额打点、谈内定这类指令，她会直接推回来。"},
+ {name:"赵铁山",age:44,from:"包工头出身的工程副总",skill:8,neg:6,gov:4,salary:3.8,fee:15,style:"执行力悍将",desc:"从工地一路拼上来的，投标报价又快又狠，项目推进不要命。就是政商场上不太灵光，酒桌上容易说错话。",trait:"投标激进、中标率高；政商关系推进慢，谈判桌上耐心一般。"}
+];
+function hireCeo(i){
+ var c=CEO_POOL[i]; if(!c)return;
+ if(S.ceo){toast("先解聘现任经理人再换人");return;}
+ if(S.cash<c.fee){toast("现金不够付签约费 "+fmt(c.fee));return;}
+ S.cash-=c.fee; S.ceo=JSON.parse(JSON.stringify(c)); S.ceoOn=true; S.ceoTrust=70;
+ log("🤵 聘请职业经理人 <b>"+c.name+"</b>（"+c.from+"）出任总经理，签约费 "+fmt(c.fee)+"，月薪 "+c.salary+"万。从今天起你退居董事长——<b>下口令、定授权，他来执行</b>，每月交月报。");
+ ach("ceo","幕后董事长：聘请职业经理人托管经营");
+ render();
+}
+function fireCeo(){ if(!S.ceo)return; log("你解聘了总经理 "+S.ceo.name+"。托管关闭，经营重新亲力亲为。"); S.ceo=null; S.ceoOn=false; render(); }
+
+function autoBid(t,R){
+ var P=S.policy;
+ var o=t.official?off(t.official):null;
+ var strat=P.style==="aggressive"?"low":P.style==="steady"?(t.margin>=0.13?"high":"mid"):(t.value>=1500?"low":"mid");
+ var useInfo=false,useInsider=false,fee=0;
+ if(t.gov&&o&&o.relation>=30){useInfo=true;o.favor=clamp((o.favor||0)-3,-60,60);}
+ if(t.gov&&o&&P.autoInsider&&o.relation>=60){
+   if(S.heat+13<=P.heatCap){
+     fee=Math.round(t.value*rnd(0.03,0.05)*(S.negFeeMul||1));
+     if(S.cash>=fee+t.value*0.03){useInsider=true;S.negFeeMul=null;S.cash-=fee;S.bribeOut+=fee;o.bribes+=fee;o.exposure=clamp((o.exposure||0)+ri(16,26),0,100);o.favor=clamp((o.favor||0)-10,-60,60);S.insiderUsed++;addHeat(ri(7,13));R.push("为《"+t.name+"》给 "+o.name+" 送去打点费 "+fmt(fee)+" 谈内定，对方只回了四个字：「等消息吧。」");}
+     else R.push("想为《"+t.name+"》谈内定，但现金不够付打点费，我作罢了。");
+   } else R.push("《"+t.name+"》本可谈内定，但热度逼近红线 "+P.heatCap+"，我没敢送钱，改走正常投标。");
+ }
+ S.cash-=Math.round(t.value*0.03);
+ var bidFactor=strat==="low"?0.90:strat==="high"?1.03:0.96;
+ var myBid=t.value*bidFactor;
+ var chance=0.42;
+ if(myBid<t.rivalLow)chance+=0.25; else if(myBid<t.rivalLow*1.05)chance+=0.08; else chance-=0.15;
+ chance+=(S.reputation-50)*0.003+(S.creditScore-70)*0.002;
+ if(S.managers.some(function(m){return m.tag==="商务关系"}))chance+=0.06;
+ if(o)chance+=o.relation*0.0015;
+ if(S.diff==="hard")chance-=0.06; if(S.diff==="easy")chance+=0.06;
+ var jointUsed=S.jointNext;
+ if(jointUsed){chance+=0.18;S.jointNext=false;}
+ if(useInsider)chance=0.93;
+ chance+=(S.ceo.skill-6)*0.008;
+ var win=Math.random()<clamp(chance,0.05,0.97);
+ S.tenders=S.tenders.filter(function(x){return x.id!==t.id});
+ if(win){
+   var kickOwe=useInsider?Math.round(t.value*rnd(0.02,0.04)):0;
+   S.projects.push({name:t.name,type:t.type,value:t.value,total:t.months,left:t.months,margin:t.margin-(strat==="low"?0.035:strat==="high"?-0.015:0)-(jointUsed?0.04:0),gov:t.gov,insider:useInsider,owner:t.owner});
+   if(useInsider){S.insiderWins++; if(kickOwe>0&&o){S.owes.push({to:o.name,amount:kickOwe,due:S.totalMonths+3,proj:t.name}); R.push("<b>内定拿下《"+t.name+"》 "+fmt(t.value)+"！</b>答应 "+o.name+" 的回扣 "+fmt(kickOwe)+" 已记入灰色账本，3 个月内兑现。");} ach("insider","暗度陈仓：首次内定中标");}
+   else R.push("<b>中标《"+t.name+"》 "+fmt(t.value)+"</b>（"+(strat==="low"?"低价抢标":strat==="high"?"高价博利润":"均衡报价")+(useInfo?"，提前打听了内部消息":"")+"）。");
+   if(S.projects.length===1)ach("firstwin","开张大吉：首个项目");
+   S.ceoTrust=clamp(S.ceoTrust+2,0,100);
+ }else{
+   R.push("《"+t.name+"》落标（对手低价约 "+fmt(t.rivalLow)+"）。"+(useInsider?"钱送了、标没拿到，对方在电话里只说「这次情况特殊」——这笔账，我记下了。":""));
+   if(useInsider)S.ceoTrust=clamp(S.ceoTrust-3,0,100);
+ }
+}
+
+function runNegotiation(R){
+ var ceo=S.ceo,P=S.policy,focus=P.negFocus;
+ var T={title:"",rounds:[],result:""};
+ var success=false;
+ if(focus==="bank"){
+   if(S.bankNegCD>0){S.bankNegCD--; R.push("谈判：银行授信上次刚谈过，还在冷却期，这个月没去。"); return;}
+   T.title="谈判实录 · 扩银行授信（江州银行公司部）";
+   T.rounds.push({w:1,t:"刘经理，"+S.co+"这两年的完工项目您都看得见，回款记录也在。授信还是开局那个老额度，盘子实在转不开了。"});
+   T.rounds.push({w:0,t:"额度是总行按报表批的。你们负债率不低，我这边不好开口啊。"});
+   T.rounds.push({w:1,t:"我把在建合同和回款计划都带来了，政府单占六成，坏账风险比开发商单低得多。额度提一档，利息上浮五个点，我们认。"});
+   success=Math.random()<0.35+ceo.neg*0.045;
+   if(success){var add=ri(120,220);S.creditLine+=add;S.bankNegCD=5;T.rounds.push({w:0,t:"……报表留下，下周我替你们上会。额度先提 "+add+"万，别让我难做。"});T.result="谈成：授信额度 +"+add+"万，半年内不用再谈。";R.push("谈判：和银行谈下授信 +"+fmt(add)+"，全过程在谈判记录里。");}
+   else{T.rounds.push({w:0,t:"这次真不行。等你们再完工两个项目，报表好看了，我亲自去找你。"});T.result="谈崩：银行要求先看完工业绩，下季度再议。";R.push("谈判：银行授信没谈下来，对方要先看完工业绩。");}
+ }
+ else if(focus==="insider"){
+   var cand=S.officials.filter(function(o){return o.status==="在任"&&o.relation>=40}).sort(function(a,b){return b.relation-a.relation})[0];
+   if(!cand){ R.push("谈判：想谈内定折扣，但眼下没有关系 ≥40 的在任官员，我先去压了材料价。"); runNegSupplier(T,R); return; }
+   if(S.heat>P.heatCap){ R.push("谈判：热度超了红线，这个月没敢去谈内定折扣。"); return; }
+   T.title="谈判实录 · 谈内定折扣（"+cand.name+" · "+cand.role+"）";
+   T.rounds.push({w:1,t:cand.name+"，下个季度的项目，我们想参与得更深一点。规矩我们懂，就是这个数，能不能看在老交情上，照顾一下？"});
+   T.rounds.push({w:0,t:"数是上面定的，不是我一个人说了算。你这话，今天说完就烂在屋里。"});
+   T.rounds.push({w:1,t:"我们绝不让您为难。该走的程序一步不少，标书做得漂漂亮亮，您只需要在评标那块，帮着把把关。"});
+   success=Math.random()<0.30+ceo.neg*0.04+cand.relation*0.002;
+   if(success){S.negFeeMul=0.65;cand.relation=clamp(cand.relation+3,0,100);T.rounds.push({w:0,t:"……行吧。下不为例。费用按六五折走，事情办漂亮点，别给我惹麻烦。"});T.result="谈成：下一次内定中标的打点费按 65 折结算（手动投标勾选内定同样生效）。";R.push("谈判：跟 "+cand.name+" 谈下内定折扣，下一次打点费 65 折。");}
+   else{T.rounds.push({w:0,t:"（把茶杯往桌上一扣）这话，今天就当没说过。最近风声紧，你也收敛点。"});T.result="谈崩：对方避险回绝，没敢接话。";R.push("谈判："+cand.name+" 没接内定折扣的话茬，风声紧，他在避险。");}
+ }
+ else if(focus==="land"){
+   if(!S.landOpp){ R.push("谈判：本月没有土地机会可谈，我转去压了材料价。"); runNegSupplier(T,R); return; }
+   var L=S.landOpp;
+   T.title="谈判实录 · 砍土地款（《"+L.name+"》）";
+   T.rounds.push({w:1,t:"这块地的价格，比周边同地段高出一截。现在的市场您也清楚，真金白银敢接的，没几家了。"});
+   T.rounds.push({w:0,t:"价格是评估出来的，不是我张口要的。再说，盯着这块地的人不少。"});
+   T.rounds.push({w:1,t:"盯着的人多，掏得出现金的不多。我们一次性付清、不拖账期——您让一成二，双方都省事。"});
+   success=Math.random()<0.35+ceo.neg*0.04;
+   if(success){var cut=Math.round(L.cost*0.12);L.cost-=cut;T.rounds.push({w:0,t:"……付款条件确实有诚意。行，土地款让 "+cut+"万，合同今天就改。"});T.result="谈成：土地款砍下 "+fmt(cut)+"，现价 "+fmt(L.cost)+"。";R.push("谈判：《"+L.name+"》土地款砍下 "+fmt(cut)+"。");}
+   else{T.rounds.push({w:0,t:"一分不让。要么按这个价签，要么我们走拍卖程序。"});T.result="谈崩：对方咬死价格不松口。";R.push("谈判：土地款没砍动，对方咬死了价格。");}
+ }
+ else { runNegSupplier(T,R); return; }
+ S.negLog.unshift(T); if(S.negLog.length>6)S.negLog.pop();
+}
+function runNegSupplier(T,R){
+ var ceo=S.ceo;
+ T.title="谈判实录 · 压材料价（宏发建材销售总监）";
+ T.rounds.push({w:1,t:"江州这片工地，接下来两年的量都是我们的。价格按季度结，别再拿零售价来糊弄我。"});
+ T.rounds.push({w:0,t:"总监，这个已经是出厂价了，再低我们真要亏本。"});
+ T.rounds.push({w:1,t:"亏不亏，我心里有数。降五个点，账期我给你缩到三十天——价格和账期，你今天选一个让我满意。"});
+ var success=Math.random()<0.40+ceo.neg*0.04;
+ if(success){S.supplyBuff=Math.max(S.supplyBuff,2);T.rounds.push({w:0,t:"……行，五个点就五个点。但说好，量要是跟不上，这个价作废。"});T.result="谈成：未来 2 个月项目成本 -5%。";R.push("谈判：材料价压下五个点，接下来 2 个月成本 -5%。");}
+ else{T.rounds.push({w:0,t:"最多让两个点，再多我回去没法交代。"});T.rounds.push({w:1,t:"两个点我不签。先晾着吧，我去看看你对面那家。"});T.result="谈崩：对方只肯让两个点，没签。";R.push("谈判：材料压价没谈拢，对方只肯让两个点，我没签。");}
+ S.negLog.unshift(T); if(S.negLog.length>6)S.negLog.pop();
+}
+
+function managerAct(){
+ if(!S.ceo||!S.ceoOn||S.gameOver)return;
+ var P=S.policy,R=[],ceo=S.ceo;
+ R.push("—— "+ceo.name+" 汇报（"+S.year+"年"+S.month+"月）——");
+ if(S.heat>=90){S.ceoTrust=clamp(S.ceoTrust-8,0,100);R.push("⚠ 热度已经 "+S.heat+"，我把所有灰色动作都停了。再这么下去，我得先考虑自己的退路。");}
+ if(S.ceoTrust<=10){ log("<span class='bad'>🤵 总经理 "+ceo.name+" 递交了辞呈：</span>「董事长，这盘棋的风险，已经不是我能背的了。」托管终止。"); S.ceo=null;S.ceoOn=false; return; }
+ // 1) cash line -> auto loan
+ if(P.autoLoan&&S.cash<P.cashLine){
+   var need=Math.round(Math.min(P.cashLine+100-S.cash,S.creditLine-S.debt));
+   if(need>=50){S.debt+=need;S.cash+=need;R.push("现金低于红线 "+fmt(P.cashLine)+"，我向银行借了 "+fmt(need)+" 周转（月息 0.8%）。");}
+   else if(S.cash<30)R.push("现金告急、授信也用满了。过桥贷利息太狠，我没敢碰——等您拍板。");
+ }
+ // 2) pay kickback promises
+ if(P.payOwes&&S.owes.length){
+   var paid=0;
+   for(var i=S.owes.length-1;i>=0;i--){var w=S.owes[i]; if(S.cash-w.amount>=P.cashLine*0.5){S.cash-=w.amount;S.kickPaid+=w.amount;addHeat(ri(2,5));var oo=off(w.to);if(oo&&oo.status==="在任")oo.relation=clamp(oo.relation+6,0,100);S.owes.splice(i,1);paid++;R.push("兑现了欠 "+w.to+" 的回扣 "+fmt(w.amount)+"（《"+w.proj+"》），对方回了句「合作愉快」。");}}
+   if(!paid)R.push("有 "+S.owes.length+" 笔回扣待兑现，但现金要留着保命，我先压了压。提醒您：拖太久，对方会翻脸。");
+ }
+ // 3) heat control
+ if(S.heat>P.heatCap){
+   if(S.cash>=30){S.cash-=30;addHeat(-12);S.reputation=clamp(S.reputation+3,0,100);R.push("热度 "+S.heat+" 超过红线 "+P.heatCap+"，我做主向教育基金捐了 30万压一压，顺带挣了点声誉。");}
+   else if(!S.auditUsed&&S.cash>=15){S.cash-=15;S.auditUsed=true;addHeat(-10);S.officials.forEach(function(x){x.exposure=clamp((x.exposure||0)-12,0,100)});R.push("热度超红线，我请第三方做了迎审自查，热度和牵连都降了些。");}
+ }
+ // 4) auto government relations
+ if(P.autoGov&&S.govActions>0&&S.heat<=P.heatCap){
+   var kindName={visit:"登门拜访",dinner:"摆饭局",gift:"送土特产",big:"大额打点"};
+   var spent=0;
+   var targets=S.officials.filter(function(x){return x.status==="在任"&&x.relation<P.relTarget}).sort(function(a,b){var fa=a.name===P.focusOfficial?0:1,fb=b.name===P.focusOfficial?0:1;return fa-fb||a.relation-b.relation});
+   for(var ti=0;ti<targets.length&&S.govActions>0;ti++){
+     var o=targets[ti];
+     var kind=(P.govTier==="big"&&spent+80<=P.govBudget&&o.relation>=45)?"big":(P.govTier!=="visit"&&P.govTier!=="dinner"&&spent+20<=P.govBudget&&o.relation>=20)?"gift":(P.govTier!=="visit"&&spent+5<=P.govBudget)?"dinner":"visit";
+     if(ceo.name==="林晚晴"&&kind==="big")kind="gift";
+     var cost=kind==="big"?80:kind==="gift"?20:kind==="dinner"?5:0;
+     if(kind==="big"&&S.heat+11>P.heatCap){kind="gift";cost=20;}
+     if(S.cash<cost+P.cashLine*0.3)break;
+     var rel=(kind==="big"?ri(16,24):kind==="gift"?ri(9,15):kind==="dinner"?ri(5,9):ri(2,4))+(ceo.gov>=8?2:0);
+     var heat=kind==="big"?11:kind==="gift"?5:kind==="dinner"?2:0;
+     S.cash-=cost; spent+=cost;
+     if(cost>=20){S.bribeOut+=cost;o.bribes+=cost;}
+     o.favor=clamp((o.favor||0)+(kind==="visit"?1:kind==="dinner"?3:kind==="gift"?4:6),-60,60);
+     if(kind==="gift")o.exposure=clamp((o.exposure||0)+6,0,100);
+     if(kind==="big")o.exposure=clamp((o.exposure||0)+14,0,100);
+     if(kind==="dinner")o.exposure=clamp((o.exposure||0)+2,0,100);
+     S.govActions--; var before=o.relation; o.relation=clamp(o.relation+rel,0,100); if(heat)addHeat(heat);
+     R.push("政商：对 "+o.name+" 走了「"+kindName[kind]+"」"+(cost?"，花 "+fmt(cost):"")+"，关系 "+before+" → "+o.relation+(o.relation>=60&&before<60?"。<b>他已经进了「自己人」的圈子，对口的政府项目可以谈内定了。</b>":"")+"。");
+     if(o.relation>=30)ach("rel30","登堂入室：任一官员关系达 30");
+     if(o.relation>=60)ach("rel60","自己人：任一官员关系达 60");
+   }
+ }
+ // 5) auto bidding
+ if(P.autoBid){
+   var cands=S.tenders.filter(function(t){return !canBid(t)}).filter(function(t){
+     if(P.bidScope==="gov")return t.gov;
+     if(P.bidScope==="margin")return t.margin>=0.12;
+     return true;
+   }).sort(function(a,b){return (b.value*b.margin)-(a.value*a.margin)});
+   var nb=0;
+   for(var bi=0;bi<cands.length&&nb<P.bidMax;bi++){
+     if(S.cash<cands[bi].value*0.03+30){R.push("看中《"+cands[bi].name+"》，但现金留不出保证金和打点钱，放弃。");break;}
+     autoBid(cands[bi],R); nb++;
+   }
+   if(!cands.length)R.push("本月没有符合授权范围的可投项目，我按兵不动，省下保证金。");
+ }
+ // 6) auto land
+ if(P.autoLand&&S.landOpp){
+   var L=S.landOpp;
+   var okL=!L.official||(off(L.official)&&off(L.official).status==="在任"&&off(L.official).relation>=50);
+   if(okL&&S.cash>L.cost*1.6){ landAct("take"); R.push("土地：按激进授权拿下了《"+L.name+"》（土地款 "+fmt(L.cost)+"）。"); }
+   else R.push("土地：《"+L.name+"》在桌上，但"+(okL?"现金不够留足安全垫":"勾地通道的关系还没到位")+"，我没动手。");
+ }
+ // 7) supplier / subcontractor kickbacks per authorization
+ if(S.supplier){
+   if(P.takeKick){
+     if(S.heat+S.supplier.heat<=P.heatCap){var sv=S.supplier;S.cash+=sv.save;S.kickIn+=sv.save;S.supplierStreak++;addHeat(sv.heat);R.push("材料商 "+sv.name+" 的回扣 "+fmt(sv.save)+"，我按授权收了，账走个人卡，热度 +"+sv.heat+"。");S.supplier=null;}
+     else{R.push("材料商送回扣来了，但热度快触红线，我退了回去。");S.supplier=null;}
+   }
+ }
+ if(S.subcon&&P.takeKick){
+   if(S.heat+5<=P.heatCap){S.cash+=S.subcon.amount;S.kickIn+=S.subcon.amount;addHeat(ri(2,5));R.push(S.subcon.name+" 的进场红包 "+fmt(S.subcon.amount)+"，按授权收下了。");S.subcon=null;}
+ }
+ // 8) automatic negotiation
+ if(P.autoNeg)runNegotiation(R);
+ if(R.length===1)R.push("本月无事可做，按您的授权静观其变。");
+ S.mgrReport=R;
+ log("🤵 <b>经理人月报</b>："+ceo.name+" 本月执行了 "+(R.length-1)+" 项动作，详见「职业经理人」页的月报与谈判记录。");
+}
+
+function parseCommand(raw){
+ if(!S||!S.ceo){toast("先聘请一位职业经理人，再给他下令");return;}
+ var t=(raw||"").trim(); if(!t)return;
+ var P=S.policy, ok=[], no=[];
+ var strict=S.ceo.name==="林晚晴";
+ function num(re){var m=t.match(re);return m?parseInt(m[1],10):null;}
+ if(/暂停|停下|别托管|我自己来/.test(t)){S.ceoOn=false;ok.push("托管已暂停。后续经营由您亲自操作，我只待命。");}
+ if(/托管|交给你|你来管/.test(t)&&/开|启|恢复|开始/.test(t)){S.ceoOn=true;ok.push("托管已开启，我按现有授权执行。");}
+ S.officials.forEach(function(o){
+   if(t.indexOf(o.name)>=0&&/关系|做到|搞定|处好/.test(t)){
+     var n=num(/(\d{2,3})/); P.relTarget=n?clamp(n,30,95):60; P.autoGov=true; P.autoBid=true; P.focusOfficial=o.name;
+     ok.push("已把与 "+o.name+" 的关系目标定到 "+P.relTarget+"：每月政商动作优先紧着他走，预算内该吃吃、该送送；他对口的政府项目我也会优先投。");
+   }
+ });
+ if(/全投|都投|见标就投/.test(t)){P.autoBid=true;P.bidScope="all";P.bidMax=3;ok.push("投标授权放开：每月最多投 3 个标，见标就投，按方针定报价。");}
+ if(/政府/.test(t)&&/投|项目|标/.test(t)){P.autoBid=true;P.bidScope="gov";ok.push("投标范围改为只打政府/城投项目——回款慢但稳，关系也用得上。");}
+ if(/高毛利|利润厚/.test(t)&&/投|项目|标|稳健/.test(t)){P.autoBid=true;P.bidScope="margin";ok.push("投标范围改为只投毛利 ≥12% 的项目，薄利的一律放过。");}
+ if(/内定/.test(t)){
+   if(/别|不要|不准|停|关掉|关闭|取消/.test(t)){P.autoInsider=false;ok.push("内定授权已关，往后只拼标书和报价。");}
+   else if(strict){P.autoInsider=false;no.push(S.ceo.name+" 把这条推了回来：「内定这种事，出了事第一个进去的是经办人。关系我可以处，打点免谈——您真要办，换个人。」（内定授权保持关闭）");}
+   else{P.autoInsider=true;P.autoBid=true;ok.push("内定授权已开：关系 ≥60 的政府项目，我来谈、我来送，您只看月报。热度红线之内我才动手。");}
+ }
+ if(/回扣/.test(t)&&/还|付|兑现|清/.test(t)){
+   var paidN=0;
+   for(var i=S.owes.length-1;i>=0;i--){var w=S.owes[i]; if(S.cash-w.amount>=50){S.cash-=w.amount;S.kickPaid+=w.amount;addHeat(ri(2,5));var oo=off(w.to);if(oo&&oo.status==="在任")oo.relation=clamp(oo.relation+6,0,100);S.owes.splice(i,1);paidN++;}}
+   P.payOwes=true;
+   ok.push(paidN?("已当场兑现 "+paidN+" 笔回扣承诺，灰色账本清爽了；往后新欠的我也会自动兑现。"):"自动兑现已开启；眼下没有能付的——没有欠账，或现金不够留保命钱。");
+ }
+ if(/别碰回扣|不碰回扣|干净点|清白/.test(t)){P.takeKick=false;P.autoInsider=false;ok.push("明白，走清白路线：不收回扣、不谈内定，只拼经营和正当关系维护。");}
+ else if(/回扣|红包/.test(t)&&/收/.test(t)){
+   if(/别|不|拒|退/.test(t)){P.takeKick=false;ok.push("已关：材料商和分包的回扣红包一律退回，账面干净。");}
+   else{P.takeKick=true;ok.push("已开：材料商回扣、分包红包照单全收——但热度红线之内我才收，超了自动收手。");}
+ }
+ var hn=num(/热度[^0-9]{0,4}(\d{2,3})/)||num(/(\d{2,3})\s*以下/);
+ if(/热度/.test(t)&&hn){P.heatCap=clamp(hn,20,95);ok.push("热度红线设为 "+P.heatCap+"：超过就停一切灰色动作，并自动捐赠/自查降温。");}
+ if(/保现金|现金为王|先保命|省着花/.test(t)){P.style="steady";P.cashLine=200;P.autoLand=false;ok.push("切到现金为王：报价转稳健，现金红线抬到 200万，土地先不碰，授信不够我自动借。");}
+ if(/激进|扩张|冲一波|拿地/.test(t)){P.style="aggressive";P.autoLand=true;P.autoBid=true;ok.push("切到激进扩张：低价抢标，土地/旧改机会自动拿下（现金留足 1.6 倍地价我才动手）。");}
+ if(/稳健|稳一点|保守/.test(t)){P.style="steady";ok.push("切到稳健经营：高毛利才出手，不打价格战。");}
+ if(/均衡|照旧|正常节奏/.test(t)){P.style="balanced";ok.push("恢复均衡方针。");}
+ if(/借钱|贷款|借一笔/.test(t)){
+   var amt=num(/(\d{2,4})\s*万/)||300;
+   if(S.debt+amt<=S.creditLine){S.debt+=amt;S.cash+=amt;ok.push("已向银行借入 "+fmt(amt)+"，月息 0.8%，钱已到账。");}
+   else no.push("授信额度不够了，还能借 "+fmt(Math.max(0,S.creditLine-S.debt))+"。要扩授信，把谈判重点设成银行，或者直接下令「去跟银行谈授信」。");
+ }
+ if(/谈判|去谈|谈谈|跟.{0,6}谈/.test(t)){
+   if(/银行|授信/.test(t)){P.negFocus="bank";P.autoNeg=true;ok.push("谈判重点改为银行授信，我每月去谈一轮，谈判实录会留在记录里。");}
+   else if(/材料|供应商|压价/.test(t)){P.negFocus="supplier";P.autoNeg=true;ok.push("谈判重点改为材料压价。");}
+   else if(/内定|折扣|官员/.test(t)){P.negFocus="insider";P.autoNeg=true;ok.push("谈判重点改为跟官员谈内定折扣，谈成下次打点费打折。");}
+   else if(/地|土地/.test(t)){P.negFocus="land";P.autoNeg=true;ok.push("谈判重点改为土地砍价，有地块时自动去谈。");}
+   else{P.autoNeg=true;ok.push("自动谈判已开启，重点是「"+({supplier:"压材料价",insider:"谈内定折扣",bank:"扩银行授信",land:"砍土地款"})[P.negFocus]+"」。");}
+ }
+ if(/送礼|打点/.test(t)&&/大|狠|到位|放开/.test(t)){
+   if(strict){no.push(S.ceo.name+" 摇头：「大额打点我不经手。饭局和土特产可以，再往上，您另请高明。」");}
+   else{P.govTier="big";P.autoGov=true;ok.push("政商尺度放开到大额打点（单次 80万），预算内我来安排——热度也会涨得快，您想清楚。");}
+ }
+ if(/预算/.test(t)){var bn=num(/(\d{2,4})/);if(bn){P.govBudget=bn;P.autoGov=true;ok.push("每月政商预算上限设为 "+fmt(bn)+"，超了我就收手。");}}
+ if(!ok.length&&!no.length){no.push(S.ceo.name+" 想了想：「这条我没太听懂。您可以这样说——『把王建国的关系做到60』『政府项目全投，内定可以谈』『先把回扣还了』『热度压到50以下』『保现金』『去跟银行谈授信』。」");}
+ S.cmdLog.unshift({m:S.year+"/"+S.month,cmd:t,ok:ok,no:no});
+ if(S.cmdLog.length>20)S.cmdLog.pop();
+ log("📋 董事长指令：「"+t+"」——"+(ok.length?ok.join(" "):"未执行，详见指令台账。"));
+ toast(ok.length?"指令已下达，经理人照单执行（结束本月时落地）":"经理人回执：这条没办成，看指令台账");
+ render();
+}
+
+function renderCeo(){
+ var pill=$("navCeo");
+ if(pill)pill.textContent=(!started||!S||!S.ceo)?"未聘请":(S.ceoOn?"托管中":"已暂停");
+ var box=$("ceoMain"); if(!box||!started||!S)return;
+ $("ceoCmdCard").style.display=S.ceo?"block":"none";
+ $("ceoNegCard").style.display=S.ceo?"block":"none";
+ $("ceoRepCard").style.display=S.ceo?"block":"none";
+ if(!S.ceo){
+   box.innerHTML="<div class='grid3'>"+CEO_POOL.map(function(c,i){
+     return "<div class='off'><div class='off-head'><div class='avatar'>"+c.name[0]+"</div><div><div class='off-name'>"+c.name+" · "+c.age+"岁</div><div class='off-role'>"+c.style+"</div></div></div>"
+     +"<div class='mini'>"+c.from+"</div><div class='off-desc'>"+c.desc+"</div>"
+     +"<div class='mini'>能力 "+c.skill+" · 谈判 "+c.neg+" · 政商 "+c.gov+"<br>签约费 "+fmt(c.fee)+" · 月薪 "+c.salary+"万<br>"+c.trait+"</div>"
+     +"<button class='btn primary sm' data-ceo-hire='"+i+"'>聘请为总经理</button></div>";
+   }).join("")+"</div><div class='mini' style='margin-top:8px'>聘请后开启托管：你只下口令、定授权，投标、政商、谈判、还人情都由他执行，每月出月报，随时可暂停托管或解聘。</div>";
+   box.querySelectorAll("[data-ceo-hire]").forEach(function(b){b.onclick=function(){hireCeo(+b.getAttribute("data-ceo-hire"))}});
+   return;
+ }
+ var ceo=S.ceo,P=S.policy;
+ function sel(key,opts,cur){return "<select data-pol='"+key+"'>"+opts.map(function(o){return "<option value='"+o[0]+"'"+(String(o[0])===String(cur)?" selected":"")+">"+o[1]+"</option>"}).join("")+"</select>"}
+ function chk(key,cur){return "<label class='switch'><input type='checkbox' data-polc='"+key+"'"+(cur?" checked":"")+"> "+(cur?"开":"关")+"</label>"}
+ function row(label,ctl){return "<div class='polrow'><span>"+label+"</span>"+ctl+"</div>"}
+ box.innerHTML="<div class='off' style='margin-bottom:6px'><div class='off-head'><div class='avatar'>"+ceo.name[0]+"</div><div><div class='off-name'>"+ceo.name+" · 总经理 <span class='stage"+(S.ceoOn?" hot":"")+"'>"+(S.ceoOn?"托管中":"已暂停")+"</span></div><div class='off-role'>"+ceo.from+" · "+ceo.style+" · 月薪 "+ceo.salary+"万</div></div></div>"
+ +"<div class='mini'>对您的信任 "+S.ceoTrust+" / 100（中标、谈成会涨；热度失控、内定落标会跌；跌到 10 他会辞职）<div class='relbar'><i style='width:"+S.ceoTrust+"%'></i></div></div>"
+ +"<div class='off-desc'>"+ceo.trait+"</div>"
+ +"<div style='display:flex;gap:6px;flex-wrap:wrap'><button class='btn sm "+(S.ceoOn?"":"primary")+"' id='btnCeoToggle'>"+(S.ceoOn?"暂停托管":"恢复托管")+"</button><button class='btn sm ghost' id='btnCeoFire'>解聘</button></div></div>"
+ +row("经营方针",sel("style",[["steady","稳健经营"],["balanced","均衡"],["aggressive","激进扩张"]],P.style))
+ +row("自动投标",chk("autoBid",P.autoBid))
+ +row("投标范围",sel("bidScope",[["all","全部项目"],["gov","仅政府/城投"],["margin","仅高毛利 ≥12%"]],P.bidScope))
+ +row("每月最多投标",sel("bidMax",[[1,"1 个"],[2,"2 个"],[3,"3 个"]],P.bidMax))
+ +row("自动谈内定（关系 ≥60 的政府项目）",chk("autoInsider",P.autoInsider))
+ +row("自动维护政商关系",chk("autoGov",P.autoGov))
+ +row("每月政商预算上限",sel("govBudget",[[20,"20万"],[40,"40万"],[100,"100万"],[200,"200万"]],P.govBudget))
+ +row("政商动作上限",sel("govTier",[["visit","只登门拜访"],["dinner","到饭局"],["gift","到送土特产"],["big","可大额打点"]],P.govTier))
+ +row("关系目标值（补最弱的线到此为止）",sel("relTarget",[[40,"40"],[60,"60"],[80,"80"]],P.relTarget))
+ +row("自动谈判",chk("autoNeg",P.autoNeg))
+ +row("谈判重点",sel("negFocus",[["supplier","压材料价"],["insider","谈内定折扣"],["bank","扩银行授信"],["land","砍土地款"]],P.negFocus))
+ +row("自动兑现回扣承诺",chk("payOwes",P.payOwes))
+ +row("自动收受回扣/红包（灰色）",chk("takeKick",P.takeKick))
+ +row("热度红线（超了停灰色动作并降温）",sel("heatCap",[[40,"40"],[60,"60"],[80,"80"],[95,"95"]],P.heatCap))
+ +row("现金红线（低了自动借款）",sel("cashLine",[[60,"60万"],[120,"120万"],[200,"200万"]],P.cashLine))
+ +row("自动拿地/旧改（激进）",chk("autoLand",P.autoLand))
+ +"<div class='mini' style='margin-top:8px'>以上授权在每月「结束本月」时由经理人自动执行，结果写入下方月报；也可以直接在指令台打字下令，效果相同。</div>";
+ var tg=$("btnCeoToggle"); if(tg)tg.onclick=function(){S.ceoOn=!S.ceoOn;log(S.ceoOn?"🤵 "+ceo.name+" 恢复托管，按授权继续执行。":"🤵 托管已暂停，"+ceo.name+" 只待命、不动作。");render();};
+ var fr=$("btnCeoFire"); if(fr)fr.onclick=fireCeo;
+ box.querySelectorAll("[data-pol]").forEach(function(b){b.onchange=function(){var v=b.value;if(/^\d+$/.test(v))v=parseInt(v,10);S.policy[b.getAttribute("data-pol")]=v;render();}});
+ box.querySelectorAll("[data-polc]").forEach(function(b){b.onchange=function(){S.policy[b.getAttribute("data-polc")]=b.checked;render();}});
+ var cl=$("cmdLogBox");
+ if(cl)cl.innerHTML=S.cmdLog.length?S.cmdLog.map(function(c){
+   var s="<div style='margin-bottom:7px'><span style='color:#999'>"+c.m+"</span>　<b>你：</b>「"+c.cmd+"」";
+   c.ok.forEach(function(x){s+="<br><span class='ok'>✔ "+ceo.name+"：</span>"+x});
+   c.no.forEach(function(x){s+="<br><span class='no'>✘ </span>"+x});
+   return s+"</div>";
+ }).join(""):"<span class='mini'>暂无指令。</span>";
+ var nb=$("negLogBox");
+ if(nb)nb.innerHTML=S.negLog.length?S.negLog.map(function(T){
+   return "<div class='neg'><b>"+T.title+"</b>"+T.rounds.map(function(r){return "<div class='round'>"+(r.w?("<span class='me'>"+ceo.name+"（总经理）：</span>"):("<span class='who'>对方：</span>"))+r.t+"</div>"}).join("")+"<div class='round' style='font-weight:700;color:var(--teal)'>结果："+T.result+"</div></div>";
+ }).join(""):"<div class='mini'>暂无谈判记录。开启自动谈判并结束本月，经理人会带着你的授权去谈。</div>";
+ var rb=$("mgrReportBox");
+ if(rb)rb.innerHTML=S.mgrReport.length?S.mgrReport.map(function(l){return "<div>"+l+"</div>"}).join(""):"尚未生成月报。开启托管后点「结束本月」，经理人会照单执行并在此汇报。";
 }
 
 /* ---------- render ---------- */
@@ -1124,7 +1502,7 @@ function render(){
  +"<div class='kv'><span>牵连最深的官员</span><b>"+(worstO?worstO.name+" · 牵连 "+(worstO.exposure||0):"—")+"</b></div>"
  +"<div class='kv'><span>中央巡视威胁值</span><b>"+centralThreat()+"（热度+累计打点+内定次数+牵连）</b></div>"
  +"<div class='kv'><span>巡视状态</span><b>"+inspName(S.inspStage)+"</b></div>";
- renderAch(); logRenderOnly();
+ renderAch(); logRenderOnly(); renderCeo();
 }
 function logRenderOnly(){var b=$("logBox");if(b&&S)b.innerHTML=S.logs.map(function(l){return "<div><span style='color:#999'>"+l.m+"</span>　"+l.html+"</div>"}).join("")}
 function renderAch(){
@@ -1180,6 +1558,9 @@ $("btnMerge").onclick=function(){if(S.bizUsed){toast("本月商战动作已用")
 $("btnReport").onclick=function(){if(S.bizUsed){toast("本月商战动作已用");return;}S.bizUsed=true;addHeat(7);S.rivals[0].str=Math.max(15,S.rivals[0].str-10);S.tenders.forEach(function(t){t.rivalLow=Math.round(t.rivalLow*1.04)});if(Math.random()<0.25){S.reputation=clamp(S.reputation-5,0,100);log("你举报远洋路桥围标，审计和纪委都动了——但对方反咬一口，行业里开始传你的「不讲究」。声誉 -5，热度 +7。");}else log("实名举报递了上去：远洋路桥被约谈，实力大跌，对手报价整体抬高。只是纪委的回执单上，写着你的名字。热度 +7。");render();};
 $("btnUpQual").onclick=function(){if(S.qualF<=2){toast("已是二级或更高");return;}if(S.doneCount<2||netAssets()<800){toast("条件不足：需完工≥2 且净资产≥800万");return;}if(S.cash<60){toast("现金不够");return;}S.cash-=60;S.qualF=2;log("<span class='good'>房建资质升至二级！</span>可投上限提到 8,000万。");ach("qual2","资质跃升：房建二级");render();};
 $("btnAddQual").onclick=function(){if(S.qualS){toast("已有市政资质");return;}if(netAssets()<800){toast("条件不足：需净资产≥800万");return;}if(S.cash<80){toast("现金不够");return;}S.cash-=80;S.qualS=3;log("<span class='good'>增项市政三级成功！</span>市政、交通项目可以投了。");render();};
+$("btnCmd").onclick=function(){var v=$("cmdInput").value;if(!v.trim())return;$("cmdInput").value="";parseCommand(v)};
+$("cmdInput").addEventListener("keydown",function(e){if(e.key==="Enter")$("btnCmd").click()});
+document.querySelectorAll("#cmdQuick [data-cmd]").forEach(function(b){b.onclick=function(){parseCommand(b.getAttribute("data-cmd"))}});
 $("btnAskZhou").onclick=function(){
  if(S.zhouUsed){toast("老周这个月已经透露得够多了");return;} S.zhouUsed=true;
  var o=pick(S.officials.filter(function(x){return x.status==="在任"}));
