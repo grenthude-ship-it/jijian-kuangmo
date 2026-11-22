@@ -1,5 +1,5 @@
-const CACHE = 'haomen-v1';
-const ASSETS = ['zu-qiu-kuang-mo.html', 'manifest.webmanifest', 'logo.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+const CACHE = 'haomen-v2';
+const ASSETS = ["apple-touch-icon.png", "creator-poster.jpg", "icon-192.png", "icon-512.png", "logo.png", "manifest.webmanifest", "stadium-bg.jpg", "zu-qiu-kuang-mo.html"];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
