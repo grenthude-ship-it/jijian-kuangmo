@@ -183,6 +183,11 @@
       .pill.up{ background:#e2f2e7; color:var(--green-d); } .pill.dn{ background:#fdeaea; color:var(--red); }
       .pill.elite{ background:linear-gradient(135deg,#ffe9a8,#d4af37 55%,#b8912a); color:#12263f; font-weight:800; border:1px solid #8a6508; box-shadow:0 1px 3px rgba(212,175,55,.45); }
       .pill.idol{ background:linear-gradient(135deg,#1d3a5f,#12263f); color:#ffd968; font-weight:800; border:1px solid #d4af37; box-shadow:0 1px 3px rgba(18,38,63,.35); }
+      .pill.tier1{ background:linear-gradient(135deg,#e0342b,#8f0f22); color:#ffe9a8; font-weight:800; border:1px solid #d4af37; box-shadow:0 1px 3px rgba(200,16,46,.35); }
+      .pill.tier2{ background:linear-gradient(135deg,#f7d774,#e0aa1e); color:#4a3200; font-weight:800; border:1px solid #a87f14; box-shadow:0 1px 3px rgba(224,170,30,.35); }
+      .pill.tier3{ background:linear-gradient(135deg,#ffffff,#c7d0d8); color:#3c4a56; font-weight:800; border:1px solid #93a5b1; }
+      .pill.tier4{ background:#2f6db3; color:#fff; font-weight:700; border:1px solid #1d4e82; }
+      .pill.tier5{ background:#dff3e2; color:#146c2e; font-weight:700; border:1px solid #57a773; }
       .mini{ font-size:11.5px; color:var(--ink3); }
       .log{ display:flex; flex-direction:column; }
       .log .it{ display:flex; gap:12px; padding:7px 0; border-bottom:1px dashed #e3e9ee; font-size:13px; }
@@ -2899,10 +2904,10 @@ var STARS=[
   {id:'creator-fw', name:'邓元元', en:'Deng Yuanyuan', nat:'中国', club:'《豪门缔造者》', league:'游戏创作者', pos:'前锋', posLabel:'前锋', posList:['门将','中场','前锋'], posText:'守门员 · 中场 · 前锋', age:30, ab:99, fee:6666, img:'photo-76.webp', creator:true, linkGroup:'creator', elite:true, idol:true, tag:'本游戏的创作者亲自下场——前锋版：能力 99，全图鉴最高。他和守门员、中场两个邓元元是同一个人（链接球员）：签下任意一个，三个同时显示已签约，球队里只占一个名额。'},
   /* ---- 传奇巨星（legend:true）：照片均为本人真实比赛动作照，与下方图鉴一一对应 ---- */
   {id:'messi', name:'梅西', en:'Lionel Messi', nat:'阿根廷', club:'迈阿密国际', league:'美职联', pos:'前锋', age:39, ab:95, fee:3200, img:'photo-57.jpg', legend:true, tag:'八座金球奖的历史第一人，迈阿密国际 10 号，左脚依旧是这个星球上最危险的武器。'},
-  {id:'ronaldo', name:'C罗', en:'Cristiano Ronaldo', nat:'葡萄牙', club:'利雅得胜利', league:'沙特联', pos:'前锋', age:41, ab:97, fee:3000, img:'photo-58.jpg', legend:true, elite:true, tag:'克里斯蒂亚诺·罗纳尔多，利雅得胜利 7 号，41 岁还在刷新进球纪录，自律的代名词。'},
+  {id:'ronaldo', name:'C罗', en:'Cristiano Ronaldo', nat:'葡萄牙', club:'利雅得胜利', league:'沙特联', pos:'前锋', age:41, ab:97, fee:3000, img:'photo-58.jpg', legend:true, elite:true, idol:true, tag:'克里斯蒂亚诺·罗纳尔多，利雅得胜利 7 号，41 岁还在刷新进球纪录，自律的代名词。'},
   {id:'lewandowski', name:'莱万多夫斯基', en:'Robert Lewandowski', nat:'波兰', club:'巴塞罗那', league:'西甲', pos:'前锋', age:38, ab:92, fee:2000, img:'photo-59.jpg', legend:true, tag:'巴萨 9 号中锋，禁区内的终结机器，越老越妖的代表。'},
   {id:'debruyne', name:'德布劳内', en:'Kevin De Bruyne', nat:'比利时', club:'那不勒斯', league:'意甲', pos:'中场', age:35, ab:91, fee:1900, img:'photo-60.jpg', legend:true, tag:'那不勒斯中场大脑，一脚直塞能撕开任何防线，传球视野历史级。'},
-  {id:'neymar', name:'内马尔', en:'Neymar Jr', nat:'巴西', club:'桑托斯', league:'巴甲', pos:'前锋', age:34, ab:90, fee:1800, img:'photo-61.jpg', legend:true, tag:'回到梦开始的桑托斯，巴西队史射手王，脚下花活与创造力无人能及。'},
+  {id:'neymar', name:'内马尔', en:'Neymar Jr', nat:'巴西', club:'桑托斯', league:'巴甲', pos:'前锋', age:34, ab:90, fee:1800, img:'photo-61.jpg', legend:true, elite:true, idol:true, tag:'回到梦开始的桑托斯，巴西队史射手王，脚下花活与创造力无人能及。'},
   {id:'benzema', name:'本泽马', en:'Karim Benzema', nat:'法国', club:'吉达联合', league:'沙特联', pos:'前锋', age:38, ab:90, fee:1600, img:'photo-62.jpg', legend:true, tag:'2022 年金球先生，吉达联合 9 号，能进球也能做球的全能中锋。'},
   {id:'kroos', name:'克罗斯', en:'Toni Kroos', nat:'德国', club:'皇家马德里', league:'西甲', pos:'中场', age:36, ab:90, fee:1500, img:'photo-63.jpg', legend:true, tag:'2024 年在皇马功成身退的中场大师，传球成功率历史级——在游戏里，他愿意为你的球队复出一次。'},
   {id:'modric', name:'莫德里奇', en:'Luka Modrić', nat:'克罗地亚', club:'AC米兰', league:'意甲', pos:'中场', age:41, ab:89, fee:1300, img:'photo-64.jpg', legend:true, tag:'41 岁还在意甲踢主力的金球先生，AC米兰 14 号，外脚背传球是艺术品。'},
@@ -3026,21 +3031,44 @@ var CREATOR_POS_TAG={
  'creator-fw':'前锋：射门果断，跑位鬼魅，禁区里的终结者。'
 };
 function creatorPosTag(s){ return CREATOR_POS_TAG[s.id] || s.tag; }
-/* 精英球员 / 创作者偶像标志：深蓝+金色徽章，图鉴卡、详情弹窗、阵容表、球员卡共用；
-   数据上由球星条目的 elite / idol 标记决定（创作者三条目两个都有，C罗只有精英球员） */
+/* 专属等级标志：按能力值自动判定，每个球员一个——
+   93–99 传奇巨星（红金）/ 88–92 世界级（金色）/ 80–87 顶级球星（银色）/
+   70–79 主力悍将（蓝色）/ 60–69 及以下 未来之星（绿色）。
+   适用于图鉴全部条目（传奇组、各位置组、中超组、卡包限定巅峰预览）；
+   创作者三个链接条目不加等级标志（已有精英球员+创作者偶像+创作者+链接球员四个标志） */
+function abilityTier(ab){
+  ab=+ab||0;
+  if(ab>=93) return {name:'传奇巨星', cls:'tier1'};
+  if(ab>=88) return {name:'世界级', cls:'tier2'};
+  if(ab>=80) return {name:'顶级球星', cls:'tier3'};
+  if(ab>=70) return {name:'主力悍将', cls:'tier4'};
+  return {name:'未来之星', cls:'tier5'};
+}
+function tierPillHTML(ab){ var t=abilityTier(ab); return '<span class="pill '+t.cls+'">'+t.name+'</span>'; }
+/* 精英球员 / 创作者偶像标志：图鉴卡、详情弹窗、阵容表、球员卡共用；
+   数据上由球星条目的 elite / idol 标记决定——创作者偶像只给三个人：
+   创作者三条目、C罗、内马尔（三人也都有精英球员）；其他球员一律没有这两个标志，
+   只有各自的等级标志。所以普通球员 1 个标志，C罗 / 内马尔 3 个（等级+精英+偶像） */
 function starBadgesHTML(s){
   if(!s) return '';
-  var h='';
-  if(s.elite) h+='<span class="pill elite">⭐ 精英球员</span> ';
-  if(s.idol) h+='<span class="pill idol">👑 创作者偶像</span>';
-  return h;
+  var parts=[];
+  if(!s.creator) parts.push(tierPillHTML(s.ab));
+  if(s.elite) parts.push('<span class="pill elite">⭐ 精英球员</span>');
+  if(s.idol) parts.push('<span class="pill idol">👑 创作者偶像</span>');
+  return parts.join(' ');
 }
 function playerBadgesHTML(p){
   if(!p) return '';
   var s=null;
   if(typeof STARS!=='undefined' && p.star) STARS.forEach(function(x){ if(x.id===p.star) s=x; });
-  if(!s && isCreatorPlayer(p)) s={elite:true, idol:true}; // 老存档的旧版单卡创作者同样带两个标志
-  return starBadgesHTML(s);
+  if(!s && p.peak && typeof peakById==='function') s=peakById(p.peak); // 卡包限定巅峰球员：只有等级标志
+  if(!s && isCreatorPlayer(p)) return starBadgesHTML({elite:true, idol:true, creator:true}); // 老存档的旧版单卡创作者同样带两个标志，且不加等级标志
+  if(!s) return '';
+  if(s.creator) return starBadgesHTML(s); // 创作者三个链接条目：只带精英球员＋创作者偶像，不加等级标志
+  var parts=[tierPillHTML(typeof p.ab==='number'? p.ab : s.ab)];
+  if(s.elite) parts.push('<span class="pill elite">⭐ 精英球员</span>');
+  if(s.idol) parts.push('<span class="pill idol">👑 创作者偶像</span>');
+  return parts.join(' ');
 }
 function isCreatorPlayer(p){ return !!(p && (p.linkGroup==='creator' || p.star==='creator' || (typeof p.star==='string' && p.star.indexOf('creator-')===0))); }
 function creatorPosPills(){ return '<span class="pill gk">守门员</span> <span class="pill mf">中场</span> <span class="pill fw">前锋</span>'; }
@@ -3138,7 +3166,7 @@ function peakLockCardHTML(s){
   +'<div class="sm">'+s.club+' · '+s.nat+'<br>'+posPill(s.pos)+' '+s.age+' 岁 · 巅峰状态</div>'
   +'<div class="ab-wrap"><div class="bar g"><i style="width:'+s.ab+'%"></i></div><b class="num">'+s.ab+'</b></div>'
   +'<div class="stag">'+s.tag+'</div>'
-  +'<div><span class="pill" style="background:#12263f;color:#ffd968;">🔒 卡包限定 · 仅抽卡获得</span></div>'
+  +'<div>'+tierPillHTML(s.ab)+' <span class="pill" style="background:#12263f;color:#ffd968;">🔒 卡包限定 · 仅抽卡获得</span></div>'
   +(owned? '<span class="pill up" style="align-self:flex-start;">✓ 已抽到，在我的球队</span>' : '<button class="btn sm" style="border-color:#d4af37;color:#8a6508;font-weight:800;align-self:flex-start;" onclick="peakLockedTip()">去抽卡碰运气 ›</button>')
   +'</div></div>';
 }
@@ -5822,7 +5850,7 @@ function pagePacks(){
     +'<div class="sm">'+s.club+' · '+s.nat+'<br>'+posPill(s.pos)+' '+s.age+' 岁 · 巅峰状态</div>'
     +'<div class="ab-wrap"><div class="bar g"><i style="width:'+s.ab+'%"></i></div><b class="num">'+s.ab+'</b></div>'
     +'<div class="stag">'+s.tag+'</div>'
-    +'<div><span class="pill" style="background:#12263f;color:#ffd968;">🌟 卡包限定 · 仅抽卡获得</span>'+(got?' <span class="pill up">✓ 已抽到</span>':'')+'</div>'
+    +'<div>'+(typeof tierPillHTML==='function'? tierPillHTML(s.ab)+' ':'')+'<span class="pill" style="background:#12263f;color:#ffd968;">🌟 卡包限定 · 仅抽卡获得</span>'+(got?' <span class="pill up">✓ 已抽到</span>':'')+'</div>'
     +'</div></div>';
   }).join('')+'</div>';
   return '<div class="card"><h3><span class="no">抽卡</span>球星抽卡<span class="hint">钻石余额 💎 '+G.diamonds+' · 累计已抽 '+G.pack.draws+' 包 · 球员碎片 '+G.pack.shards+' 个</span></h3>'
