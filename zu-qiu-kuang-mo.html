@@ -632,12 +632,24 @@ function sanitizeSaveData(d){
     train:{intensity:'标准', physio:1}, scout:{reports:{}, used:0, mission:null}, director:{mode:'manual'},
     board:{patience:70, cityRep:35, frozen:0, budgetSeason:-1, grantSeason:-1, facGrant:false, citySeason:-1},
     mediaUsed:false,
-    pay2:{firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:-1} };
+    pay2:{firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:-1},
+    daily:{dateKey:'', lastDate:'', streak:0, tasks:[], counters:{}, claimed:{}, streakClaimed:{}},
+    fun:{wheelFree:'', wheelSpins:0, letters:[], letterDay:'', funDay:'', hist:[]},
+    neg:{cool:{}, memos:[]},
+    ipo:{stage:'none', key:'', stageMonth:0, price:0, raised:0, hist:{}, priceHist:[], lastDiv:-1, inquiries:0, appliedName:''} };
   for(var k in defs){ if(d[k]===undefined) d[k]=JSON.parse(JSON.stringify(defs[k])); }
   if(!d.pay2 || typeof d.pay2!=='object') d.pay2=JSON.parse(JSON.stringify(defs.pay2));
   var p2d={firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:-1};
   for(var pk in p2d){ if(d.pay2[pk]===undefined) d.pay2[pk]=p2d[pk]; }
   if(!d.pay2.cum || typeof d.pay2.cum!=='object') d.pay2.cum={};
+  if(!d.daily || typeof d.daily!=='object') d.daily={dateKey:'', lastDate:'', streak:0, tasks:[], counters:{}, claimed:{}, streakClaimed:{}};
+  if(!d.daily.counters) d.daily.counters={}; if(!d.daily.claimed) d.daily.claimed={}; if(!d.daily.streakClaimed) d.daily.streakClaimed={}; if(!d.daily.tasks) d.daily.tasks=[];
+  if(!d.fun || typeof d.fun!=='object') d.fun={wheelFree:'', wheelSpins:0, letters:[], letterDay:'', funDay:'', hist:[]};
+  if(!d.fun.letters) d.fun.letters=[]; if(!d.fun.hist) d.fun.hist=[];
+  if(!d.neg || typeof d.neg!=='object') d.neg={cool:{}, memos:[]};
+  if(!d.neg.cool) d.neg.cool={}; if(!d.neg.memos) d.neg.memos=[];
+  if(!d.ipo || typeof d.ipo!=='object') d.ipo={stage:'none', key:'', stageMonth:0, price:0, raised:0, hist:{}, priceHist:[], lastDiv:-1, inquiries:0, appliedName:''};
+  if(!d.ipo.hist) d.ipo.hist={}; if(!d.ipo.priceHist) d.ipo.priceHist=[];
   if(d.pay2.titlesSeen==null || d.pay2.titlesSeen<0) d.pay2.titlesSeen=d.titles||0; // 老存档不补发夺冠礼包，从当前冠军数起算
   if(!d.fac || typeof d.fac!=='object') d.fac={stadium:1, academy:1, training:1, medical:0, data:0};
   var fd={stadium:1, academy:1, training:1, medical:0, data:0};
@@ -891,6 +903,10 @@ function newGame(clubName, origin, diff){
     hist:[o.cash], log:[], lastResults:[], lastFinance:null,
     diamonds:0, vip:0, spent:0, claimed:{}, ended:false, ending:null,
     pay2:{firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:0},
+    daily:{dateKey:'', lastDate:'', streak:0, tasks:[], counters:{}, claimed:{}, streakClaimed:{}},
+    fun:{wheelFree:'', wheelSpins:0, letters:[], letterDay:'', funDay:'', hist:[]},
+    neg:{cool:{}, memos:[]},
+    ipo:{stage:'none', key:'', stageMonth:0, price:0, raised:0, hist:{}, priceHist:[], lastDiv:-1, inquiries:0, appliedName:''},
     grayWinBoost:0, seasonRank:0, negMonths:0,
     ventures:{}, ventureNet:0, biz:defaultBiz(),
     tactic:'均衡攻守', titles:0, cupWins:0, seasonsPlayed:0, totalWins:0,
@@ -1185,6 +1201,7 @@ function playSingleMatch(fx){
   queueMatchReport(result);
   if(!G.monthResults) G.monthResults=[];
   G.monthResults.push(result);
+  if(typeof taskBump==='function'){ taskBump('match'); if(res==='胜') taskBump('win'); }
   log('⚽ '+G.mon+'月'+fx.day+'日 '+(fx.home?'主场':'客场')+' '+gf+':'+ga+' '+fx.opp+'（'+res+'）'+(scorers.length?'，进球：'+scorers.join('、'):'')+(fx.home?'，门票 +'+fmt(gate):'')+(prepName?'｜本场部署：'+prepName:'')+'。', cls);
   return result;
 }
@@ -1323,6 +1340,7 @@ function cupMatch(fx){
   // 杯赛结果同样进本月赛果：月末结算后会出现在首页「最近赛果」里（能点开战报），不再只进动态
   if(!G.monthResults) G.monthResults=[];
   G.monthResults.push(cupResult);
+  if(typeof taskBump==='function'){ taskBump('match'); if(win) taskBump('win'); }
   return cupResult;
 }
 /* ---------------- 赛季颁奖：金靴 / 最佳球员 / 金手套 / 最佳新星 / 最佳主帅 ----------------
@@ -1434,6 +1452,7 @@ function settleMonth(manual){
   G.lastFinance=fin; G.lastResults=results;
   processVentures();
   processBiz();
+  if(typeof processNewMonthly==='function') processNewMonthly();
   var wins=results.filter(function(r){ return r.res==='胜'; }).length;
   G.totalWins=(G.totalWins||0)+wins;
   var losses=results.filter(function(r){ return r.res==='负'; }).length;
@@ -1536,6 +1555,7 @@ function buyPlayer(i){
   if(G.cash<p.price){ toast('现金不够，还差 '+fmt(p.price-G.cash)); return; }
   if(G.squad.length>=22){ toast('一线队名额已满（22人），先卖掉球员'); return; }
   G.cash-=p.price; p.cost=p.price; p.signNote=''; G.squad.push(p); G.market.splice(i,1);
+  if(typeof taskBump==='function') taskBump('sign');
   log('✍️ 签下'+p.pos+' '+p.name+'（能力 '+p.ab+'），签约费（转会费）'+fmt(p.price)+'，当前身价 '+fmt(p.value)+'，月薪 '+p.wage+'万。这笔签约价会一直记在他的档案里，卖出时能看到赚了还是亏了。','good');
   toast('签下 '+p.name); render();
 }
@@ -1724,6 +1744,7 @@ function opsAct(id){
   var o=null; OPS.forEach(function(x){ if(x.id===id) o=x; }); if(!o) return;
   if(G.cash<o.cost){ toast('现金不够，还差 '+fmt(o.cost-G.cash)); return; }
   G.cash-=o.cost; G.opsUsed[id]=true;
+  if(typeof taskBump==='function') taskBump('ops');
   var msg=o.fx();
   log(o.icon+' '+o.nm+'：'+msg,'good');
   toast(o.nm+'完成'); render();
@@ -1733,6 +1754,7 @@ function trainPlayer(name){
   if(p.trainM===G.month){ toast(p.name+' 本月已经特训过了'); return; }
   if(G.cash<30){ toast('特训费 30万，现金不够'); return; }
   G.cash-=30; p.trainM=G.month;
+  if(typeof taskBump==='function') taskBump('train');
   var ch=0.5 + G.fac.training*0.06 + ((G.coach.spec==='青训提拔' && p.age<=23)?0.12:0);
   if(Math.random()<ch && p.ab < (p.pot||90)+2){
     p.ab++; p.value=Math.round(Math.max(5,Math.pow(Math.max(p.ab-38,2),2)*0.16*(p.age>30?0.75:1))); p.wage=Math.round(Math.max(0.4,Math.pow(Math.max(p.ab-40,2),2)*0.016)*10)/10;
@@ -2023,6 +2045,7 @@ function gachaDraw(n){
   var cost= n===10? 1080 : 120;
   if(G.diamonds<cost){ toast('钻石不够，还差 '+(cost-G.diamonds)+' 钻——先去上面充值'); return; }
   G.diamonds-=cost;
+  if(typeof taskBump==='function') taskBump('recruit');
   var results=[];
   for(var i=0;i<n;i++) results.push(gachaOne());
   log('💎 钻石招募'+(n===10?'十连':'单抽')+'：'+results.map(function(x){ return x.txt; }).join('；')+'。','good');
@@ -2168,13 +2191,14 @@ function restart(){ stopAuto(); clearAutoSave(); G=null; PAGE='home'; showStart(
 <script>
 "use strict";
 /* ---------------- 渲染 ---------------- */
-var NAV=[['home','游戏大厅','📋'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['cross','跨行业经营','🏭'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
+var NAV=[['home','游戏大厅','📋'],['tasks','每日任务','✅'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['fun','趣味乐园','🎡'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['neg','商务谈判中心','📞'],['cross','跨行业经营','🏭'],['ipo','企业上市','📈'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
 function navBtns(cls){
   return NAV.map(function(n){
     var bdg='';
     if(n[0]==='market' && G && G.market.length) bdg='<span class="bdg">'+G.market.length+'</span>';
     if(n[0]==='youth' && G && G.youth){ var pr=G.youth.filter(function(p){ return p.age>=16 && p.ab>=50; }).length; if(pr) bdg='<span class="bdg">可提拔 '+pr+'</span>'; }
     if(n[0]==='gray' && G && G.heat>=60) bdg='<span class="bdg">热度'+G.heat+'</span>';
+    if(n[0]==='tasks' && G && typeof dailyClaimable==='function'){ var dc=dailyClaimable(); if(dc) bdg='<span class="bdg">'+dc+' 可领</span>'; }
     return '<button class="'+(PAGE===n[0]?'on':'')+'" onclick="go(\''+n[0]+'\')"><span class="ic">'+n[2]+'</span>'+n[1]+bdg+'</button>';
   }).join('');
 }
@@ -2271,6 +2295,10 @@ function render(){
   else if(PAGE==='brand') body+=pageBrand();
   else if(PAGE==='deals') body+=pageDeals();
   else if(PAGE==='cross') body+=pageCross();
+  else if(PAGE==='tasks') body+=pageTasks();
+  else if(PAGE==='fun') body+=pageFun();
+  else if(PAGE==='neg') body+=pageNeg();
+  else if(PAGE==='ipo') body+=pageIpo();
   else if(PAGE==='pay') body+=pagePay();
   else if(PAGE==='auto') body+=pageAuto();
   $app.innerHTML='<div class="layout'+(PAGE==='home'?' lobby-mode':'')+'"><aside>'+side+'</aside><div style="flex:1;min-width:0;">'+top+'<main>'+body+'</main></div></div>'+bottomTabsHTML();
@@ -3175,6 +3203,8 @@ function showLobbyCat(key){
       ['go','overseas','🌍','海外俱乐部','成就解锁：葡/西/英/巴/日/荷建队 · 独立经营 · 青训输送主队'],
       ['go','brand','👕','自有品牌','成就解锁：起名选标志 · 卖球衣周边 · 品牌价值随成绩涨'],
       ['go','deals','🤝','品牌合作','成就解锁：耐克/阿迪/安踏/李宁等真实品牌赞助合同'],
+      ['go','neg','📞','商务谈判中心','给八大品牌对接人打电话谈合同 · 谈判桌正式报价 · 谈成生成合作备忘'],
+      ['go','ipo','📈','企业上市','自有品牌/跨行业公司上市政策与流程 · 达标可申请 · 上市募资 · 股价分红'],
       ['go','cross','🏭','跨行业经营','成就解锁：餐饮/房地产/影视/电竞酒店等 · 投钱升级看盈亏'],
       ['go','club','📋','董事会与设施','俱乐部页：设施升级 · 银行授信 · 董事会目标与耐心 · 王朝评级'],
       ['go','gray','🕶️','灰色账本','来钱快，但纪检热度会涨'+(G.heat>=60?' · 当前热度 '+G.heat+'，危险':' · 当前热度 '+G.heat)],
@@ -3188,6 +3218,8 @@ function showLobbyCat(key){
       ['go','squad','🏋️','训练 · 更衣室 · 球员关系','在阵容页下方：训练强度与理疗、球员谈话、首发承诺、续约都在那']
     ]},
     event:{ t:'🎪 赛事活动类', rows:[
+      ['go','tasks','✅','每日任务','每天真实日期刷新 6 个任务 · 连续登录奖励 · 明日任务预告'],
+      ['go','fun','🎡','趣味乐园','幸运大转盘（每天免费 1 次）· 球迷来信回信 · 每日趣味随机事件'],
       ['go','ops','🎪','运营活动','战术体系 · 赛前部署 · 每月活动 · 足协杯'+(opsLeft?' · 本月还剩 '+opsLeft+' 项可办':'')],
       ['go','honors','🎖️','荣誉中心','俱乐部荣誉 · 球员荣誉 · 赛季颁奖倒计时 '+monthsToAwards()+' 个月'],
       ['fn','tasks','📋','任务中心','董事会赛季目标 + 长期目标'+(claim?' · '+claim+' 个成就奖励可领':'')],
@@ -3219,6 +3251,7 @@ function lobbyHTML(){
   var welfareN=claim+(signed?0:1);
   /* 大厅只留核心入口，其余玩法按分类收进 showLobbyCat 的分类弹窗（一个玩法只出现一次，不再重复摆） */
   var coreTilesHTML=''
+  +'<button class="ltile" onclick="go(\'tasks\')"><span class="ti">✅</span>每日任务<small>每天刷新 6 个 · 连登有大奖 · 明日可预览</small>'+(dailyClaimable()?'<span class="bdg">'+dailyClaimable()+' 个可领</span>':'<span class="bdg">连登 '+((G.daily&&G.daily.streak)||0)+' 天</span>')+'</button>'
   +'<button class="ltile" onclick="go(\'career\')"><span class="ti">🏆</span>生涯<small>王朝评级 · 成就墙 · 历届冠军</small>'+((G.titles||0)?'<span class="bdg">冠军 ×'+G.titles+'</span>':'')+'</button>'
   +'<button class="ltile" onclick="go(\'league\')"><span class="ti">🛡️</span>联盟<small>积分榜 · 升降级 · 三级联赛</small></button>'
   +'<button class="ltile" onclick="lobbySignIn()"><span class="ti">📅</span>签到<small>每周签到 · 7 天循环领钻石</small>'+(signed?'':'<span class="bdg">可领</span>')+'</button>'
@@ -3246,6 +3279,7 @@ function lobbyHTML(){
   +'<button class="lobby-profile" onclick="go(\'club\')" title="点开俱乐部页：设施、银行、王朝评级与成就"><span class="pshield">🛡️</span><span><span class="pname">经理人 · '+esc(G.club)+'</span><span class="plv">Lv.'+lv+' <span class="lvlbar"><i style="width:'+pct+'%"></i></span></span><span class="psub">'+d.short+' 第 '+myRank()+' 名 · '+G.mon+'月'+G.day+'日 · 声望 '+G.rep+' · 球迷 '+fmtFans(G.fans)+' · 满意度 '+(G.fanSat==null?62:G.fanSat)+'</span></span></button>'
   +'<div class="lobby-quick">'
   +'<button class="qbtn" onclick="showWelfare()"><span class="qi">🎁</span>福利'+(welfareN?'<span class="dot">'+welfareN+'</span>':'')+'</button>'
+  +'<button class="qbtn" onclick="go(\'tasks\')"><span class="qi">✅</span>每日任务'+(dailyClaimable()?'<span class="dot">'+dailyClaimable()+'</span>':'')+'</button>'
   +'<button class="qbtn" onclick="lobbySignIn()"><span class="qi">📅</span>签到'+(signed?'':'<span class="dot">1</span>')+'</button>'
   +'<button class="qbtn" onclick="showPosterWall()"><span class="qi">🖼️</span>海报墙</button>'
   +'</div></div>'
@@ -4276,6 +4310,7 @@ function signDeal(id){
   if(G.rep<d.rep){ toast(d.name+' 要求声望 ≥ '+d.rep+'（当前 '+G.rep+'），先把声望打上去'); return; }
   G.cash+=d.signFee;
   G.biz.deal={id:id, annual:d.annual, bonus:d.bonus, years:d.years, left:d.years*12};
+  if(typeof taskBump==='function') taskBump('deal');
   G.biz.dealTitles=G.titles||0;
   log('🤝 装备赞助签约：'+d.name+' 成为俱乐部装备赞助商！签约费 +'+fmt(d.signFee)+' 先到账；合同 '+d.years+' 年，年费 '+fmt(d.annual)+' 按月发放，夺得中超冠军另有奖金 '+fmt(d.bonus)+'。','good');
   toast('签约 '+d.name+'：签约费 +'+fmt(d.signFee)); render();
@@ -4781,6 +4816,599 @@ function liveExit(){
   $modal.innerHTML='';
   render();
   flushReports(); // 终场后退出直播，照常弹本场赛后战报（同一份已结算赛果）
+}
+</script>
+<style>
+.wheel-wrap{position:relative;width:250px;height:250px;margin:10px auto;border:8px solid #d4af37;border-radius:50%;box-shadow:0 10px 30px rgba(3,8,14,.45);background:#101d29;}
+.wheel-disc{position:absolute;inset:0;border-radius:50%;}
+.wheel-rot{position:absolute;inset:0;transition:transform 4.2s cubic-bezier(.12,.8,.16,1);}
+.wheel-ptr{position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:30px;color:#e85d1f;z-index:3;text-shadow:0 2px 6px rgba(0,0,0,.4);}
+.wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;background:#101d29;color:#f3d27a;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;text-align:center;border:3px solid #d4af37;z-index:2;padding:6px;}
+.wheel-lbl{position:absolute;top:50%;left:50%;font-size:11.5px;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.75);z-index:1;white-space:nowrap;}
+.call-log{background:#0b1622;border-radius:12px;padding:12px;color:#dcebf5;font-size:13.5px;line-height:1.65;max-height:300px;overflow:auto;}
+.call-log .me{color:#ffd76a;}
+.call-log .op{color:#9fe8bb;}
+.task-row{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #e8eef2;}
+.task-row:last-child{border-bottom:none;}
+.streak-cells{display:flex;gap:6px;flex-wrap:wrap;}
+.streak-cell{flex:1;min-width:64px;text-align:center;border:1px solid #d5dee5;border-radius:10px;padding:8px 4px;font-size:12px;}
+.streak-cell.done{background:#e9f7ee;border-color:#9fe8bb;}
+.streak-cell.can{background:#fff7e0;border-color:#d4af37;font-weight:800;}
+</style>
+<script>
+"use strict";
+/* ================= 新系统：每日任务 / 趣味乐园 / 商务谈判 / 企业上市 =================
+   全部状态存进 G（daily / fun / neg / ipo），随自动存档保存；老存档由
+   sanitizeSaveData 补默认，这里再兜底一层 ensureNew()。 */
+function ensureNew(){
+  if(!G) return;
+  if(!G.daily) G.daily={dateKey:'', lastDate:'', streak:0, tasks:[], counters:{}, claimed:{}, streakClaimed:{}};
+  if(!G.daily.counters) G.daily.counters={}; if(!G.daily.claimed) G.daily.claimed={}; if(!G.daily.streakClaimed) G.daily.streakClaimed={}; if(!G.daily.tasks) G.daily.tasks=[];
+  if(!G.fun) G.fun={wheelFree:'', wheelSpins:0, letters:[], letterDay:'', funDay:'', hist:[]};
+  if(!G.fun.letters) G.fun.letters=[]; if(!G.fun.hist) G.fun.hist=[];
+  if(!G.neg) G.neg={cool:{}, memos:[]};
+  if(!G.neg.cool) G.neg.cool={}; if(!G.neg.memos) G.neg.memos=[];
+  if(!G.ipo) G.ipo={stage:'none', key:'', stageMonth:0, price:0, raised:0, hist:{}, priceHist:[], lastDiv:-1, inquiries:0, appliedName:''};
+  if(!G.ipo.hist) G.ipo.hist={}; if(!G.ipo.priceHist) G.ipo.priceHist=[];
+}
+function realDayKey(off){
+  var d=new Date(Date.now()+(off||0)*86400000);
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+function seedNum(s){ var h=0; for(var i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))>>>0; } return h; }
+/* ---------------- 每日任务（按真实日期刷新） ---------------- */
+var TASK_POOL=[
+  {id:'login', nm:'登录游戏', ds:'打开游戏就算完成——坚持每天来看看球队', target:1, rw:{dia:10}, rwTxt:'💎 10 钻'},
+  {id:'win', nm:'赢下 1 场比赛', ds:'联赛或足协杯，赢一场就行', target:1, rw:{cash:30}, rwTxt:'现金 30万'},
+  {id:'match', nm:'踢完 2 场比赛', ds:'推进赛程，踢完任意 2 场比赛', target:2, rw:{fans:1200}, rwTxt:'球迷 +1,200'},
+  {id:'sign', nm:'签下 1 名球员', ds:'去转会市场签一名球员进一线队', target:1, rw:{dia:15}, rwTxt:'💎 15 钻'},
+  {id:'train', nm:'完成 1 次球员特训', ds:'在阵容页给任意球员安排一次特训', target:1, rw:{fans:1000}, rwTxt:'球迷 +1,000'},
+  {id:'ops', nm:'办 1 次运营活动', ds:'球迷开放日、友谊赛、周边大促、选拔，任选其一', target:1, rw:{dia:10}, rwTxt:'💎 10 钻'},
+  {id:'deal', nm:'谈成 1 笔品牌合作', ds:'在品牌合作页签约，或在商务谈判中心谈成一单', target:1, rw:{cash:50}, rwTxt:'现金 50万'},
+  {id:'recruit', nm:'完成 1 次钻石招募', ds:'在充值中心用钻石招募一次球星', target:1, rw:{dia:20}, rwTxt:'💎 20 钻'}
+];
+function taskDef(id){ return TASK_POOL.filter(function(t){ return t.id===id; })[0]; }
+function tasksForDay(key){
+  var seed=seedNum('tasks-'+key);
+  var others=TASK_POOL.filter(function(t){ return t.id!=='login'; });
+  var picked=[];
+  var pool=others.slice();
+  for(var i=0;i<5 && pool.length;i++){ var idx=(seed>>>(i*3))%pool.length; picked.push(pool.splice(idx,1)[0].id); }
+  return ['login'].concat(picked);
+}
+function ensureDaily(){
+  if(!G || !G.started) return;
+  ensureNew();
+  var today=realDayKey(0);
+  if(G.daily.dateKey===today) return;
+  var yest=realDayKey(-1);
+  if(G.daily.lastDate===yest) G.daily.streak=(G.daily.streak||0)+1;
+  else if(G.daily.lastDate!==today) G.daily.streak=1;
+  G.daily.lastDate=today;
+  G.daily.dateKey=today;
+  G.daily.tasks=tasksForDay(today);
+  G.daily.counters={login:1};
+  G.daily.claimed={};
+  log('✅ 新的一天（'+today+'）：每日任务已刷新 6 个，连续登录第 '+G.daily.streak+' 天。做完任务领钻石、现金和球迷，明天的任务可以在任务页提前看。','good');
+}
+function taskBump(kind){
+  if(!G || !G.started) return;
+  ensureDaily();
+  if(!G.daily.tasks || G.daily.tasks.indexOf(kind)<0) return;
+  G.daily.counters[kind]=(G.daily.counters[kind]||0)+1;
+}
+function taskDone(t){ return ((G.daily.counters&&G.daily.counters[t.id])||0) >= t.target; }
+function dailyClaimable(){
+  if(!G || !G.started) return 0;
+  ensureDaily();
+  var n=0;
+  (G.daily.tasks||[]).forEach(function(id){ var t=taskDef(id); if(t && taskDone(t) && !G.daily.claimed[id]) n++; });
+  STREAK_REWARDS.forEach(function(s){ if(G.daily.streak>=s.day && !G.daily.streakClaimed[s.day]) n++; });
+  return n;
+}
+function giveReward(rw){
+  var parts=[];
+  if(rw.dia){ G.diamonds+=rw.dia; parts.push('💎 +'+rw.dia); }
+  if(rw.cash){ G.cash+=rw.cash; parts.push('现金 +'+fmt(rw.cash)); }
+  if(rw.fans){ G.fans+=rw.fans; parts.push('球迷 +'+rw.fans.toLocaleString('zh-CN')); }
+  if(rw.rep){ G.rep=clamp(G.rep+rw.rep,0,100); parts.push('声望 +'+rw.rep); }
+  if(rw.trial){ if(!G.pay2) G.pay2={trialCards:0}; G.pay2.trialCards=(G.pay2.trialCards||0)+rw.trial; parts.push('球星体验卡 ×'+rw.trial); }
+  return parts.join(' · ');
+}
+function claimTask(id){
+  ensureDaily();
+  var t=taskDef(id); if(!t) return;
+  if(!taskDone(t)){ toast('还没完成：'+t.nm); return; }
+  if(G.daily.claimed[id]){ toast('这项奖励已经领过了'); return; }
+  G.daily.claimed[id]=true;
+  var got=giveReward(t.rw);
+  log('✅ 每日任务完成并领奖：「'+t.nm+'」→ '+got+'。','good');
+  toast('领奖成功：'+got); render();
+}
+var STREAK_REWARDS=[
+  {day:3, rw:{dia:30}, txt:'💎 30 钻'},
+  {day:7, rw:{dia:80, cash:100}, txt:'💎 80 钻 + 现金 100万'},
+  {day:14, rw:{dia:150, fans:5000}, txt:'💎 150 钻 + 球迷 +5,000'},
+  {day:30, rw:{dia:400, trial:1}, txt:'💎 400 钻 + 球星体验卡 ×1'}
+];
+function claimStreak(day){
+  ensureDaily();
+  var s=null; STREAK_REWARDS.forEach(function(x){ if(x.day===day) s=x; }); if(!s) return;
+  if(G.daily.streak<day){ toast('连续登录 '+day+' 天才能领（当前 '+G.daily.streak+' 天）'); return; }
+  if(G.daily.streakClaimed[day]){ toast('这个连登奖励已经领过了'); return; }
+  G.daily.streakClaimed[day]=true;
+  var got=giveReward(s.rw);
+  log('🔥 连续登录 '+day+' 天奖励到账：'+got+'。断签会清零，明天记得来。','good');
+  toast('连登奖励：'+got); render();
+}
+function pageTasks(){
+  ensureDaily();
+  var rows=G.daily.tasks.map(function(id){
+    var t=taskDef(id); if(!t) return '';
+    var cur=Math.min((G.daily.counters[id]||0), t.target);
+    var done=taskDone(t), claimed=!!G.daily.claimed[id];
+    return '<div class="task-row"><div class="grow"><div class="nm" style="font-weight:700;">'+(done?'✅ ':'⬜ ')+t.nm+' <span class="mini">'+cur+' / '+t.target+'</span></div><div class="meta">'+t.ds+' · 奖励：'+t.rwTxt+'</div></div>'
+    +(claimed? '<span class="pill up">已领取</span>' : (done? '<button class="btn pri sm" onclick="claimTask(\''+id+'\')">领取奖励</button>' : '<span class="pill">进行中</span>'))+'</div>';
+  }).join('');
+  var streakCells=STREAK_REWARDS.map(function(s){
+    var st= G.daily.streakClaimed[s.day]? 'done' : (G.daily.streak>=s.day? 'can':'');
+    return '<div class="streak-cell '+st+'"><div style="font-weight:800;">连登 '+s.day+' 天</div><div>'+s.txt+'</div>'
+    +(G.daily.streakClaimed[s.day]? '<div>✓ 已领</div>' : (G.daily.streak>=s.day? '<button class="btn pri sm" style="margin-top:5px;" onclick="claimStreak('+s.day+')">领取</button>' : '<div class="mini">还差 '+(s.day-G.daily.streak)+' 天</div>'))+'</div>';
+  }).join('');
+  var tomorrow=tasksForDay(realDayKey(1)).map(function(id){ var t=taskDef(id); return '<div class="task-row"><div class="grow"><div class="nm" style="font-weight:600;">🔮 '+t.nm+'</div><div class="meta">'+t.ds+' · 奖励：'+t.rwTxt+'</div></div><span class="pill">明日</span></div>'; }).join('');
+  return '<div class="card" style="border:2px solid var(--gold);"><h3>✅ 每日任务<span class="hint">按真实日期每天刷新 · 今天是 '+realDayKey(0)+'</span></h3>'
+  +'<p class="desc">每天打开游戏就有一组新任务：做完领钻石、现金、球迷和声望。<b>连续登录</b>天数越多奖励越大，<b>断签一天清零重来</b>——明天记得回来。下面还能提前看明天的任务，今晚就能盘算好明天怎么打。</p>'
+  +'<div class="kpis" style="margin:0 0 4px;"><div class="kpi"><div class="lb">🔥 连续登录</div><div class="vl num">'+G.daily.streak+' 天</div><div class="sub">断签清零，每天打开游戏自动累计</div></div><div class="kpi"><div class="lb">今日进度</div><div class="vl num">'+G.daily.tasks.filter(function(id){ var t=taskDef(id); return t&&taskDone(t); }).length+' / '+G.daily.tasks.length+'</div><div class="sub">完成 '+dailyClaimable()+' 项奖励待领取</div></div></div>'
+  +rows+'</div>'
+  +'<div class="card"><h3>🔥 连续登录奖励<span class="hint">不断签才能拿满，断一天从第 1 天重数</span></h3><div class="streak-cells">'+streakCells+'</div></div>'
+  +'<div class="card"><h3>🔮 明日任务预告<span class="hint">'+realDayKey(1)+' 的任务，零点刷新</span></h3>'+tomorrow
+  +'<div class="acts" style="margin-top:10px;"><button class="btn" onclick="go(\'home\')">← 回大厅</button><button class="btn sm" onclick="go(\'fun\')">去趣味乐园 →</button></div></div>';
+}
+/* ---------------- 趣味乐园：转盘 / 球迷来信 / 趣味事件 ---------------- */
+var WHEEL_PRIZES=[
+  {nm:'💎 30 钻', rw:{dia:30}, w:20, col:'#1d6fb8'},
+  {nm:'现金 50万', rw:{cash:50}, w:20, col:'#0f7a4d'},
+  {nm:'试训卡 ×1', rw:{voucher:1}, w:12, col:'#7a3ea8'},
+  {nm:'💎 80 钻', rw:{dia:80}, w:10, col:'#c8102e'},
+  {nm:'球迷 +2,000', rw:{fans:2000}, w:16, col:'#0e7c86'},
+  {nm:'球星体验卡 ×1', rw:{trial:1}, w:6, col:'#d4a017'},
+  {nm:'现金 120万', rw:{cash:120}, w:8, col:'#28455e'},
+  {nm:'声望 +2', rw:{rep:2}, w:8, col:'#e85d1f'}
+];
+var _wheelRot=0, _wheelBusy=false;
+function wheelFreeLeft(){ ensureNew(); return G.fun.wheelFree!==realDayKey(0); }
+function spinWheel(){
+  if(_wheelBusy) return;
+  ensureNew();
+  var free=wheelFreeLeft();
+  if(!free && G.diamonds<30){ toast('今日免费次数已用完，再转需要 30 钻（当前 '+G.diamonds+' 钻）'); return; }
+  if(!free) G.diamonds-=30; else G.fun.wheelFree=realDayKey(0);
+  G.fun.wheelSpins=(G.fun.wheelSpins||0)+1;
+  var tot=0; WHEEL_PRIZES.forEach(function(p){ tot+=p.w; });
+  var r=Math.random()*tot, idx=0;
+  for(var i=0;i<WHEEL_PRIZES.length;i++){ r-=WHEEL_PRIZES[i].w; if(r<=0){ idx=i; break; } }
+  var targetOff=(360-(idx*45+22.5))%360;
+  _wheelRot += 360*5 + ((targetOff - (_wheelRot%360)) + 360)%360;
+  _wheelBusy=true;
+  render();
+  setTimeout(function(){
+    _wheelBusy=false;
+    var p=WHEEL_PRIZES[idx];
+    var rw={}; for(var k in p.rw) rw[k]=p.rw[k];
+    if(rw.voucher){ if(!G.pay2) G.pay2={vouchers:0}; G.pay2.vouchers=(G.pay2.vouchers||0)+1; delete rw.voucher; }
+    var got=Object.keys(rw).length? giveReward(rw) : '球星直签券 ×1（去球星图鉴用券签人）';
+    if(p.rw.voucher) got='球星直签券 ×1（去球星图鉴用券签人）';
+    log('🎡 幸运大转盘：转中了「'+p.nm+'」！'+(free?'（今日免费次数）':'（花 30 钻再转）'),'good');
+    toast('🎡 恭喜转中：'+p.nm);
+    render();
+  }, 4400);
+}
+var LETTER_POOL=[
+  {from:'老球迷 · 赵大爷（看台 30 年）', txt:'小伙子，我从中乙看台一路跟到今天。别的不求，下场球能不能让孩子们踢得开心点？输赢我都认，就是别怂。'},
+  {from:'小学生球迷 · 豆豆', txt:'经理叔叔，我把零花钱都买了球队围巾！我同桌说我们队不行，我跟他打赌赢了，他现在也入坑了。你们要加油呀！'},
+  {from:'外地球迷 · 漂在深圳的江州人', txt:'每次主场比赛我都开着直播加班看。同事问我图啥，我说图个念想。球队就是家乡的一封信，踢到哪儿我跟到哪儿。'},
+  {from:'球迷会会长夫人', txt:'我家那口子为了看球把结婚纪念日都忘了！不过看他开心的样子……算了，下场球我也去，给我留两张票。'},
+  {from:'刚入坑的新球迷 · 阿哲', txt:'朋友拉我看了一场，直接垂直入坑。现在满脑子都是队歌，洗澡都在唱。就是想问：周边啥时候出新款？钱包已经准备好了。'},
+  {from:'理性的数据派球迷 · 老K', txt:'我做了个表格分析球队的攻防数据，结论是：再给教练一点时间，体系正在成型。附件就不发了，怕你们看不懂（开玩笑的）。'},
+  {from:'带着父亲看球的女儿', txt:'我爸年轻时是球队死忠，现在腿脚不好，我推着轮椅带他来。进球那一刻他站起来喊，我眼泪都下来了。谢谢你们，让他又年轻了一回。'},
+  {from:'客队球迷（伪装的）', txt:'坦白说我是隔壁球队的球迷，但你们这赛季踢得真好看，我偷偷买了你们的会员。这封信看完请销毁，别让我主队知道。'}
+];
+function ensureLetter(){
+  ensureNew();
+  var today=realDayKey(0);
+  var pending=G.fun.letters.some(function(l){ return !l.replied; });
+  if(!pending && G.fun.letterDay!==today){
+    G.fun.letterDay=today;
+    var used=G.fun.letters.map(function(l){ return l.from; });
+    var pool=LETTER_POOL.filter(function(l){ return used.indexOf(l.from)<0; });
+    if(!pool.length) pool=LETTER_POOL;
+    var l=pick(pool);
+    G.fun.letters.unshift({from:l.from, txt:l.txt, replied:false, style:'', day:today});
+    if(G.fun.letters.length>8) G.fun.letters.length=8;
+  }
+}
+function replyLetter(i, style){
+  ensureNew();
+  var l=G.fun.letters[i]; if(!l || l.replied) return;
+  l.replied=true; l.style=style;
+  var msg='';
+  if(style==='暖心'){ G.fans+=1500; G.fanSat=clamp((G.fanSat==null?62:G.fanSat)+3,0,100); msg='球迷 +1,500，球迷满意度 +3。这封回信被球迷会贴在了公告栏上，大家都说「这俱乐部有人情味」。'; }
+  else if(style==='幽默'){ G.fans+=800; G.morale=clamp(G.morale+2,0,100); if(Math.random()<0.4){ G.rep=clamp(G.rep+1,0,100); msg='球迷 +800，士气 +2，声望 +1。你的段子被截屏发上了热搜边角，球迷笑称「经理比段子手还会整活」。'; } else msg='球迷 +800，全队士气 +2。回信在更衣室里传阅，球员们笑成一团，训练都更有劲了。'; }
+  else { G.morale=clamp(G.morale+1,0,100); G.rep=clamp(G.rep+1,0,100); msg='士气 +1，声望 +1。高冷回复反而被夸「有豪门气场」，球迷表示：就喜欢这个范儿。'; }
+  log('💌 你用「'+style+'」的口吻回复了 '+l.from+' 的来信：'+msg,'good');
+  toast('回信已寄出：'+style); render();
+}
+var FUN_EVENTS=[
+  {t:'🎂 球员生日派对', txt:'今天是队里小将的生日，更衣室里藏了一个三层蛋糕——就是不知道是谁把奶油抹在了队长鞋里。', opts:[['出钱办个大的（30万）', function(){ G.cash-=30; G.morale=clamp(G.morale+4,0,100); G.fans+=600; return '派对办得热热闹闹，士气 +4，球迷 +600。队长穿着奶油鞋完成了训练，毫无怨言（假的）。'; }],['简单庆祝一下', function(){ G.morale=clamp(G.morale+2,0,100); return '一个蛋糕一首歌，士气 +2。寿星许愿：今年冲超。大家都假装没听见——万一实现了呢。'; }]]},
+  {t:'🤡 更衣室恶作剧', txt:'有人把主教练的战术板贴纸全换成了表情包，最后一张写着「就按这个踢」。教练站在门口，表情复杂。', opts:[['跟着一起笑', function(){ G.morale=clamp(G.morale+3,0,100); return '你带头笑出声，教练也绷不住了。士气 +3。下午的训练课，跑动距离创了赛季新高。'; }],['严肃批评（装的）', function(){ G.rep=clamp(G.rep+1,0,100); G.morale=clamp(G.morale+1,0,100); return '你板着脸说了两句，转身自己也笑了。声望 +1（治军严明），士气 +1（其实大家都知道）。'; }]]},
+  {t:'🐯 吉祥物互动日', txt:'俱乐部吉祥物「江小虎」在商场快闪，跳了一段科目三，视频被路人拍下传到了网上。', opts:[['官方转发助阵', function(){ G.fans+=1800; G.rep=clamp(G.rep+1,0,100); return '视频小火了一把，球迷 +1,800，声望 +1。江小虎的扮演者要求加鸡腿，已批准。'; }],['低调处理', function(){ G.fans+=500; return '热度慢慢发酵，球迷 +500。有球迷留言：这虎，我粉了。'; }]]},
+  {t:'🍜 球员深夜加餐被拍', txt:'三名球员深夜在小面馆被球迷偶遇，照片配文「夺冠热门深夜集训（吃面）」上了本地热榜。', opts:[['顺势发周边面馆联名', function(){ G.cash+=40; G.fans+=900; return '联名款卖爆了，现金 +40万，球迷 +900。面馆老板连夜挂上了「球队指定加餐点」的牌子。'; }],['提醒注意饮食', function(){ G.morale=clamp(G.morale+1,0,100); return '队医给全队上了一课，球员们点头如捣蒜——然后约了下周去吃火锅。士气 +1。'; }]]},
+  {t:'🎤 球员上综艺', txt:'电视台邀请队内头牌去唱歌综艺踢馆，他五音不全但勇气可嘉，经纪人拿着邀约来问你的意见。', opts:[['放他去，快乐最重要', function(){ G.fans+=1500; G.morale=clamp(G.morale+2,0,100); return '节目效果拉满，热搜词条「被足球耽误的灵魂歌手」。球迷 +1,500，士气 +2。'; }],['留在队里加练', function(){ if(G.squad.length){ var p=G.squad[0]; } return '他留下来加练了一周，综艺的热度没蹭到，但训练态度感动了全队。'; }]]},
+  {t:'🧦 球袜颜色风波', txt:'装备管理员把客场球袜订成了荧光粉，全队看着那箱袜子陷入了沉默，只有门将眼睛一亮。', opts:[['将错就错穿上场', function(){ G.fans+=1200; G.rep=clamp(G.rep+1,0,100); return '荧光粉球袜意外出圈，球迷 +1,200，声望 +1。赛后同款球袜在周边店卖断货。'; }],['紧急换货（20万）', function(){ G.cash-=20; return '连夜换回了正常颜色，花了 20万。门将默默把那双粉袜子留作了纪念。'; }]]},
+  {t:'🐱 主场闯入一只猫', txt:'训练课上，一只橘猫大摇大摆走进球场，在中圈趴下晒太阳，全队围着它不敢动。', opts:[['收编当队宠', function(){ G.fans+=2000; G.morale=clamp(G.morale+2,0,100); return '橘猫「中圈」正式成为球队吉祥物，球迷 +2,000，士气 +2。它的伙食费走俱乐部账目，审计无异议。'; }],['温柔请它离场', function(){ G.fans+=400; return '工作人员用小鱼干把它请了出去，球迷 +400。保安说：它比某些球员跑位还合理。'; }]]},
+  {t:'📱 球员直播翻车', txt:'年轻球员直播时不小心把战术白板拍进了画面，对手教练连夜下载了视频——还好白板上画的是上周的外卖菜单。', opts:[['官方玩梗辟谣', function(){ G.fans+=1000; G.rep=clamp(G.rep+1,0,100); return '官方发帖「我们的战术就是吃饱了踢」，球迷 +1,000，声望 +1。对手教练表示受到了冒犯（心理上的）。'; }],['内部警告一次', function(){ G.morale=clamp(G.morale+1,0,100); return '球员写了检讨，标题是《论直播角度的重要性》。士气 +1，全队引以为戒（笑）。'; }]]}
+];
+function triggerFunEvent(){
+  ensureNew();
+  var today=realDayKey(0);
+  if(G.fun.funDay===today){ toast('今天的趣事已经发生过了，明天再来——球队的乐子也是按天供应的'); return; }
+  G.fun.funDay=today;
+  var ev=pick(FUN_EVENTS);
+  window._funEv=FUN_EVENTS.indexOf(ev);
+  $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:22px;">'+ev.t+'</div><div class="sub">今日趣味事件 · 选一个处理方式</div></div>'
+  +'<div class="body"><p class="desc" style="font-size:14px;">'+ev.txt+'</p></div>'
+  +'<div class="foot" style="flex-direction:column;align-items:stretch;gap:8px;">'+ev.opts.map(function(o,i){ return '<button class="btn'+(i===0?' pri':'')+'" onclick="resolveFunEvent('+i+')">'+o[0]+'</button>'; }).join('')+'</div></div></div>';
+}
+function resolveFunEvent(i){
+  var ev=FUN_EVENTS[window._funEv||0]; if(!ev) { closeModal(); return; }
+  var msg=ev.opts[i][1]();
+  G.fun.hist.unshift({d:realDayKey(0), t:ev.t+' —— '+msg});
+  if(G.fun.hist.length>10) G.fun.hist.length=10;
+  log('🎲 趣味事件「'+ev.t+'」：'+msg,'good');
+  $modal.innerHTML='';
+  toast('趣事已记录，去乐园看看回放'); render();
+}
+function pageFun(){
+  ensureNew(); ensureLetter();
+  var free=wheelFreeLeft();
+  var grad='conic-gradient(' + WHEEL_PRIZES.map(function(p,i){ return p.col+' '+(i*45)+'deg '+((i+1)*45)+'deg'; }).join(',') + ')';
+  var labels=WHEEL_PRIZES.map(function(p,i){
+    var ang=(i*45+22.5)*Math.PI/180;
+    var x=50+Math.sin(ang)*36, y=50-Math.cos(ang)*36;
+    return '<span class="wheel-lbl" style="left:'+x+'%;top:'+y+'%;transform:translate(-50%,-50%) rotate('+(i*45+22.5)+'deg);">'+p.nm+'</span>';
+  }).join('');
+  var letters=G.fun.letters.map(function(l,i){
+    return '<div class="item"><div class="grow"><div class="nm" style="font-weight:700;">💌 '+esc(l.from)+'</div><div class="meta" style="font-size:13px;color:var(--ink2);line-height:1.6;">'+esc(l.txt)+'</div>'
+    +(l.replied? '<div class="meta">已回复（'+l.style+'）</div>' : '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;"><button class="btn pri sm" onclick="replyLetter('+i+',\'暖心\')">💗 暖心回复</button><button class="btn sm" onclick="replyLetter('+i+',\'幽默\')">😂 幽默回复</button><button class="btn sm" onclick="replyLetter('+i+',\'高冷\')">😎 高冷回复</button></div>')+'</div></div>';
+  }).join('');
+  var hist=G.fun.hist.length? G.fun.hist.map(function(h){ return '<div class="item"><div class="grow"><div class="nm" style="font-weight:600;font-size:13px;">'+esc(h.t)+'</div><div class="meta">'+h.d+'</div></div></div>'; }).join('') : '<p class="desc">还没有发生过趣事。点上面的按钮，看看今天球队里有什么乐子。</p>';
+  return '<div class="card"><h3>🎡 幸运大转盘<span class="hint">每天 1 次免费 · 再转 30 钻 · 累计已转 '+(G.fun.wheelSpins||0)+' 次</span></h3>'
+  +'<p class="desc">奖品有钻石、现金、试训卡（球星直签券）、球星体验卡、球迷和声望。每天免费转一次，零点刷新；手气这东西，攒着不用是会过期的。</p>'
+  +'<div class="wheel-wrap"><div class="wheel-ptr">▼</div><div class="wheel-rot" style="transform:rotate('+_wheelRot+'deg);"><div class="wheel-disc" style="background:'+grad+';"></div>'+labels+'</div><div class="wheel-hub">幸运<br>大转盘</div></div>'
+  +'<div style="text-align:center;"><button class="btn pri" onclick="spinWheel()" '+(_wheelBusy?'disabled':'')+'>'+(_wheelBusy?'转动中…':(free?'🎡 免费转一次':'🎡 再转一次 · 30 钻'))+'</button><div class="mini" style="margin-top:6px;">'+(free?'今日免费次数还在，转盘已经饥渴难耐了':'今日免费次数已用完 · 当前 💎 '+G.diamonds+' 钻')+'</div></div></div>'
+  +'<div class="card"><h3>💌 球迷来信<span class="hint">每天一封新信 · 回信风格影响球迷和士气</span></h3>'
+  +'<p class="desc">球迷写来的信都攒在这里。暖心回复涨粉涨满意度，幽默回复涨士气还可能上热搜，高冷回复有豪门气场——怎么回，你说了算。</p>'+letters+'</div>'
+  +'<div class="card"><h3>🎲 每日趣味事件<span class="hint">'+(G.fun.funDay===realDayKey(0)?'今天的趣事已经发生过了，明天再来':'今天的趣事还没触发')+'</span></h3>'
+  +'<p class="desc">生日派对、更衣室恶作剧、吉祥物整活、闯进训练场的橘猫……球队的日子不只有输赢。每天能触发一件，处理方式不同，奖励也不同。</p>'
+  +'<button class="btn pri" onclick="triggerFunEvent()" '+(G.fun.funDay===realDayKey(0)?'disabled':'')+'>🎲 触发今日趣事</button>'
+  +'<div style="margin-top:12px;">'+hist+'</div>'
+  +'<div class="acts" style="margin-top:10px;"><button class="btn" onclick="go(\'home\')">← 回大厅</button><button class="btn sm" onclick="go(\'tasks\')">去每日任务 →</button></div></div>';
+}
+</script>
+<script>
+"use strict";
+/* ================= 商务谈判中心：电话谈判 + 谈判桌 =================
+   在品牌合作（DEAL_BRANDS）的基础上加一层真谈判：每家品牌有虚构对接人和
+   电话，性格分强硬 / 豪爽 / 精明，还价空间各不相同。谈成走同一份合同结构
+   （G.biz.deal），并生成合作备忘存进 G.neg.memos；谈崩冷却 2 个游戏月。 */
+var NEG_PEOPLE={
+  nike:{name:'陈嘉铭', title:'大中华区商务合作总监', tel:'138-****-6721', style:'强硬', line:'我们只和有冠军相的球队谈。价格可以聊，但别指望我们让太多。'},
+  adidas:{name:'林书瑶', title:'足球品类合作负责人', tel:'139-****-3058', style:'精明', line:'每一分钱我都要算 ROI。你出个数，我看看值不值。'},
+  puma:{name:'高天野', title:'中国区赞助业务总经理', tel:'137-****-8842', style:'豪爽', line:'痛快点！条件差不多就签，年轻人就爱我们这股潮劲。'},
+  nb:{name:'许文博', title:'品牌合作高级经理', tel:'136-****-1190', style:'精明', line:'我们渠道强、账算得细。拿出诚意，我帮你向总部争取。'},
+  lining:{name:'王思远', title:'篮球足球事业部商务总监', tel:'135-****-4417', style:'豪爽', line:'国货挺国货！只要球队有心气，条件好商量。'},
+  anta:{name:'郑海峰', title:'专业运动群合作总监', tel:'133-****-9026', style:'豪爽', line:'我们下沉渠道无敌，卖货的事包在我们身上，价格好说。'},
+  xtep:{name:'刘子墨', title:'跑步与足球品类合作经理', tel:'131-****-7753', style:'精明', line:'预算有限，但我是真看好你们。咱们把每一块钱都花在刀刃上。'},
+  peak:{name:'赵启航', title:'商务拓展经理', tel:'130-****-2284', style:'豪爽', line:'我们门槛最低、诚意最足。先签下来，一起成长嘛。'}
+};
+function negAsk(d){
+  /* 品牌开价：以品牌合作页的标价为锚，按性格微调（强硬开价低、豪爽开价高） */
+  var f= d.id==='nike'||d.id==='adidas'? 0.95 : (NEG_PEOPLE[d.id].style==='豪爽'? 1.08 : 1.0);
+  return {signFee:Math.round(d.signFee*f), annual:Math.round(d.annual*f), years:d.years, bonus:Math.round(d.bonus*f)};
+}
+function negCoolLeft(id){ ensureNew(); var until=G.neg.cool[id]||0; return Math.max(0, until-G.month); }
+function negFinalize(id, offer, via){
+  ensureBiz();
+  var d=dealDef(id);
+  G.cash+=offer.signFee;
+  G.biz.deal={id:id, annual:offer.annual, bonus:offer.bonus, years:offer.years, left:offer.years*12};
+  G.biz.dealTitles=G.titles||0;
+  G.neg.memos.unshift({brand:d.name, person:NEG_PEOPLE[id].name, month:G.year+'年'+G.mon+'月', via:via, signFee:offer.signFee, annual:offer.annual, years:offer.years, bonus:offer.bonus});
+  if(G.neg.memos.length>10) G.neg.memos.length=10;
+  if(typeof taskBump==='function') taskBump('deal');
+  log('📞 谈判谈成！'+d.name+' 装备赞助合同通过'+via+'敲定：签约费 +'+fmt(offer.signFee)+' 先到账，年费 '+fmt(offer.annual)+' 按月发，合同 '+offer.years+' 年，夺冠奖金 '+fmt(offer.bonus)+'。合作备忘已生成，存在商务谈判中心。','good');
+}
+function negBreak(id, why){
+  ensureNew();
+  G.neg.cool[id]=G.month+2;
+  var d=dealDef(id);
+  log('📞 与 '+d.name+' 的谈判谈崩了（'+why+'）。对方放话：两个月后再谈。这段时间先把声望和成绩打上去，下次开价更有底气。','bad');
+}
+var _call=null;
+function startCall(id){
+  ensureBiz(); ensureNew();
+  if(!gateOK('deals')){ toast('还没解锁品牌合作：先达成声望 45、球迷 4 万、集团阶段「豪门俱乐部」'); return; }
+  var d=dealDef(id); if(!d) return;
+  if(negCoolLeft(id)>0){ toast(d.name+' 还在冷却期，'+negCoolLeft(id)+' 个月后再打'); return; }
+  if(G.rep<d.rep){ toast(d.name+' 的对接人婉拒了通话：声望要 ≥ '+d.rep+'（当前 '+G.rep+'）才肯谈'); return; }
+  var p=NEG_PEOPLE[id];
+  _call={id:id, round:1, offer:negAsk(d), log:[['op', p.name+'（'+p.title+'）：你好，我是 '+d.name+' 的 '+p.name+'。'+p.line],['op','这是我们的开价：签约费 '+fmt(_call?_call.offer.signFee:0)+'。']]};
+  _call.log[1]=['op','开价如下：签约费 '+fmt(_call.offer.signFee)+' · 年费 '+fmt(_call.offer.annual)+' · 合同 '+_call.offer.years+' 年 · 夺冠奖金 '+fmt(_call.offer.bonus)+'。你看看，怎么回？'];
+  renderCall();
+}
+function renderCall(){
+  if(!_call) return;
+  var d=dealDef(_call.id), p=NEG_PEOPLE[_call.id];
+  var lines=_call.log.map(function(l){ return '<div class="'+(l[0]==='me'?'me':'op')+'">'+(l[0]==='me'?'🗣️ 你：':'📞 '+p.name+'：')+l[1]+'</div>'; }).join('');
+  var hasDeal=!!(G.biz && G.biz.deal);
+  $modal.innerHTML='<div class="overlay"><div class="modal">'
+  +'<div class="hero"><div class="big" style="font-size:22px;">📞 正在通话 · '+d.name+'</div><div class="sub">'+p.name+' · '+p.title+' · '+p.tel+' · 性格：'+p.style+' · 第 '+_call.round+' / 4 轮</div></div>'
+  +'<div class="body"><div class="call-log">'+lines+'</div>'
+  +'<p class="desc" style="margin-top:10px;">当前报价：签约费 <b>'+fmt(_call.offer.signFee)+'</b> · 年费 <b>'+fmt(_call.offer.annual)+'</b> · <b>'+_call.offer.years+' 年</b> · 夺冠奖金 <b>'+fmt(_call.offer.bonus)+'</b>。'+(hasDeal?'注意：你已有合同在身，谈成也要先解约旧合同才能签这一份（点接受时会提示）。':'')+'</p></div>'
+  +'<div class="foot" style="flex-direction:column;align-items:stretch;gap:8px;">'
+  +'<button class="btn pri" onclick="callAct(\'accept\')">✅ 接受这个报价，签约</button>'
+  +'<button class="btn" onclick="callAct(\'haggle\')">💬 还价：年费和签约费再涨一截</button>'
+  +'<button class="btn" onclick="callAct(\'demand\')">🏆 要求加码：夺冠奖金和年限往上谈</button>'
+  +'<button class="btn" onclick="callAct(\'shelve\')">⏸️ 暂时搁置，先挂电话（不冷却，随时再打）</button>'
+  +'</div></div></div>';
+}
+function callAct(act){
+  if(!_call) return;
+  var id=_call.id, d=dealDef(id), p=NEG_PEOPLE[id], o=_call.offer;
+  if(act==='shelve'){
+    _call.log.push(['me','先这样，我这边再商量商量，改天细聊。']);
+    log('📞 与 '+d.name+' 的通话暂时搁置，报价保留着——回谈判中心随时能再打过去。','');
+    _call=null; $modal.innerHTML=''; render(); return;
+  }
+  if(act==='accept'){
+    if(G.biz && G.biz.deal){ toast('已有合同在身：先去品牌合作页解约，再来签这一份'); return; }
+    negFinalize(id, o, '电话谈判');
+    _call=null; $modal.innerHTML=''; toast('签约成功：'+d.name); render(); return;
+  }
+  if(_call.round>=4){
+    _call.log.push(['op','聊了这么多轮还没定，我这边先报总部了。两个月后咱们重新谈。']);
+    negBreak(id, '电话里拉扯太久');
+    _call=null; renderCallEnd('谈判谈崩：拉扯太久，对方先撤了。冷却 2 个月。'); return;
+  }
+  _call.round++;
+  var style=p.style;
+  var acceptP= act==='haggle'? (style==='豪爽'?0.55:(style==='精明'?0.38:0.26)) : (style==='豪爽'?0.5:(style==='精明'?0.4:0.3));
+  acceptP += (G.rep-d.rep)*0.008;
+  if(Math.random()<acceptP){
+    if(act==='haggle'){ o.signFee=Math.round(o.signFee*1.12); o.annual=Math.round(o.annual*1.12); _call.log.push(['me','这个数还是低了点，年费和签约费都再往上走一走。']); _call.log.push(['op','行吧，看在你球队势头不错——签约费和年费各涨 12%，这是我能批的最大额度了。']); }
+    else { o.bonus=Math.round(o.bonus*1.25); _call.log.push(['me','夺冠奖金得再厚一点，我们可是冲着冠军去的。']); _call.log.push(['op','有野心，我喜欢。夺冠奖金涨 25%，夺冠那天支票当场开。']); }
+  } else if(Math.random()<0.55){
+    if(act==='haggle'){ o.annual=Math.round(o.annual*1.05); _call.log.push(['me','再加点吧，就差临门一脚了。']); _call.log.push(['op','真加不了那么多。年费涨 5%，这是我越权批的，签不签一句话。']); }
+    else { o.years=Math.min(4, o.years+1); _call.log.push(['me','奖金不动的话，年限能不能拉长一点？我们要的是长期伙伴。']); _call.log.push(['op','年限可以拉长 1 年，稳定性对我们也是好事。就这么定？']); }
+  } else {
+    _call.log.push(['me', act==='haggle'?'这价格我没法跟董事会交代。':'夺冠奖金这块，必须再谈谈。']);
+    _call.log.push(['op', style==='强硬'?'我把话放这儿：这个价，爱签不签。下一轮你再不点头，我就找别家了。':(style==='精明'?'我算过了，你的要价超出我们的模型。下一轮还这样，我只能先撤。':'哈哈，胃口不小。下一轮咱们把话说定，别再绕了。')]);
+  }
+  renderCall();
+}
+function renderCallEnd(msg){
+  $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:22px;">📞 通话结束</div><div class="sub">'+msg+'</div></div><div class="foot"><button class="btn pri" onclick="closeModal();render();">回谈判中心</button></div></div></div>';
+}
+/* 谈判桌：正式报价单 */
+var _tableBrand=null;
+function openTable(id){
+  ensureBiz(); ensureNew();
+  if(!gateOK('deals')){ toast('还没解锁品牌合作，先达成解锁条件'); return; }
+  var d=dealDef(id); if(!d) return;
+  if(negCoolLeft(id)>0){ toast(d.name+' 还在冷却期，'+negCoolLeft(id)+' 个月后再谈'); return; }
+  if(G.rep<d.rep){ toast(d.name+' 要求声望 ≥ '+d.rep+' 才肯上谈判桌（当前 '+G.rep+'）'); return; }
+  _tableBrand=id;
+  var a=negAsk(d);
+  $modal.innerHTML='<div class="overlay"><div class="modal">'
+  +'<div class="hero"><div class="big" style="font-size:22px;">📋 谈判桌 · '+d.name+'</div><div class="sub">正式报价单：改数、提交，对方当场评估 · 对接人 '+NEG_PEOPLE[id].name+'（'+NEG_PEOPLE[id].style+'）</div></div>'
+  +'<div class="body"><p class="desc">对方开价参考：签约费 '+fmt(a.signFee)+' · 年费 '+fmt(a.annual)+' · '+a.years+' 年 · 夺冠奖金 '+fmt(a.bonus)+'。性格决定让步空间：豪爽的最松，精明的卡模型，强硬的几乎不让。开得太离谱会直接谈崩，冷却 2 个月。</p>'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+  +'<label class="mini">签约费（万）<input id="tb-sign" type="number" value="'+a.signFee+'" style="width:100%;padding:9px;border:1px solid #cfdce5;border-radius:9px;font-size:15px;"></label>'
+  +'<label class="mini">年费（万 / 年）<input id="tb-annual" type="number" value="'+a.annual+'" style="width:100%;padding:9px;border:1px solid #cfdce5;border-radius:9px;font-size:15px;"></label>'
+  +'<label class="mini">合同年限（年，1–5）<input id="tb-years" type="number" value="'+a.years+'" min="1" max="5" style="width:100%;padding:9px;border:1px solid #cfdce5;border-radius:9px;font-size:15px;"></label>'
+  +'<label class="mini">夺冠奖金（万）<input id="tb-bonus" type="number" value="'+a.bonus+'" style="width:100%;padding:9px;border:1px solid #cfdce5;border-radius:9px;font-size:15px;"></label>'
+  +'</div><div id="tb-result" style="margin-top:10px;"></div></div>'
+  +'<div class="foot"><button class="btn pri" onclick="submitTable()">提交报价</button><button class="btn" onclick="closeModal()">离开谈判桌</button></div></div></div>';
+}
+function submitTable(){
+  var id=_tableBrand; if(!id) return;
+  var d=dealDef(id), p=NEG_PEOPLE[id], a=negAsk(d);
+  function gv(el){ var v=parseInt(document.getElementById(el).value,10); return isNaN(v)?0:v; }
+  var ask={signFee:Math.max(0,gv('tb-sign')), annual:Math.max(0,gv('tb-annual')), years:clamp(gv('tb-years')||a.years,1,5), bonus:Math.max(0,gv('tb-bonus'))};
+  var askTot=ask.signFee + ask.annual*ask.years + ask.bonus*0.4;
+  var baseTot=a.signFee + a.annual*a.years + a.bonus*0.4;
+  var cap= p.style==='豪爽'? 1.22 : (p.style==='精明'? 1.12 : 1.05);
+  cap += (G.rep-d.rep)*0.002;
+  var box=document.getElementById('tb-result');
+  if(askTot<=baseTot*cap){
+    if(G.biz && G.biz.deal){ if(box) box.innerHTML='<p class="desc" style="color:var(--red);">对方点头了，但你已有合同在身：先去品牌合作页解约，再回来签这一份。</p>'; return; }
+    negFinalize(id, ask, '谈判桌');
+    $modal.innerHTML=''; toast('谈判桌签约成功：'+d.name); render(); return;
+  }
+  if(askTot<=baseTot*cap*1.12){
+    var counter={signFee:Math.round((ask.signFee+a.signFee)/2), annual:Math.round((ask.annual+a.annual)/2), years:a.years, bonus:Math.round((ask.bonus+a.bonus)/2)};
+    window._counter={id:id, offer:counter};
+    if(box) box.innerHTML='<p class="desc">'+p.name+' 摇头又点头：「你的要价高了点。按这个折中数来——签约费 '+fmt(counter.signFee)+' · 年费 '+fmt(counter.annual)+' · '+counter.years+' 年 · 夺冠奖金 '+fmt(counter.bonus)+'，行就签，不行就散。」</p><button class="btn pri sm" onclick="acceptCounter()">接受折中报价，签约</button>';
+    return;
+  }
+  negBreak(id, '谈判桌要价过高');
+  $modal.innerHTML=''; renderCallEnd('谈判谈崩：要价超出对方底线太多。冷却 2 个月，期间可以先打打电话探探口风（也不行——冷却期内对方不接）。');
+  render();
+}
+function acceptCounter(){
+  var c=window._counter; if(!c) return;
+  if(G.biz && G.biz.deal){ toast('已有合同在身：先去品牌合作页解约再签'); return; }
+  negFinalize(c.id, c.offer, '谈判桌（折中报价）');
+  window._counter=null; $modal.innerHTML=''; toast('签约成功'); render();
+}
+function pageNeg(){
+  ensureBiz(); ensureNew();
+  if(!gateOK('deals')) return lockHTML('📞','商务谈判中心','deals','品牌合作的进阶玩法：不只是点一下签约，而是给八大品牌的对接人打电话、坐上谈判桌，一轮一轮把签约费、年费、年限和夺冠奖金谈上去。解锁条件与品牌合作相同：声望 45、球迷 4 万、集团阶段达到「豪门俱乐部」。');
+  var cards=DEAL_BRANDS.map(function(d){
+    var p=NEG_PEOPLE[d.id], a=negAsk(d), cool=negCoolLeft(d.id), locked=G.rep<d.rep, isCur=G.biz.deal && G.biz.deal.id===d.id;
+    return '<div class="rel-card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="nm">'+d.name+'</span><span class="pill '+(isCur?'up':'')+'">'+(isCur?'合作中':(cool?'冷却 '+cool+' 个月':(locked?'声望门槛 '+d.rep:'可谈判')))+'</span></div>'
+    +'<div class="ben">对接人：<b>'+p.name+'</b> · '+p.title+'<br>📞 '+p.tel+' · 性格：<b>'+p.style+'</b>（'+(p.style==='强硬'?'几乎不让步，开价就是底价':(p.style==='豪爽'?'让步空间最大，谈得爽快':( '精打细算，卡着模型给价')))+'）</div>'
+    +'<div class="mini">当前开价：签约费 '+fmt(a.signFee)+' · 年费 '+fmt(a.annual)+' · '+a.years+' 年 · 夺冠奖金 '+fmt(a.bonus)+'</div>'
+    +'<div class="acts">'
+    +(cool? '<button class="btn sm" disabled>冷却中 · '+cool+' 个月后再联系</button>' : (locked? '<button class="btn sm" disabled>🔒 声望还差 '+(d.rep-G.rep)+'</button>' : '<button class="btn pri sm" onclick="startCall(\''+d.id+'\')">📞 打电话谈</button><button class="btn sm" onclick="openTable(\''+d.id+'\')">📋 上谈判桌</button>'))
+    +'</div></div>';
+  }).join('');
+  var memos=G.neg.memos.length? G.neg.memos.map(function(m){
+    return '<div class="item"><div class="grow"><div class="nm" style="font-weight:700;">🤝 '+esc(m.brand)+' 合作备忘</div><div class="meta">'+m.month+' · 经 '+m.via+' 与对接人 '+esc(m.person)+' 敲定：签约费 '+fmt(m.signFee)+' · 年费 '+fmt(m.annual)+' · '+m.years+' 年 · 夺冠奖金 '+fmt(m.bonus)+'。双方签字盖章，合同已在品牌合作页生效。</div></div><span class="pill up">已存档</span></div>';
+  }).join('') : '<p class="desc">还没有谈成过合作。在这里谈成的每一单，都会生成一份合作备忘存放在这里。</p>';
+  return '<div class="card"><h3>📞 商务谈判中心<span class="hint">打电话 · 上谈判桌 · 把合同一轮一轮谈肥</span></h3>'
+  +'<p class="desc">品牌合作页是「明码标价点签约」；这里是<b>真谈判</b>：每家品牌都有专属对接人和电话，点「打电话」进入模拟通话，对方先开价，你可以接受、还价、要求加码或暂时搁置，最多谈 4 轮；「谈判桌」是正式报价单，你改数提交，对方按性格和底线当场评估。谈成的合同与品牌合作页完全互通（同一时间仍只有一份生效合同）；谈崩了冷却 2 个游戏月。当前生效合同：'+(G.biz.deal? (dealDef(G.biz.deal.id)? dealDef(G.biz.deal.id).name:'')+' · 年费 '+fmt(G.biz.deal.annual)+' · 剩 '+G.biz.deal.left+' 个月' : '无（自由身，正是谈判的好时机）')+'。</p>'
+  +'<div class="rel-grid">'+cards+'</div></div>'
+  +'<div class="card"><h3><span class="no">备忘</span>合作备忘录<span class="hint">谈判中心谈成的合同都在这里留底</span></h3>'+memos
+  +'<div class="acts" style="margin-top:10px;"><button class="btn" onclick="go(\'home\')">← 回大厅</button><button class="btn sm" onclick="go(\'deals\')">去品牌合作页 →</button></div></div>';
+}
+/* ================= 企业上市系统 =================
+   政策（与页面说明一致）：上市条件 = 公司估值 ≥ 3,000万 + 最近连续 3 个月
+   盈利 + 俱乐部声望 ≥ 50 + 纪检热度 < 40；流程 = 申请 → 辅导期 1 个月 →
+   申报审核 1 个月 → 发行上市（发行 25% 股份，募资 = 上市时估值 × 25%）；
+   上市后：总股本 1,000 万股，股价每月按公司业绩与球队战绩波动（±12% 封顶），
+   每月信息披露；分红 = 市值的 3%（每游戏月最多一次，分红后股价 +4%）；
+   纪检热度 ≥ 60 时每月 50% 概率被监管问询：罚款 = 市值 2%，股价 -8%。 */
+function ipoCompanies(){
+  ensureBiz(); ensureNew();
+  var list=[];
+  var br=G.biz.brand;
+  if(br && br.founded) list.push({key:'brand', name:br.name+'（自有品牌公司）', icon:br.mark||'👕', value:Math.round(br.value||0), net:br.lastNet||0});
+  Object.keys(G.biz.cross||{}).forEach(function(id){
+    var d=crossDef(id), c=G.biz.cross[id]; if(!d||!c) return;
+    list.push({key:'cross:'+id, name:d.name+'公司', icon:d.icon, value:Math.round((c.invested||0)*(0.75+0.2*(c.lv||1))), net:c.lastNet||0});
+  });
+  return list;
+}
+function ipoCompany(key){ var f=null; ipoCompanies().forEach(function(c){ if(c.key===key) f=c; }); return f; }
+function ipoProfitStreak(key){
+  var h=(G.ipo.hist&&G.ipo.hist[key])||[];
+  var n=0; for(var i=0;i<h.length;i++){ if(h[i]>0) n++; else break; }
+  return n;
+}
+function ipoConds(c){
+  return [
+    {label:'公司估值达到 3,000万', cur:c.value, need:3000, txt:fmt(c.value)+' / '+fmt(3000)},
+    {label:'最近连续 3 个月盈利', cur:ipoProfitStreak(c.key), need:3, txt:ipoProfitStreak(c.key)+' / 3 个月'},
+    {label:'俱乐部声望达到 50', cur:G.rep, need:50, txt:G.rep+' / 50'},
+    {label:'纪检热度低于 40', cur:40-G.heat, need:1, txt:'当前热度 '+G.heat+' / 需 < 40'}
+  ];
+}
+function applyIpo(key){
+  ensureNew();
+  if(G.ipo.stage!=='none'){ toast('已经有一家公司在上市流程中了，先走完这一家'); return; }
+  var c=ipoCompany(key); if(!c){ toast('这家公司不存在'); return; }
+  var bad=ipoConds(c).filter(function(x){ return x.cur<x.need; });
+  if(bad.length){ toast('还不满足上市条件：'+bad[0].label); return; }
+  G.ipo.stage='counsel'; G.ipo.key=key; G.ipo.stageMonth=G.month; G.ipo.appliedName=c.name;
+  log('📈 企业上市申请已受理：「'+c.name+'」进入上市辅导期（1 个游戏月）。券商和律所进场尽调，这段时间把账做干净、把热度压住。','good');
+  toast('已进入上市辅导期'); render();
+}
+function cancelIpo(){
+  ensureNew();
+  log('📈 已撤回「'+(G.ipo.appliedName||'公司')+'」的上市申请，流程终止，条件攒够了随时再来。','');
+  G.ipo.stage='none'; G.ipo.key=''; G.ipo.appliedName=''; render();
+}
+function payDividend(){
+  ensureNew();
+  var ip=G.ipo; if(ip.stage!=='listed') return;
+  if(ip.lastDiv===G.month){ toast('本月已经分过红了，下个月再分'); return; }
+  var cap=Math.round(ip.price*1000);
+  var amt=Math.round(cap*0.03);
+  if(G.cash<amt){ toast('分红要拿出 '+fmt(amt)+' 现金，俱乐部现金不够'); return; }
+  G.cash-=amt; ip.lastDiv=G.month; ip.price=Math.round(ip.price*1.04*100)/100;
+  G.fans+=800; G.rep=clamp(G.rep+1,0,100);
+  log('📈 上市公司分红：拿出 '+fmt(amt)+'（市值的 3%）分给股东，市场一片叫好，股价 +4% → '+ip.price.toFixed(2)+' 元，球迷 +800，声望 +1。','good');
+  toast('分红完成：-'+fmt(amt)+'，股价 +4%'); render();
+}
+function processNewMonthly(){
+  /* 月末钩子（settleMonth 里在 processBiz 之后调用）：记各公司月度盈亏、
+     推进上市流程、更新股价、处理监管问询。 */
+  if(!G || !G.biz) return;
+  ensureNew();
+  ipoCompanies().forEach(function(c){
+    if(!G.ipo.hist[c.key]) G.ipo.hist[c.key]=[];
+    G.ipo.hist[c.key].unshift(c.net);
+    if(G.ipo.hist[c.key].length>6) G.ipo.hist[c.key].length=6;
+  });
+  var ip=G.ipo;
+  if(ip.stage==='counsel' && G.month>ip.stageMonth){
+    ip.stage='review'; ip.stageMonth=G.month;
+    log('📈 上市进度：「'+ip.appliedName+'」辅导期结束，申报材料已递交，进入审核期（1 个游戏月）。','');
+  } else if(ip.stage==='review' && G.month>ip.stageMonth){
+    var c=ipoCompany(ip.key);
+    var val=c? c.value : 3000;
+    ip.stage='listed'; ip.raised=Math.round(val*0.25); ip.price=Math.round((val/1000)*100)/100;
+    ip.priceHist=[{m:G.year+'年'+G.mon+'月', p:ip.price, note:'发行上市'}];
+    G.cash+=ip.raised;
+    log('🎉 上市成功！「'+ip.appliedName+'」正式挂牌：发行 25% 股份，一次性募资 '+fmt(ip.raised)+' 已到账；发行价 '+ip.price.toFixed(2)+' 元/股，总股本 1,000 万股。以后每月信息披露，股价随业绩波动，别忘了分红和合规。','good');
+  } else if(ip.stage==='listed'){
+    var c2=ipoCompany(ip.key);
+    var net=c2? c2.net:0, val2=c2? Math.max(500,c2.value):3000;
+    var chg=clamp((net/Math.max(val2,1))*40 + rnd(-4,4), -12, 12);
+    ip.price=Math.max(0.2, Math.round(ip.price*(1+chg/100)*100)/100);
+    var note='信息披露：本月公司净利 '+(net>=0?'+':'')+fmt(net)+'，股价 '+(chg>=0?'+':'')+chg.toFixed(1)+'%';
+    if(G.heat>=60 && Math.random()<0.5){
+      var cap=Math.round(ip.price*1000);
+      var fine=Math.round(cap*0.02);
+      G.cash-=fine; ip.inquiries++; ip.price=Math.max(0.2, Math.round(ip.price*0.92*100)/100);
+      note+='；⚠️ 监管问询：因俱乐部纪检热度过高被交易所问询，罚款 '+fmt(fine)+'，股价 -8%';
+      log('📉 监管问询！上市公司「'+ip.appliedName+'」被交易所发函问询（纪检热度 '+G.heat+'），罚款 '+fmt(fine)+'，股价下跌 8%。把热度降下来，别让上市公司替俱乐部的灰色操作背锅。','bad');
+    }
+    ip.priceHist.unshift({m:G.year+'年'+G.mon+'月', p:ip.price, note:note});
+    if(ip.priceHist.length>8) ip.priceHist.length=8;
+  }
+}
+function pageIpo(){
+  ensureNew();
+  var comps=ipoCompanies();
+  var ip=G.ipo;
+  var policy='<div class="card"><h3>📜 上市政策与流程<span class="hint">条件和数值都写在这里，游戏里严格按这套执行</span></h3>'
+  +'<p class="desc"><b>谁能上：</b>你旗下的公司——自有品牌公司（在自有品牌页创立后）、跨行业经营的公司（餐饮/健身/电竞酒店/体育科技/影视/房地产，逐家独立核算）。同一时间只能推进一家上市。</p>'
+  +'<p class="desc"><b>上市条件（四条全满足才能申请）：</b>① 公司估值 ≥ 3,000万（品牌公司看品牌价值，跨行业公司看投入与规模折算的估值）；② 最近连续 3 个月盈利（按每月结算的真实净利计，断一个月重新数）；③ 俱乐部声望 ≥ 50；④ 纪检热度 &lt; 40（账要干净，灰色操作玩多了别想过会）。</p>'
+  +'<p class="desc"><b>流程：</b>提交申请 → <b>辅导期 1 个游戏月</b>（券商律所尽调）→ <b>申报审核 1 个游戏月</b> → <b>发行上市</b>：公开发行 25% 股份，一次性募资 = 上市时公司估值 × 25%，直接进俱乐部现金；总股本 1,000 万股，发行价 = 估值 ÷ 1,000 万股。</p>'
+  +'<p class="desc"><b>上市后规则：</b>① 信息披露：每月结算自动披露公司净利与股价变动，记录在本页；② 股价波动：每月按公司业绩（净利/估值）和球队战绩在 ±12% 内波动，业绩越好涨得越猛；③ 分红：可主动分红，金额 = 当前市值的 3%（从俱乐部现金出，每游戏月最多一次），分红后股价 +4%、声望 +1；④ 监管问询：纪检热度 ≥ 60 时，每月 50% 概率被交易所问询，罚款 = 市值的 2%，股价 -8%——热度越高，上市公司越替你挨打。</p></div>';
+  var flow='';
+  if(ip.stage==='counsel'||ip.stage==='review'){
+    flow='<div class="card" style="border:2px solid var(--gold);"><h3>📈 上市进行中 · '+esc(ip.appliedName)+'</h3>'
+    +'<p class="desc">当前阶段：<b>'+(ip.stage==='counsel'?'辅导期':'申报审核期')+'</b>（本阶段还需约 1 个游戏月，推进月份自动流转）。这段时间保持公司盈利、压住纪检热度，别让尽调挑出毛病。</p>'
+    +'<div class="acts"><button class="btn sm" onclick="cancelIpo()">撤回申请</button><button class="btn" onclick="go(\'home\')">回大厅</button></div></div>';
+  } else if(ip.stage==='listed'){
+    var c=ipoCompany(ip.key);
+    var cap=Math.round(ip.price*1000);
+    var hist=ip.priceHist.map(function(h){ return '<div class="item"><div class="grow"><div class="nm" style="font-weight:600;">'+h.m+' · 股价 '+h.p.toFixed(2)+' 元</div><div class="meta">'+h.note+'</div></div></div>'; }).join('');
+    flow='<div class="card" style="border:2px solid var(--green);"><h3>🔔 已上市公司 · '+esc(ip.appliedName)+'<span class="hint">累计被监管问询 '+ip.inquiries+' 次</span></h3>'
+    +'<div class="kpis" style="margin:0 0 6px;">'
+    +'<div class="kpi"><div class="lb">当前股价</div><div class="vl num">'+ip.price.toFixed(2)+' 元</div><div class="sub">总股本 1,000 万股</div></div>'
+    +'<div class="kpi"><div class="lb">当前市值</div><div class="vl num">'+fmt(cap)+'</div><div class="sub">公司经营估值 '+(c?fmt(c.value):'—')+'</div></div>'
+    +'<div class="kpi"><div class="lb">上市募资（已到账）</div><div class="vl num">'+fmt(ip.raised)+'</div><div class="sub">发行 25% 股份一次性募资</div></div>'
+    +'<div class="kpi"><div class="lb">本月可分红</div><div class="vl num">'+fmt(Math.round(cap*0.03))+'</div><div class="sub">市值的 3% · '+(ip.lastDiv===G.month?'本月已分':'本月未分')+'</div></div></div>'
+    +'<div class="acts"><button class="btn pri sm" onclick="payDividend()" '+(ip.lastDiv===G.month?'disabled':'')+'>💰 分红（市值 3%）</button><span class="mini">分红后股价 +4%、声望 +1；纪检热度 ≥ 60 有被监管问询的风险，先把热度降下来</span></div>'
+    +'<h3 style="margin-top:14px;"><span class="no">披露</span>信息披露记录</h3>'+hist+'</div>';
+  }
+  var compCards= comps.length? comps.map(function(c){
+    var conds=ipoConds(c);
+    var okAll=conds.every(function(x){ return x.cur>=x.need; });
+    var rows=conds.map(function(x){
+      var ok=x.cur>=x.need, pct=clamp(Math.round(x.cur/x.need*100),0,100);
+      return '<div class="item"><div class="grow"><div class="nm">'+(ok?'✅ ':'🔒 ')+x.label+'</div><div class="meta">当前 '+x.txt+'</div><div style="height:6px;background:#e8eef2;border-radius:3px;margin-top:5px;overflow:hidden;"><div style="height:6px;width:'+pct+'%;background:'+(ok?'var(--green)':'var(--orange)')+';"></div></div></div><span class="pill '+(ok?'up':'')+'">'+pct+'%</span></div>';
+    }).join('');
+    var histTxt=((G.ipo.hist[c.key]||[]).length? '近月净利：'+G.ipo.hist[c.key].map(function(n){ return (n>=0?'+':'')+fmt(n); }).join(' · ') : '暂无月度盈亏记录，推进月份后开始累计（连续盈利从有记录起算）');
+    return '<div class="card"><h3>'+c.icon+' '+esc(c.name)+'<span class="hint">估值 '+fmt(c.value)+' · 上月净利 '+(c.net>=0?'+':'')+fmt(c.net)+'</span></h3>'+rows
+    +'<p class="mini" style="margin-top:6px;">'+histTxt+'</p>'
+    +'<div class="acts" style="margin-top:8px;">'+(ip.stage==='listed'&&ip.key===c.key? '<span class="pill up">已上市</span>' : (ip.stage!=='none'? '<button class="btn sm" disabled>有公司正在上市流程中</button>' : (okAll? '<button class="btn pri sm" onclick="applyIpo(\''+c.key+'\')">📈 申请上市</button>' : '<button class="btn sm" disabled>条件未达标</button>')))+'</div></div>';
+  }).join('') : '<div class="card"><h3>📈 还没有可上市的公司</h3><p class="desc">先去创立一家公司：自有品牌（品牌页创立品牌）或跨行业经营（餐饮、健身、电竞酒店、体育科技、影视、房地产任选一家开业），把估值做上去、连着盈利三个月，再回来申请上市。</p><div class="acts"><button class="btn sm" onclick="go(\'brand\')">去自有品牌</button><button class="btn sm" onclick="go(\'cross\')">去跨行业经营</button></div></div>';
+  return policy+flow+compCards+'<div class="acts" style="margin:4px 0 10px;"><button class="btn" onclick="go(\'home\')">← 回大厅</button><button class="btn sm" onclick="go(\'empire\')">去集团扩张 →</button></div>';
 }
 </script>
 </body>
