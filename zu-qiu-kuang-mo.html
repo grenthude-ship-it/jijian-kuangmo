@@ -1303,14 +1303,22 @@ function maybeShowAnnouncement(){
     }, 1200);
   });
 }
-/* ---------------- 收件箱（后台邮件） ----------------
+/* ---------------- 邮箱（后台邮件） ----------------
    邮件收件人是用户名；已领取记录按账号存在 localStorage
-   （zuqiu-km-mail-claimed-v1-<用户名>），领过的不重复发。 */
+   （zuqiu-km-mail-claimed-v1-<用户名>），领过的不重复发。
+   纯消息（无附件）的已读记录存在 zuqiu-km-mail-read-v1-<用户名>。 */
 function mailClaimedSet(){
   var o={};
   try{ var arr=JSON.parse(localStorage.getItem('zuqiu-km-mail-claimed-v1-'+CUR_USER)||'[]'); if(arr instanceof Array) arr.forEach(function(id){ o[id]=1; }); }catch(e){}
   return o;
 }
+function mailReadSet(){
+  var o={};
+  try{ var arr=JSON.parse(localStorage.getItem('zuqiu-km-mail-read-v1-'+CUR_USER)||'[]'); if(arr instanceof Array) arr.forEach(function(id){ o[id]=1; }); }catch(e){}
+  return o;
+}
+/* 带附件（钻石/现金/直签券/试用卡/碎片/球星任一非 0）= 奖励邮件；附件全空 = 纯消息 */
+function mailIsReward(m){ return mailItemsParts(m).length>0; }
 function myMails(){
   if(!CUR_USER || !ADMIN || !(ADMIN.mail instanceof Array)) return [];
   var now=Date.now();
@@ -1320,11 +1328,26 @@ function myMails(){
     return true;
   }).sort(function(a,b){ return (Date.parse(b.sentAt)||0)-(Date.parse(a.sentAt)||0); });
 }
-function unclaimedMailCount(){
+/* 未读角标 = 未领取的奖励邮件数 + 未读的纯消息数 */
+function unreadMailCount(){
   if(!CUR_USER) return 0;
-  var c=mailClaimedSet(), n=0;
-  myMails().forEach(function(m){ if(!c[m.id]) n++; });
+  var c=mailClaimedSet(), r=mailReadSet(), n=0;
+  myMails().forEach(function(m){
+    if(mailIsReward(m)){ if(!c[m.id]) n++; }
+    else if(!r[m.id]) n++;
+  });
   return n;
+}
+function markMailRead(id){
+  if(!CUR_USER) return;
+  var m=null;
+  myMails().forEach(function(x){ if(x.id===id) m=x; });
+  if(!m || mailIsReward(m)) return;
+  var read=mailReadSet();
+  if(read[id]){ render(); return; }
+  read[id]=1;
+  try{ localStorage.setItem('zuqiu-km-mail-read-v1-'+CUR_USER, JSON.stringify(Object.keys(read))); }catch(e){}
+  render();
 }
 function mailItemsParts(m){
   var it=m.items||{}, parts=[];
@@ -1341,25 +1364,36 @@ function mailItemsParts(m){
 }
 function pageInbox(){
   if(!CUR_USER){
-    return '<div class="card"><h3>📬 收件箱</h3><p class="desc">游客身份没有用户名，收不到管理后台发的邮件。把当前进度注册成账号（或登录已有账号）之后，后台发给你的钻石、现金、道具和球星都会送到这里来。</p><button class="btn pri" onclick="go(\'account\')">去账号中心注册 / 查看账号</button></div>';
+    return '<div class="card"><h3>📬 邮箱</h3><p class="desc">游客身份没有用户名，收不到管理后台发的邮件。把当前进度注册成账号（或登录已有账号）之后，后台发给你的钻石、现金、道具和球星都会送到这里来，后台发的消息也能在这里读到。</p><button class="btn pri" onclick="go(\'account\')">去账号中心注册 / 查看账号</button></div>';
   }
   if(!ADMIN){
     if(ADMIN_STATE!=='failed') fetchAdminData().then(function(){ if(PAGE==='inbox') render(); });
-    return '<div class="card"><h3>📬 收件箱<span class="hint">账号：'+esc(CUR_USER)+'</span></h3><p class="desc">'+(ADMIN_STATE==='failed'? '暂时读不到后台邮件数据（网络不通或后台文件不可用），不影响正常游戏，过一会儿再进来看看。' : '正在读取后台邮件…')+'</p></div>';
+    return '<div class="card"><h3>📬 邮箱<span class="hint">账号：'+esc(CUR_USER)+'</span></h3><p class="desc">'+(ADMIN_STATE==='failed'? '暂时读不到后台邮件数据（网络不通或后台文件不可用），不影响正常游戏，过一会儿再进来看看。' : '正在读取后台邮件…')+'</p></div>';
   }
-  var list=myMails(), claimed=mailClaimedSet();
-  var head='<div class="card"><h3>📬 收件箱<span class="hint">账号：'+esc(CUR_USER)+' · 共 '+list.length+' 封 · 未领取 '+unclaimedMailCount()+' 封</span></h3>'
-  +'<p class="desc">这里是游戏管理后台发给你的邮件。带附件的邮件点「领取」，钻石、现金和道具就会发到你的账号里；领过的不能重复领。未领取的邮件会一直留在这里，过期邮件会自动消失。</p>';
+  var list=myMails(), claimed=mailClaimedSet(), readSet=mailReadSet();
+  var head='<div class="card"><h3>📬 邮箱<span class="hint">账号：'+esc(CUR_USER)+' · 共 '+list.length+' 封 · 未读 '+unreadMailCount()+' 封</span></h3>'
+  +'<p class="desc">这里是游戏管理后台发给你的邮件，按发送时间从新到旧排列。标着「奖励」的邮件带附件，点「领取」，钻石、现金和道具就会发到你的账号里，领过的不能重复领；标着「消息」的是后台发来的纯消息，读完点「标为已读」就不算未读了。邮件会一直留在这里，过期邮件会自动消失。</p>';
   if(!list.length) return head+'<p class="desc">暂时没有发给你的邮件。</p></div>';
   var items=list.map(function(m){
-    var parts=mailItemsParts(m), isC=!!claimed[m.id];
+    var parts=mailItemsParts(m), isReward=parts.length>0;
     var safeId=String(m.id).replace(/\\/g,'').replace(/'/g,'');
-    return '<div class="item"><div class="grow"><div class="nm">✉️ '+esc(m.title||'（无标题）')+(isC?' <span class="pill">已领取</span>':' <span class="pill up">未领取</span>')+'</div>'
+    var typePill=isReward? ' <span class="pill fw">🎁 奖励</span>' : ' <span class="pill df">💬 消息</span>';
+    var statusPill, actionBtn;
+    if(isReward){
+      var isC=!!claimed[m.id];
+      statusPill=isC? ' <span class="pill">已领取</span>' : ' <span class="pill up">未领取</span>';
+      actionBtn=isC? '<span class="pill">✓ 已领取</span>' : '<button class="btn pri sm" onclick="claimMail(\''+safeId+'\')">领取</button>';
+    } else {
+      var isR=!!readSet[m.id];
+      statusPill=isR? ' <span class="pill">已读</span>' : ' <span class="pill up">未读</span>';
+      actionBtn=isR? '<span class="pill">✓ 已读</span>' : '<button class="btn pri sm" onclick="markMailRead(\''+safeId+'\')">标为已读</button>';
+    }
+    return '<div class="item"><div class="grow"><div class="nm">✉️ '+esc(m.title||'（无标题）')+typePill+statusPill+'</div>'
     +'<div class="meta">发送时间 '+fmtISODate(m.sentAt)+(m.expiresAt? ' · 有效期至 '+fmtISODate(m.expiresAt) : '')+'</div>'
     +'<p class="desc" style="margin-top:6px;">'+esc(m.body||'').replace(/\n/g,'<br>')+'</p>'
-    +(parts.length? '<div class="meta" style="margin-top:4px;">🎁 附件：'+parts.join(' · ')+'</div>' : '<div class="meta" style="margin-top:4px;">（这封邮件没有附件）</div>')
+    +(isReward? '<div class="meta" style="margin-top:4px;">🎁 附件：'+parts.join(' · ')+'</div>' : '')
     +'</div>'
-    +(parts.length? (isC? '<span class="pill">✓ 已领取</span>' : '<button class="btn pri sm" onclick="claimMail(\''+safeId+'\')">领取</button>') : '')
+    +actionBtn
     +'</div>';
   }).join('');
   return head+items+'</div>';
@@ -2893,7 +2927,7 @@ function restart(){ stopAuto(); clearAutoSave(); G=null; PAGE='home'; showStart(
 <script>
 "use strict";
 /* ---------------- 渲染 ---------------- */
-var NAV=[['home','游戏大厅','📋'],['account','账号中心','👤'],['inbox','收件箱','📬'],['tasks','每日任务','✅'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['fun','趣味乐园','🎡'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['neg','商务谈判中心','📞'],['cross','跨行业经营','🏭'],['ipo','企业上市','📈'],['packs','球星抽卡','🃏'],['hall','荣耀殿堂','🏛️'],['bet','体彩竞猜','🎟️'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
+var NAV=[['home','游戏大厅','📋'],['account','账号中心','👤'],['inbox','邮箱','📬'],['tasks','每日任务','✅'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['fun','趣味乐园','🎡'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['neg','商务谈判中心','📞'],['cross','跨行业经营','🏭'],['ipo','企业上市','📈'],['packs','球星抽卡','🃏'],['hall','荣耀殿堂','🏛️'],['bet','体彩竞猜','🎟️'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
 function navBtns(cls){
   return NAV.map(function(n){
     var bdg='';
@@ -2901,7 +2935,7 @@ function navBtns(cls){
     if(n[0]==='youth' && G && G.youth){ var pr=G.youth.filter(function(p){ return p.age>=16 && p.ab>=50; }).length; if(pr) bdg='<span class="bdg">可提拔 '+pr+'</span>'; }
     if(n[0]==='gray' && G && G.heat>=60) bdg='<span class="bdg">热度'+G.heat+'</span>';
     if(n[0]==='tasks' && G && typeof dailyClaimable==='function'){ var dc=dailyClaimable(); if(dc) bdg='<span class="bdg">'+dc+' 可领</span>'; }
-    if(n[0]==='inbox' && CUR_USER && typeof unclaimedMailCount==='function'){ var uc=unclaimedMailCount(); if(uc) bdg='<span class="bdg">'+uc+' 未领</span>'; }
+    if(n[0]==='inbox' && CUR_USER && typeof unreadMailCount==='function'){ var uc=unreadMailCount(); if(uc) bdg='<span class="bdg">'+uc+' 未读</span>'; }
     return '<button class="'+(PAGE===n[0]?'on':'')+'" onclick="go(\''+n[0]+'\')"><span class="ic">'+n[2]+'</span>'+n[1]+bdg+'</button>';
   }).join('');
 }
@@ -4123,7 +4157,7 @@ function lobbyHTML(){
   var claim=claimableAchCount();
   var signed=!signCan();
   var welfareN=claim+(signed?0:1);
-  var mailN=(CUR_USER && typeof unclaimedMailCount==='function')? unclaimedMailCount() : 0;
+  var mailN=(CUR_USER && typeof unreadMailCount==='function')? unreadMailCount() : 0;
   /* 功能区按 俱乐部 / 球队 / 赛事 / 商城 分组摆瓷砖（统一尺寸、统一字号），
      不常用的收进「更多功能」弹窗；一个玩法只出现一次，不再重复摆 */
   var youthReady=(G.youth||[]).filter(function(p){ return p.age>=16 && p.ab>=50; }).length;
@@ -4132,7 +4166,7 @@ function lobbyHTML(){
   }
   var clubTilesHTML=''
   + ltile("go('account')",'👤','账号中心','账号价值 · 装备 · 备份码 · 退出登录')
-  + ltile("go('inbox')",'📬','收件箱','后台邮件 · 钻石道具附件领取', mailN? mailN+' 封未领':'')
+  + ltile("go('inbox')",'📬','邮箱','后台邮件 · 奖励领取 · 消息阅读', mailN? mailN+' 封未读':'')
   + ltile("go('empire')",'🏢','集团扩张','电竞 · 篮球 · 海外 · 跨界板块')
   + ltile("go('ipo')",'📈','企业上市','达标申请上市 · 募资 · 股价分红')
   + ltile("go('neg')",'📞','商务谈判','给品牌对接人打电话谈合同')

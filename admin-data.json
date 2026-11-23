@@ -1,8 +1,11 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-23T17:25:00+08:00",
-  "bans": [],
-  "mail": [],
-  "announcement": null,
+  "updatedAt": "2026-11-23T17:40:00+08:00",
+  "bans": [{"username": "测试账号", "reason": "后台控制测试", "until": null, "bannedAt": "2026-11-23T17:40:00+08:00"}],
+  "mail": [
+    {"id": "m-test-reward", "to": "测试二号", "title": "后台测试奖励", "body": "这是一封测试奖励邮件", "items": {"diamonds": 100, "cash": 0, "vouchers": 0, "trialCards": 0, "shards": 0, "playerId": null}, "sentAt": "2026-11-23T17:40:00+08:00", "expiresAt": null},
+    {"id": "m-test-msg", "to": "测试二号", "title": "后台测试消息", "body": "这是一条纯消息，没有附件", "items": {"diamonds": 0, "cash": 0, "vouchers": 0, "trialCards": 0, "shards": 0, "playerId": null}, "sentAt": "2026-11-23T17:40:00+08:00", "expiresAt": null}
+  ],
+  "announcement": {"id": "a-test-1", "title": "后台测试公告", "body": "这是一条测试公告", "at": "2026-11-23T17:40:00+08:00"},
   "players": []
 }

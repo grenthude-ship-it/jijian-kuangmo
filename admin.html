@@ -400,6 +400,7 @@
           <div class="panel">
             <h2>给玩家发邮件</h2>
             <p class="desc">邮件会发到玩家的游戏邮箱，附件道具在玩家领取时到账。同步到线上后生效。</p>
+            <div class="info-note">说明：附件全填 0 就是只发消息不送道具。玩家在游戏邮箱里能看到这条消息并标为已读，不会收到任何道具，可以直接发送。</div>
             <form id="mailForm" autocomplete="off">
               <div class="grid2">
                 <div class="field">
@@ -1071,8 +1072,7 @@
             trialCards: numVal('itTrial'), shards: numVal('itShards'),
             playerId: $('itPlayer').value ? $('itPlayer').value : null
           };
-          var hasItems = items.diamonds || items.cash || items.vouchers || items.trialCards || items.shards || items.playerId;
-          if (!hasItems && !body) { err.textContent = '正文和附件至少要填一样：请写正文，或给至少一项附件。'; return; }
+          // 附件全填 0 允许发送：只发消息不送道具，不做拦截
           var mail = {
             id: 'm-' + Date.now() + '-' + Math.floor(Math.random() * 1e6),
             to: to, title: title, body: body, items: items,
