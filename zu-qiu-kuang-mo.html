@@ -636,7 +636,10 @@ function sanitizeSaveData(d){
     daily:{dateKey:'', lastDate:'', streak:0, tasks:[], counters:{}, claimed:{}, streakClaimed:{}},
     fun:{wheelFree:'', wheelSpins:0, letters:[], letterDay:'', funDay:'', hist:[]},
     neg:{cool:{}, memos:[]},
-    ipo:{stage:'none', key:'', stageMonth:0, price:0, raised:0, hist:{}, priceHist:[], lastDiv:-1, inquiries:0, appliedName:''} };
+    ipo:{stage:'none', key:'', stageMonth:0, price:0, raised:0, hist:{}, priceHist:[], lastDiv:-1, inquiries:0, appliedName:''},
+    pack:{draws:0, hist:[], shards:0},
+    hall:{club:[]},
+    bet:{slips:[], rounds:{}, totalBet:0, totalWin:0, settled:0, won:0} };
   for(var k in defs){ if(d[k]===undefined) d[k]=JSON.parse(JSON.stringify(defs[k])); }
   if(!d.pay2 || typeof d.pay2!=='object') d.pay2=JSON.parse(JSON.stringify(defs.pay2));
   var p2d={firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:-1};
@@ -650,6 +653,13 @@ function sanitizeSaveData(d){
   if(!d.neg.cool) d.neg.cool={}; if(!d.neg.memos) d.neg.memos=[];
   if(!d.ipo || typeof d.ipo!=='object') d.ipo={stage:'none', key:'', stageMonth:0, price:0, raised:0, hist:{}, priceHist:[], lastDiv:-1, inquiries:0, appliedName:''};
   if(!d.ipo.hist) d.ipo.hist={}; if(!d.ipo.priceHist) d.ipo.priceHist=[];
+  if(!d.pack || typeof d.pack!=='object') d.pack={draws:0, hist:[], shards:0};
+  if(!d.pack.hist) d.pack.hist=[]; if(d.pack.shards==null) d.pack.shards=0; if(d.pack.draws==null) d.pack.draws=0;
+  if(!d.hall || typeof d.hall!=='object') d.hall={club:[]};
+  if(!d.hall.club) d.hall.club=[];
+  if(!d.bet || typeof d.bet!=='object') d.bet={slips:[], rounds:{}, totalBet:0, totalWin:0, settled:0, won:0};
+  if(!d.bet.slips) d.bet.slips=[]; if(!d.bet.rounds) d.bet.rounds={};
+  if(d.bet.totalBet==null) d.bet.totalBet=0; if(d.bet.totalWin==null) d.bet.totalWin=0; if(d.bet.settled==null) d.bet.settled=0; if(d.bet.won==null) d.bet.won=0;
   if(d.pay2.titlesSeen==null || d.pay2.titlesSeen<0) d.pay2.titlesSeen=d.titles||0; // 老存档不补发夺冠礼包，从当前冠军数起算
   if(!d.fac || typeof d.fac!=='object') d.fac={stadium:1, academy:1, training:1, medical:0, data:0};
   var fd={stadium:1, academy:1, training:1, medical:0, data:0};
@@ -907,6 +917,9 @@ function newGame(clubName, origin, diff){
     fun:{wheelFree:'', wheelSpins:0, letters:[], letterDay:'', funDay:'', hist:[]},
     neg:{cool:{}, memos:[]},
     ipo:{stage:'none', key:'', stageMonth:0, price:0, raised:0, hist:{}, priceHist:[], lastDiv:-1, inquiries:0, appliedName:''},
+    pack:{draws:0, hist:[], shards:0},
+    hall:{club:[]},
+    bet:{slips:[], rounds:{}, totalBet:0, totalWin:0, settled:0, won:0},
     grayWinBoost:0, seasonRank:0, negMonths:0,
     ventures:{}, ventureNet:0, biz:defaultBiz(),
     tactic:'均衡攻守', titles:0, cupWins:0, seasonsPlayed:0, totalWins:0,
@@ -1206,8 +1219,9 @@ function playSingleMatch(fx){
   return result;
 }
 function playFixture(fx){
-  if(fx.cup){ fx.played=true; fx.result=cupMatch(fx); return; }
-  playSingleMatch(fx);
+  if(fx.cup){ fx.played=true; fx.result=cupMatch(fx); }
+  else playSingleMatch(fx);
+  if(typeof settleBetsForMatch==='function') settleBetsForMatch(fx); // 体彩竞猜：本场有待开赛注单时，按这份真实赛果结算
 }
 function opponentDrift(){
   var d=DIVS[G.div];
@@ -1453,6 +1467,7 @@ function settleMonth(manual){
   processVentures();
   processBiz();
   if(typeof processNewMonthly==='function') processNewMonthly();
+  if(typeof settleOtherBets==='function') settleOtherBets(); // 体彩竞猜：联赛其他球队的比赛在月末统一模拟开奖并结算注单
   var wins=results.filter(function(r){ return r.res==='胜'; }).length;
   G.totalWins=(G.totalWins||0)+wins;
   var losses=results.filter(function(r){ return r.res==='负'; }).length;
@@ -1564,6 +1579,7 @@ function sellPlayer(i){
   if(G.squad.length<=12){ toast('阵容太薄了，不能再卖'); return; }
   var idx=G.squad.indexOf(o.player); if(idx<0){ G.offers.splice(i,1); render(); return; }
   var pr=signProfit(o.player, o.price);
+  if(typeof maybeInduct==='function') maybeInduct(o.player); // 荣耀殿堂：功勋球员离队时按条件评定入选
   G.cash+=o.price; G.squad.splice(idx,1); G.offers.splice(i,1);
   log('💸 '+o.player.name+' 以 '+fmt(o.price)+' 转会离队（'+o.from+'）。当初签约价 '+fmtSign(o.player)+'，这笔交易'+(pr>=0?'赚了 +':'亏了 ')+fmt(pr)+'。','');
   toast('卖出 '+o.player.name+' +'+fmt(o.price)+'（'+(pr>=0?'赚':'亏')+' '+fmt(Math.abs(pr))+'）'); render();
@@ -1572,7 +1588,9 @@ function releasePlayer(name){
   var idx=-1; G.squad.forEach(function(p,i){ if(p.name===name) idx=i; });
   if(idx<0) return;
   if(G.squad.length<=12){ toast('阵容太薄，不能再解约'); return; }
-  var p=G.squad[idx]; G.squad.splice(idx,1);
+  var p=G.squad[idx];
+  if(typeof maybeInduct==='function') maybeInduct(p); // 荣耀殿堂：功勋球员离队时按条件评定入选
+  G.squad.splice(idx,1);
   log('👋 与 '+p.name+' 解约，省下月薪 '+p.wage+'万。','');
   render();
 }
@@ -2191,7 +2209,7 @@ function restart(){ stopAuto(); clearAutoSave(); G=null; PAGE='home'; showStart(
 <script>
 "use strict";
 /* ---------------- 渲染 ---------------- */
-var NAV=[['home','游戏大厅','📋'],['tasks','每日任务','✅'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['fun','趣味乐园','🎡'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['neg','商务谈判中心','📞'],['cross','跨行业经营','🏭'],['ipo','企业上市','📈'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
+var NAV=[['home','游戏大厅','📋'],['tasks','每日任务','✅'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['fun','趣味乐园','🎡'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['neg','商务谈判中心','📞'],['cross','跨行业经营','🏭'],['ipo','企业上市','📈'],['packs','球星抽卡','🃏'],['hall','荣耀殿堂','🏛️'],['bet','体彩竞猜','🎟️'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
 function navBtns(cls){
   return NAV.map(function(n){
     var bdg='';
@@ -2299,6 +2317,9 @@ function render(){
   else if(PAGE==='fun') body+=pageFun();
   else if(PAGE==='neg') body+=pageNeg();
   else if(PAGE==='ipo') body+=pageIpo();
+  else if(PAGE==='packs') body+=pagePacks();
+  else if(PAGE==='hall') body+=pageHall();
+  else if(PAGE==='bet') body+=pageBet();
   else if(PAGE==='pay') body+=pagePay();
   else if(PAGE==='auto') body+=pageAuto();
   $app.innerHTML='<div class="layout'+(PAGE==='home'?' lobby-mode':'')+'"><aside>'+side+'</aside><div style="flex:1;min-width:0;">'+top+'<main>'+body+'</main></div></div>'+bottomTabsHTML();
@@ -2756,7 +2777,8 @@ function pagePay(){
   +'<div style="flex:1;min-width:200px;"><div style="font-weight:800;font-size:16px;">微信扫码付款 ¥'+t.amt+'</div><p class="desc">收款人：Deng Yy(**元）。付款后点下面的按钮，'+( !G.claimed[t.amt]? '本档首充双倍，到账 💎 '+(t.dia*2)+' 钻。' : '到账 💎 '+t.dia+' 钻。')+'</p>'
   +'<button class="btn grn" onclick="claimDiamonds()">我已付款，领取钻石</button></div></div></div>'
   + payExtraHTML()
-  +'<div class="card"><h3>💎 钻石商城</h3><div class="shop-grid">'+shopHTML+'</div></div>';
+  +'<div class="card"><h3>💎 钻石商城</h3><div class="shop-grid">'+shopHTML+'</div></div>'
+  +'<div class="card" style="border:2px solid #d4af37;"><h3>🃏 球星抽卡<span class="hint">商城新玩法 · 五档卡包 · 概率全公开</span></h3><p class="desc">新秀包 60 钻 → 传奇包 1200 钻，五档卡包、五个卡等级（普通 / 优秀 / 精英 / 巨星 / 传奇）：等级越高能力越强、抽中概率越低。传奇卡有机会直接开出<b>图鉴里的真传奇</b>——C罗、梅西、内马尔们都在池子里，抽中直接入队。</p><button class="btn pri" onclick="go(\'packs\')">去抽卡 ›</button></div>';
 }
 function pageAuto(){
   return '<div class="card"><h3><span class="no">自动</span>全自动模拟</h3>'
@@ -2822,7 +2844,18 @@ var STARS=[
   {id:'zhanglinpeng', name:'张琳芃', en:'Zhang Linpeng', nat:'中国', club:'上海海港', league:'中超', pos:'后卫', age:37, ab:75, fee:380, img:'photo-53.jpg', tag:'海港老队长，右路和中卫都能顶，经验拉满。'},
   {id:'gaozhunyi', name:'高准翼', en:'Gao Zhunyi', nat:'中国', club:'山东泰山', league:'中超', pos:'后卫', age:31, ab:74, fee:350, img:'photo-54.jpg', tag:'泰山后卫，出球型中卫，也能客串边后卫。'},
   {id:'hanjiaqi', name:'韩佳奇', en:'Han Jiaqi', nat:'中国', club:'北京国安', league:'中超', pos:'门将', age:27, ab:74, fee:340, img:'photo-55.jpg', tag:'国安 1 号门将，反应奇快，年轻门将里的佼佼者。'},
-  {id:'jiantao', name:'蹇韬', en:'Jian Tao', nat:'中国', club:'成都蓉城', league:'中超', pos:'门将', age:25, ab:74, fee:330, img:'photo-56.jpg', tag:'蓉城 16 号门将，拿过中超月度最佳门将，扑救稳健。'}
+  {id:'jiantao', name:'蹇韬', en:'Jian Tao', nat:'中国', club:'成都蓉城', league:'中超', pos:'门将', age:25, ab:74, fee:330, img:'photo-56.jpg', tag:'蓉城 16 号门将，拿过中超月度最佳门将，扑救稳健。'},
+  /* ---- 传奇巨星（legend:true）：照片均为本人真实比赛动作照，与下方图鉴一一对应 ---- */
+  {id:'messi', name:'梅西', en:'Lionel Messi', nat:'阿根廷', club:'迈阿密国际', league:'美职联', pos:'前锋', age:39, ab:96, fee:3200, img:'photo-57.jpg', legend:true, tag:'八座金球奖的历史第一人，迈阿密国际 10 号，左脚依旧是这个星球上最危险的武器。'},
+  {id:'ronaldo', name:'C罗', en:'Cristiano Ronaldo', nat:'葡萄牙', club:'利雅得胜利', league:'沙特联', pos:'前锋', age:41, ab:94, fee:3000, img:'photo-58.jpg', legend:true, tag:'克里斯蒂亚诺·罗纳尔多，利雅得胜利 7 号，41 岁还在刷新进球纪录，自律的代名词。'},
+  {id:'lewandowski', name:'莱万多夫斯基', en:'Robert Lewandowski', nat:'波兰', club:'巴塞罗那', league:'西甲', pos:'前锋', age:38, ab:92, fee:2000, img:'photo-59.jpg', legend:true, tag:'巴萨 9 号中锋，禁区内的终结机器，越老越妖的代表。'},
+  {id:'debruyne', name:'德布劳内', en:'Kevin De Bruyne', nat:'比利时', club:'那不勒斯', league:'意甲', pos:'中场', age:35, ab:91, fee:1900, img:'photo-60.jpg', legend:true, tag:'那不勒斯中场大脑，一脚直塞能撕开任何防线，传球视野历史级。'},
+  {id:'neymar', name:'内马尔', en:'Neymar Jr', nat:'巴西', club:'桑托斯', league:'巴甲', pos:'前锋', age:34, ab:90, fee:1800, img:'photo-61.jpg', legend:true, tag:'回到梦开始的桑托斯，巴西队史射手王，脚下花活与创造力无人能及。'},
+  {id:'benzema', name:'本泽马', en:'Karim Benzema', nat:'法国', club:'吉达联合', league:'沙特联', pos:'前锋', age:38, ab:90, fee:1600, img:'photo-62.jpg', legend:true, tag:'2022 年金球先生，吉达联合 9 号，能进球也能做球的全能中锋。'},
+  {id:'kroos', name:'克罗斯', en:'Toni Kroos', nat:'德国', club:'皇家马德里', league:'西甲', pos:'中场', age:36, ab:90, fee:1500, img:'photo-63.jpg', legend:true, tag:'2024 年在皇马功成身退的中场大师，传球成功率历史级——在游戏里，他愿意为你的球队复出一次。'},
+  {id:'modric', name:'莫德里奇', en:'Luka Modrić', nat:'克罗地亚', club:'AC米兰', league:'意甲', pos:'中场', age:41, ab:89, fee:1300, img:'photo-64.jpg', legend:true, tag:'41 岁还在意甲踢主力的金球先生，AC米兰 14 号，外脚背传球是艺术品。'},
+  {id:'son', name:'孙兴慜', en:'Son Heung-min', nat:'韩国', club:'洛杉矶FC', league:'美职联', pos:'前锋', age:34, ab:89, fee:1500, img:'photo-65.jpg', legend:true, tag:'亚洲一哥，洛杉矶FC锋线核心，英超金靴得主，双足均衡、反击致命。'},
+  {id:'ramos', name:'拉莫斯', en:'Sergio Ramos', nat:'西班牙', club:'蒙特雷', league:'墨超', pos:'后卫', age:40, ab:88, fee:1200, img:'photo-66.jpg', legend:true, tag:'蒙特雷 93 号，皇马传奇队长，92 分 48 秒的头球绝平至今仍是欧冠名场面。'}
 ];
 /* ---------------- 荣誉档案：球星个人荣誉 / 五大联赛俱乐部荣誉 / 本游戏联赛俱乐部荣誉 ---------------- */
 var STAR_HONORS={
@@ -2867,7 +2900,17 @@ var STAR_HONORS={
   zhanglinpeng:'亚冠冠军 ×2 · 中超冠军多次 · 国足百场老将',
   gaozhunyi:'国足后卫 · 中超冠军',
   hanjiaqi:'国足门将 · 国安一号门将',
-  jiantao:'中超月度最佳门将 · 蓉城主力门将'
+  jiantao:'中超月度最佳门将 · 蓉城主力门将',
+  messi:'世界杯冠军（2022）· 金球奖 ×8（历史第一）· 欧冠冠军 ×4 · 美洲杯冠军（2021）',
+  ronaldo:'欧冠冠军 ×5 · 金球奖 ×5 · 欧洲杯冠军（2016）· 职业生涯进球 900+',
+  lewandowski:'欧冠冠军（2020）· 世界足球先生 ×2 · 德甲金靴 ×7',
+  debruyne:'欧冠冠军（2023）· 英超冠军 ×6 · 英超赛季最佳球员 ×2',
+  neymar:'欧冠冠军（2015）· 巴西国家队队史射手王 · 奥运会金牌（2016）',
+  benzema:'金球奖（2022）· 欧冠冠军 ×5 · 西甲冠军 ×4',
+  kroos:'世界杯冠军（2014）· 欧冠冠军 ×6 · 2024 年在皇马退役',
+  modric:'金球奖（2018）· 欧冠冠军 ×6 · 世界杯亚军（2018）',
+  son:'英超金靴（2021-22）· 欧联杯冠军（2025）· 亚洲足球先生',
+  ramos:'世界杯冠军（2010）· 欧洲杯冠军 ×2 · 欧冠冠军 ×4'
 };
 var CLUB_HONORS={
   '曼城':'欧冠冠军（2023）· 英超多届冠军','利物浦':'欧冠冠军 ×6 · 英超冠军','阿森纳':'英超冠军 ×13 · 足总杯冠军 ×14',
@@ -2977,6 +3020,10 @@ function pageStars(){
     var st=starById(n.sid);
     return '<div class="news-it">'+(st?'<img src="'+st.img+'" alt="'+st.name+'的真实照片">':'')+'<div><b>'+esc(n.t)+'</b><div class="mini">'+n.m+'</div></div></div>';
   }).join('') : '<p class="desc">暂无播报。踢完一个月（开始比赛），这里会播报姆巴佩、哈兰德、武磊们在各自联赛的进球动态。</p>';
+  var legends=STARS.filter(function(s){ return s.legend; });
+  var legendHTML='<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>👑 传奇巨星<span class="hint">C罗 · 梅西领衔 · 能力 88–97 · 照片均为本人真实比赛动作照</span></h3>'
+  +'<p class="desc">这一组是世界足坛的传奇名字：<b>C罗（克里斯蒂亚诺·罗纳尔多）、梅西、内马尔、莫德里奇、德布劳内、莱万多夫斯基、孙兴慜、拉莫斯、克罗斯、本泽马</b>（萨拉赫已在下方前锋组里）。他们年纪都不小了，但能力依旧顶级、身价依旧吓人。签约方式和图鉴其他球星一样：<b>现金直签</b>、<b>球星直签券</b>，或去<b>球星抽卡</b>碰运气——传奇包有机会直接抽中他们。已签下 '+legends.filter(function(s){ return starInSquad(s); }).length+'/'+legends.length+' 位传奇。</p>'
+  +'<div class="star-grid">'+legends.map(function(s){ return '<div id="legend-'+s.id+'" style="display:flex;">'+starCardHTML(s)+'</div>'; }).join('')+'</div></div>';
   var POSG=[['前锋','⚡ 前锋'],['中场','🎯 中场'],['后卫','🛡️ 后卫'],['门将','🧤 门将']];
   var posHTML=POSG.map(function(pg){
     var arr=STARS.filter(function(s){ return s.pos===pg[0]; }).sort(function(a,b){ return b.ab-a.ab; });
@@ -2986,6 +3033,7 @@ function pageStars(){
   }).join('');
   return '<div class="card"><h3><span class="no">球星</span>球星图鉴<span class="hint">按位置分组 · 前锋 / 中场 / 后卫 / 门将 · 照片全部本人对应</span></h3>'
   +'<p class="desc">照片都是每位球员本人的真实比赛照片，名字、球队、联赛、位置一一对应。图鉴已按<b>前锋 / 中场 / 后卫 / 门将</b>四个位置分组，每个位置都有世界球星和中超名将。这些球星<b>可以真签进你的球队</b>：付转会费签下后，他进入一线队名单，能力直接拉高球队强度，比赛进球记在他名下，首页赛果会写清谁进的球。世界球星身价高、月薪也高，是冲超夺冠后攒钱追的终极目标；中超名将便宜得多，中甲阶段就能下手。有<b>球星直签券</b>时（累计充值奖励发放），任意球星可免转会费直接签下；也可以去充值中心用<b>钻石招募</b>抽图鉴球星。当前现金 '+fmt(G.cash)+' · 已签下球星 '+signedN+' 位 · 阵容 '+G.squad.length+'/22。</p></div>'
+  + legendHTML
   + posHTML
   +'<div class="card"><h3>🏟️ 五大联赛球队<span class="hint">带 ⭐ 的球队有球星在上面的图鉴里，点球星头像跳到他的卡片</span></h3><div style="display:flex;flex-direction:column;gap:10px;">'+leaguesHTML+'</div></div>'
   +'<div class="grid2"><div class="card"><h3>⚽ 我的球队进球榜<span class="hint">你签的球星进了多少球，一目了然</span></h3>'+scorerHTML+'</div>'
@@ -3215,6 +3263,7 @@ function showLobbyCat(key){
       ['go','intel','🔭','数据球探','球探报告完整度 · 适配度评分 · 考察任务带回独家候选'],
       ['go','youth','🌱','青训体系','签苗子 · 定培养方案 · 提拔一线队'+(youthReady?' · '+youthReady+' 人已可提拔':'')],
       ['go','stars','⭐','球星图鉴','世界球星 · 五大联赛 · 中超名将，真实照片一一对应，可真签进队'],
+      ['go','packs','🃏','球星抽卡','商城五档卡包（60–1200 钻）· 五个卡等级概率全公开 · 有机会抽中 C罗梅西等图鉴传奇'],
       ['go','squad','🏋️','训练 · 更衣室 · 球员关系','在阵容页下方：训练强度与理疗、球员谈话、首发承诺、续约都在那']
     ]},
     event:{ t:'🎪 赛事活动类', rows:[
@@ -3222,6 +3271,8 @@ function showLobbyCat(key){
       ['go','fun','🎡','趣味乐园','幸运大转盘（每天免费 1 次）· 球迷来信回信 · 每日趣味随机事件'],
       ['go','ops','🎪','运营活动','战术体系 · 赛前部署 · 每月活动 · 足协杯'+(opsLeft?' · 本月还剩 '+opsLeft+' 项可办':'')],
       ['go','honors','🎖️','荣誉中心','俱乐部荣誉 · 球员荣誉 · 赛季颁奖倒计时 '+monthsToAwards()+' 个月'],
+      ['go','hall','🏛️','荣耀殿堂','本俱乐部名人堂（功勋球员 + 退役号码）+ 世界足坛名人堂，与荣誉中心互通'],
+      ['go','bet','🎟️','体彩竞猜','只用游戏内现金 · 胜平负 / 猜比分 / 总进球数 · 赔率按实力算 · 赛后自动结算'],
       ['fn','tasks','📋','任务中心','董事会赛季目标 + 长期目标'+(claim?' · '+claim+' 个成就奖励可领':'')],
       ['fn','ranking','📊','联盟排行','当前联赛积分榜 · 我的王朝评级']
     ]},
@@ -3399,7 +3450,8 @@ function pageHonors(){
   var starHon=STARS.map(function(s){
     return '<div class="hon-card"><div class="hn"><img class="star-thumb" src="'+s.img+'" alt="'+s.name+'的真实照片"> '+s.name+' <span class="mini">'+s.club+' · '+s.league+'</span></div><div class="hl">🏅 '+(STAR_HONORS[s.id]||'')+'<br>'+s.tag+'</div></div>';
   }).join('');
-  return hero
+  return '<div class="card"><h3>🏛️ 荣耀殿堂<span class="hint">独立页面 · 与荣誉中心互通</span></h3><p class="desc">为本队立下大功的球员离队后入选<b>本俱乐部名人堂</b>，号码随之退役；C罗、梅西等图鉴传奇则陈列在<b>世界足坛名人堂</b>里。</p><button class="btn pri" onclick="go(\'hall\')">进入荣耀殿堂 ›</button></div>'
+  + hero
   +'<div class="card"><h3><span class="no">颁奖</span>历届获奖名单<span class="hint">累计已颁 '+(past.length)+' 个奖项</span></h3>'+pastHTML+'</div>'
   +'<div class="card"><h3><span class="no">俱乐部</span>俱乐部荣誉室<span class="hint">我的俱乐部 + 三级联赛全部 24 支球队</span></h3><div class="hon-grid">'+myHon+'</div>'+cnHTML+'</div>'
   +'<div class="card"><h3><span class="no">世界</span>五大联赛俱乐部荣誉<span class="hint">27 支欧洲球队的队史荣誉</span></h3>'+worldHTML+'</div>'
@@ -4714,7 +4766,9 @@ function showLive(){
   +'<div class="live-score"><span class="lt-name">'+esc(G.club)+'</span><span class="lt-sc num" id="lv-score">0 : 0</span><span class="lt-name r">'+esc(d.opp)+'</span></div>'
   +'<div class="live-clock"><span id="lv-clock">0\'</span> · <span id="lv-phase">上半场</span></div>'
   +'<div class="live-stats" id="lv-stats">射门 0 : 0 · 控球 50% : 50%</div></div>'
-  +'<div class="live-cols"><div class="live-feed" id="lv-feed"></div>'
+  +'<div class="lv-viewbar"><button class="btn sm on" id="lv-vp" onclick="liveSetView(\'pitch\')">🏟️ 球场画面</button><button class="btn sm" id="lv-vt" onclick="liveSetView(\'text\')">📋 文字解说</button><span class="lv-vhint">球场画面：双方球员按阵型站位并随比赛跑动，足球随事件在场上移动，进球时球进网——和文字直播是同一份比赛数据</span></div>'
+  +'<div id="lv-pitch-wrap"><canvas id="lv-pitch" width="880" height="430"></canvas></div>'
+  +'<div class="live-cols" id="lv-cols" style="display:none;"><div class="live-feed" id="lv-feed"></div>'
   +'<div class="live-side"><h4>🏠 '+esc(G.club)+' 首发</h4><div class="lu">'+myLU+'</div><h4>🚌 '+esc(d.opp)+' 首发</h4><div class="lu">'+opLU+'</div><h4 id="lv-stats-h">📊 实时数据（截至当前分钟）</h4><div class="lu" id="lv-side-stats">射门 0 : 0<br>控球 50% : 50%</div></div></div>'
   +'<div class="live-controls">'
   +'<button class="btn sm" id="lv-pause" onclick="liveTogglePause()">⏸ 暂停</button>'
@@ -4727,6 +4781,7 @@ function showLive(){
   +'<button class="btn pri sm" id="lv-exit" onclick="liveExit()">退出直播</button>'
   +'</div></div></div>';
   liveReveal();
+  if(typeof pitchStart==='function') pitchStart();
 }
 function liveNextKeyMin(from){
   var evs=LIVE.det.events;
@@ -5409,6 +5464,514 @@ function pageIpo(){
     +'<div class="acts" style="margin-top:8px;">'+(ip.stage==='listed'&&ip.key===c.key? '<span class="pill up">已上市</span>' : (ip.stage!=='none'? '<button class="btn sm" disabled>有公司正在上市流程中</button>' : (okAll? '<button class="btn pri sm" onclick="applyIpo(\''+c.key+'\')">📈 申请上市</button>' : '<button class="btn sm" disabled>条件未达标</button>')))+'</div></div>';
   }).join('') : '<div class="card"><h3>📈 还没有可上市的公司</h3><p class="desc">先去创立一家公司：自有品牌（品牌页创立品牌）或跨行业经营（餐饮、健身、电竞酒店、体育科技、影视、房地产任选一家开业），把估值做上去、连着盈利三个月，再回来申请上市。</p><div class="acts"><button class="btn sm" onclick="go(\'brand\')">去自有品牌</button><button class="btn sm" onclick="go(\'cross\')">去跨行业经营</button></div></div>';
   return policy+flow+compCards+'<div class="acts" style="margin:4px 0 10px;"><button class="btn" onclick="go(\'home\')">← 回大厅</button><button class="btn sm" onclick="go(\'empire\')">去集团扩张 →</button></div>';
+}
+</script>
+<style>
+/* ---------- 球星抽卡 / 荣耀殿堂 / 体彩竞猜 / 直播球场画面 ---------- */
+.pack-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px;}
+.pack-card{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff;display:flex;flex-direction:column;gap:7px;}
+.pack-card.legend{border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);}
+.pack-card .pn{font-weight:900;font-size:16.5px;}
+.pack-card .pp{font-weight:900;color:#8a6508;font-size:15px;}
+.tier-badge{display:inline-block;padding:1px 9px;border-radius:20px;color:#fff;font-size:11.5px;font-weight:800;line-height:1.6;}
+.prob-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.prob-tbl th,.prob-tbl td{border:1px solid var(--line);padding:5px 6px;text-align:center;}
+.prob-tbl th{background:#101d29;color:#f3d27a;font-weight:800;}
+.prob-tbl td:first-child{font-weight:700;text-align:left;}
+.pack-open{font-size:62px;text-align:center;padding:22px 0 26px;animation:packshake .45s ease-in-out 2;}
+@keyframes packshake{0%,100%{transform:rotate(0deg) scale(1);}25%{transform:rotate(-7deg) scale(1.07);}75%{transform:rotate(7deg) scale(1.07);}}
+@media (prefers-reduced-motion: reduce){ .pack-open{animation:none;} }
+.hall-num{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:44px;border-radius:50%;border:2.5px solid #d4af37;color:#8a6508;font-weight:900;font-size:17px;background:#fffaf0;padding:0 6px;}
+.bet-picks{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
+.bet-picks .btn.on{background:var(--navy1);color:#ffd76a;border-color:#d4af37;}
+.bet-mtabs{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+.bet-mtabs .btn.on{background:var(--navy1);color:#ffd76a;border-color:#d4af37;}
+.bet-amt{width:110px;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px;font-size:15px;font-weight:700;}
+.lv-viewbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#0e2233;border-top:1px solid rgba(255,255,255,.08);}
+.lv-viewbar .btn{background:transparent;color:#c8d8e4;border:1px solid #33506b;}
+.lv-viewbar .btn.on{background:#d4af37;color:#101d29;border-color:#d4af37;font-weight:800;}
+.lv-vhint{color:#8fa9bd;font-size:12px;flex:1;min-width:200px;}
+#lv-pitch-wrap{position:relative;background:#14532d;line-height:0;}
+#lv-pitch{width:100%;height:auto;display:block;}
+</style>
+<script>
+"use strict";
+/* ================= 新系统二：球星抽卡 / 荣耀殿堂 / 直播球场画面 / 体彩竞猜 =================
+   状态全部存进 G（pack / hall / bet），随自动存档保存；老存档由
+   sanitizeSaveData 补默认，这里再兜底一层 ensureX2()。
+   抽卡只花游戏内钻石、竞猜只花游戏内现金，都不涉及真实货币。 */
+function ensureX2(){
+  if(!G) return;
+  if(!G.pack || typeof G.pack!=='object') G.pack={draws:0, hist:[], shards:0};
+  if(!G.pack.hist) G.pack.hist=[]; if(G.pack.shards==null) G.pack.shards=0; if(G.pack.draws==null) G.pack.draws=0;
+  if(!G.hall || typeof G.hall!=='object') G.hall={club:[]};
+  if(!G.hall.club) G.hall.club=[];
+  if(!G.bet || typeof G.bet!=='object') G.bet={slips:[], rounds:{}, totalBet:0, totalWin:0, settled:0, won:0};
+  if(!G.bet.slips) G.bet.slips=[]; if(!G.bet.rounds) G.bet.rounds={};
+  if(G.bet.totalBet==null) G.bet.totalBet=0; if(G.bet.totalWin==null) G.bet.totalWin=0; if(G.bet.settled==null) G.bet.settled=0; if(G.bet.won==null) G.bet.won=0;
+}
+
+/* ---------------- 球星抽卡：五档卡包 × 五个卡等级 ----------------
+   等级与能力区间：普通 60–70 / 优秀 71–78 / 精英 79–85 / 巨星 86–92 / 传奇 93–97。
+   每档包的五级概率写死在 PACKS.probs 里（顺序：普通/优秀/精英/巨星/传奇），
+   页面上完整公开。巨星/传奇卡优先从图鉴真球星里出（按能力区间匹配），
+   抽到已拥有的球星自动转碎片；阵容满时转现金补偿。 */
+var CARD_TIERS=[
+  {nm:'普通', ab:[60,70], col:'#7d8a96', dup:5,  cash:50},
+  {nm:'优秀', ab:[71,78], col:'#2b6cb0', dup:12, cash:100},
+  {nm:'精英', ab:[79,85], col:'#0e7a7a', dup:30, cash:200},
+  {nm:'巨星', ab:[86,92], col:'#e85d1f', dup:80, cash:400},
+  {nm:'传奇', ab:[93,97], col:'#c9930a', dup:200, cash:800}
+];
+var PACKS=[
+  {id:'rookie', nm:'新秀包', price:60,   probs:[70,24,5,0.9,0.1],  ds:'便宜练手：普通、优秀为主，偶尔蹦出一张精英。'},
+  {id:'bronze', nm:'青铜包', price:150,  probs:[50,35,12,2.7,0.3], ds:'精英开始常见，巨星得看运气，传奇基本是梦想。'},
+  {id:'silver', nm:'白银包', price:300,  probs:[32,38,22,7,1],     ds:'精英概率明显提升，传奇也有 1% 的盼头。'},
+  {id:'gold',   nm:'黄金包', price:600,  probs:[15,30,35,17,3],    ds:'冲高卡的主力包：巨星 17%、传奇 3%。'},
+  {id:'legend', nm:'传奇包', price:1200, probs:[5,18,37,35,5],     ds:'传奇概率全场最高（5%）——抽中就是图鉴里的真传奇。'}
+];
+function packDef(id){ var f=null; PACKS.forEach(function(p){ if(p.id===id) f=p; }); return f; }
+function rollTier(probs){ var r=Math.random()*100, acc=0; for(var i=0;i<5;i++){ acc+=probs[i]; if(r<acc) return i; } return 0; }
+function resolvePackTier(tier){
+  var T=CARD_TIERS[tier];
+  if(tier>=3){
+    var pool=STARS.filter(function(s){ return s.ab>=T.ab[0] && s.ab<=T.ab[1]; });
+    var chance= tier===4? 0.75 : 0.5;
+    if(pool.length && Math.random()<chance){
+      var s=pick(pool);
+      if(starInSquad(s)){ G.pack.shards+=T.dup; return {tier:tier, star:s, dup:true, txt:'重复！图鉴球星 '+s.name+' 已经在队里，自动转为球员碎片 +'+T.dup}; }
+      if(G.squad.length>=22){ G.cash+=T.cash; return {tier:tier, star:s, full:true, txt:'抽中图鉴球星 '+s.name+'，但阵容已满（22人），转为现金补偿 +'+fmt(T.cash)}; }
+      grantStar(s,'球星抽卡 · '+s.club);
+      return {tier:tier, star:s, txt:'图鉴球星 '+s.name+'（'+s.pos+' · 能力 '+s.ab+'）直接入队！'};
+    }
+  }
+  var ab=ri(T.ab[0], T.ab[1]);
+  var foreign=Math.random()<0.45;
+  var name= foreign? pick(FOREIGN)[0] : randName();
+  var guard=0;
+  while(G.squad.some(function(p){ return p.name===name; }) && guard++<10) name=randName();
+  if(G.squad.some(function(p){ return p.name===name; })){ G.pack.shards+=T.dup; return {tier:tier, dup:true, txt:'抽到重复球员 '+name+'，自动转为球员碎片 +'+T.dup}; }
+  if(G.squad.length>=22){ G.cash+=T.cash; return {tier:tier, full:true, txt:T.nm+'卡球员（能力 '+ab+'），但阵容已满，转为现金补偿 +'+fmt(T.cash)}; }
+  var p=mkPlayer(name, pick(POS), ab, ri(17,33), foreign);
+  p.pot=Math.min(99, ab+ri(0,6)); p.cost=0; p.signNote='球星抽卡 · '+T.nm+'卡';
+  G.squad.push(p);
+  return {tier:tier, txt:T.nm+'卡 · '+p.pos+' '+name+'（能力 '+ab+'）入队'};
+}
+function drawPack(id, n){
+  var pk=packDef(id); if(!pk) return;
+  ensureX2();
+  var cost=pk.price*n;
+  if(G.diamonds<cost){ toast('钻石不够，还差 '+(cost-G.diamonds)+' 钻——去充值中心补钻'); return; }
+  G.diamonds-=cost;
+  if(typeof taskBump==='function') taskBump('recruit');
+  var tiers=[];
+  for(var i=0;i<n;i++) tiers.push(rollTier(pk.probs));
+  if(n===10 && Math.max.apply(null,tiers)<2) tiers[9]=2; // 十连保底：至少一张精英或更高
+  var results=tiers.map(function(t){ return resolvePackTier(t); });
+  G.pack.draws+=n;
+  results.forEach(function(r){ G.pack.hist.unshift({t:r.txt, tier:r.tier, m:G.year+'/'+G.mon}); });
+  if(G.pack.hist.length>20) G.pack.hist.length=20;
+  log('🃏 '+pk.nm+(n===10?'十连抽':'单抽')+'（💎 '+cost+'）：'+results.map(function(r){ return r.txt; }).join('；')+'。','good');
+  render();
+  showPackResults(pk, results, n);
+}
+function showPackResults(pk, results, n){
+  var items=results.map(function(r){
+    var T=CARD_TIERS[r.tier];
+    var head='<span class="tier-badge" style="background:'+T.col+';">'+T.nm+'卡</span>';
+    if(r.star) return '<div class="gacha-it" style="border:2px solid '+T.col+';background:#fffaf0;font-weight:700;"><img src="'+r.star.img+'" alt="'+r.star.name+'的真实比赛照片">'+head+'<br>'+r.txt+'</div>';
+    return '<div class="gacha-it" style="border:2px solid '+T.col+';"><span class="gi">👕</span>'+head+'<br>'+r.txt+'</div>';
+  }).join('');
+  var best=Math.max.apply(null, results.map(function(r){ return r.tier; }));
+  $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:22px;">🃏 '+pk.nm+' · 开包结果</div><div class="sub">'+(best>=4?'🌟 传奇降临！这包开出传奇卡了！': best===3?'🔥 出巨星了！': best===2?'✨ 至少一张精英，不亏。':'开包完成，球员已入队（重复的自动转碎片，阵容满的转现金）。')+'</div></div>'
+  +'<div class="body"><div class="pack-open" id="pack-open">🎁</div><div class="gacha-res" id="pack-res" style="display:none;">'+items+'</div></div>'
+  +'<div class="foot"><button class="btn" onclick="closeModal()">关闭</button>'+(G.diamonds>=pk.price?'<button class="btn pri" onclick="closeModal();drawPack(\''+pk.id+'\','+n+')">再来'+(n===10?'十连':'一包')+'（💎 '+(pk.price*n)+'）</button>':'')+'</div></div></div>';
+  setTimeout(function(){
+    var o=document.getElementById('pack-open'); if(o) o.style.display='none';
+    var r=document.getElementById('pack-res'); if(r) r.style.display='grid';
+  }, 950);
+}
+function exchangeShards(){
+  ensureX2();
+  if(G.pack.shards<=0){ toast('还没有球员碎片——抽到重复球员时会自动给'); return; }
+  var dia=G.pack.shards*2;
+  log('♻️ 球员碎片兑换：'+G.pack.shards+' 碎片 → 💎 '+dia+' 钻。','good');
+  G.diamonds+=dia; G.pack.shards=0;
+  toast('碎片兑换到账 💎 +'+dia); render();
+}
+function pagePacks(){
+  ensureX2();
+  var cards=PACKS.map(function(pk){
+    var probLine=CARD_TIERS.map(function(T,i){ return '<span class="tier-badge" style="background:'+T.col+';">'+T.nm+' '+pk.probs[i]+'%</span>'; }).join(' ');
+    return '<div class="pack-card'+(pk.id==='legend'?' legend':'')+'"><div class="pn">🃏 '+pk.nm+'</div>'
+    +'<div class="pp">💎 '+pk.price+' 钻 / 包</div>'
+    +'<p class="desc" style="margin:0;">'+pk.ds+'</p>'
+    +'<div style="display:flex;gap:4px;flex-wrap:wrap;">'+probLine+'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:auto;"><button class="btn pri sm" onclick="drawPack(\''+pk.id+'\',1)">单抽</button><button class="btn sm" style="border-color:#d4af37;color:#8a6508;font-weight:800;" onclick="drawPack(\''+pk.id+'\',10)">十连抽（💎 '+(pk.price*10)+' · 保底精英）</button></div></div>';
+  }).join('');
+  var tbl='<table class="prob-tbl"><tr><th>卡包</th><th>价格</th>'+CARD_TIERS.map(function(T){ return '<th>'+T.nm+'<br><span style="font-weight:400;font-size:11px;">能力 '+T.ab[0]+'–'+T.ab[1]+'</span></th>'; }).join('')+'</tr>'
+  + PACKS.map(function(pk){ return '<tr><td>'+pk.nm+'</td><td>💎 '+pk.price+'</td>'+pk.probs.map(function(x){ return '<td>'+x+'%</td>'; }).join('')+'</tr>'; }).join('') +'</table>';
+  var hist= G.pack.hist.length? G.pack.hist.map(function(h){ var T=CARD_TIERS[h.tier]; return '<div class="item"><span class="tier-badge" style="background:'+T.col+';">'+T.nm+'</span><div class="grow"><div class="nm" style="font-weight:600;">'+esc(h.t)+'</div><div class="meta">'+h.m+'</div></div></div>'; }).join('') : '<p class="desc">还没有抽卡记录。开第一包，看看运气怎么样。</p>';
+  return '<div class="card"><h3><span class="no">抽卡</span>球星抽卡<span class="hint">钻石余额 💎 '+G.diamonds+' · 累计已抽 '+G.pack.draws+' 包 · 球员碎片 '+G.pack.shards+' 个</span></h3>'
+  +'<p class="desc">商城新玩法：用<b>游戏内钻石</b>开卡包（不涉及真实货币，钻石在充值中心获取）。五档卡包价格不同，五种卡的等级与能力区间也不同——<b>等级越高、能力越强，抽中概率越低</b>，全部概率见下方概率表。抽到的球员<b>直接进一线队</b>；巨星卡（86–92）和传奇卡（93–97）有机会直接开出<b>图鉴里的真球星</b>（含 C罗、梅西等传奇巨星）；抽到<b>重复球员</b>自动转为球员碎片（1 碎片 = 2 钻，随时兑换），阵容满 22 人时转为现金补偿。十连抽保底至少一张精英卡。</p>'
+  +(G.pack.shards>0? '<div class="acts"><button class="btn sm" onclick="exchangeShards()">♻️ 把 '+G.pack.shards+' 碎片兑换成 💎 '+(G.pack.shards*2)+' 钻</button></div>':'')
+  +'<div class="acts"><button class="btn sm" onclick="go(\'pay\')">💎 钻石不够？去充值中心</button><button class="btn sm" onclick="go(\'stars\')">⭐ 去图鉴看传奇巨星</button></div></div>'
+  +'<div class="pack-grid">'+cards+'</div>'
+  +'<div class="card"><h3>📊 概率公示<span class="hint">五档卡包 × 五个等级，抽之前看清楚</span></h3>'+tbl
+  +'<p class="mini" style="margin-top:8px;">读法：传奇包每包有 5% 出传奇卡（93–97），是新秀包（0.1%）的 50 倍；但即便是传奇包，传奇卡也仍然稀有——这就是它的价值。巨星 / 传奇卡命中图鉴真球星的概率分别为 50% / 75%，其余为同能力区间的虚构强援。</p></div>'
+  +'<div class="card"><h3>🧾 最近抽卡记录</h3>'+hist+'</div>'
+  +'<div class="acts" style="margin:4px 0 10px;"><button class="btn" onclick="go(\'home\')">← 回大厅</button><button class="btn sm" onclick="go(\'squad\')">去阵容看新球员 →</button></div>';
+}
+
+/* ---------------- 荣耀殿堂 ----------------
+   (a) 本俱乐部名人堂：球员离队（转会卖出 / 解约）时评定，满足任一条件入选：
+       累计进球 ≥ 50 / 累计出场 ≥ 80 场 / 夺得过赛季个人奖项且出场 ≥ 30 场 /
+       图鉴球星且出场 ≥ 40 场。入选者的球衣号码随之退役。
+   (b) 世界足坛名人堂：图鉴传奇巨星 + 他们的历史荣誉。 */
+function playerSeasonsAtClub(p){ return Math.max(1, Math.ceil((p.played||0)/30)); }
+function inductCheck(p){
+  var goals=(G.goalTable&&G.goalTable[p.name])||0;
+  var played=p.played||0;
+  var hon=(G.playerHonors&&G.playerHonors[p.name])||[];
+  var reasons=[];
+  if(goals>=50) reasons.push('为 '+G.club+' 累计进球 '+goals+' 个（≥ 50）');
+  if(played>=80) reasons.push('累计出场 '+played+' 场（≥ 80）');
+  if(hon.length && played>=30) reasons.push('效力期间夺得赛季个人奖项（'+hon.map(function(h){ return h.award; }).join('、')+'）');
+  if(p.star && played>=40) reasons.push('图鉴球星身份为球队出战 '+played+' 场');
+  return reasons;
+}
+function maybeInduct(p){
+  if(!G || !p || !p.name) return;
+  ensureX2();
+  if(G.hall.club.some(function(h){ return h.name===p.name; })) return;
+  var reasons=inductCheck(p);
+  if(!reasons.length) return;
+  var nums=jerseyNumbers();
+  var hon=(G.playerHonors&&G.playerHonors[p.name])||[];
+  G.hall.club.unshift({ name:p.name, num:nums[p.name]||'', img:p.img||'', pos:p.pos, ab:p.ab,
+    goals:(G.goalTable&&G.goalTable[p.name])||0, played:p.played||0, seasons:playerSeasonsAtClub(p),
+    honors:hon.map(function(h){ return '第 '+h.season+' 赛季 · '+h.award; }),
+    reason:reasons.join('；'), year:G.year });
+  log('🏛️ 荣耀殿堂：'+p.name+' 离队时达成入选条件（'+reasons[0]+'），正式入选 '+G.club+' 名人堂'+(nums[p.name]? '，他的 '+nums[p.name]+' 号球衣就此退役':'')+'。','good');
+}
+function pageHall(){
+  ensureX2();
+  var entries=G.hall.club;
+  var retired=entries.filter(function(h){ return h.num; }).map(function(h){ return '<span class="hall-num" title="'+esc(h.name)+' 的退役号码">'+h.num+'</span>'; }).join(' ');
+  var clubHTML= entries.length? '<div class="hon-grid">'+entries.map(function(h){
+    return '<div class="hon-card" style="border:2px solid #d4af37;"><div class="hn">'+(h.img?'<img class="star-thumb" src="'+h.img+'" alt="'+esc(h.name)+'的真实照片"> ':'')+esc(h.name)+' <span class="mini">'+h.pos+' · 能力 '+h.ab+'</span></div>'
+    +'<div class="hl">🏛️ '+h.year+' 年入选'+(h.num?' · <b>'+h.num+' 号球衣已退役</b>':'')+'<br>效力约 '+h.seasons+' 个赛季 · 出场 '+h.played+' 场 · 进球 '+h.goals+' 个'
+    +(h.honors.length? '<br>🏆 '+h.honors.join('、'):'')
+    +'<br>入选理由：'+esc(h.reason)+'</div></div>';
+  }).join('')+'</div>' : '<p class="desc">还没有人入选。把一名球员培养成球队传奇——进球攒到 50 个、出场攒到 80 场，或者带他拿个赛季大奖——等他将来转会或解约离队时，就会在这里留下名字和退役号码。现役球员里谁最接近入选，看下面「传奇候选」。</p>';
+  var cands=G.squad.map(function(p){ return {p:p, r:inductCheck(p)}; }).filter(function(x){ return x.r.length; });
+  var candHTML= cands.length? cands.map(function(x){ return '<div class="item"><span class="pill up">传奇候选</span><div class="grow"><div class="nm" style="font-weight:700;">'+esc(x.p.name)+' <span class="mini">'+x.p.pos+' · 能力 '+x.p.ab+' · 已出场 '+(x.p.played||0)+' 场 · 进球 '+((G.goalTable&&G.goalTable[x.p.name])||0)+'</span></div><div class="meta">已达成：'+esc(x.r.join('；'))+'——将来离队时自动入选名人堂</div></div></div>'; }).join('') : '<p class="desc">暂无候选。入选条件：进球 ≥ 50，或出场 ≥ 80 场，或拿过赛季个人奖项且出场 ≥ 30 场，或图鉴球星出场 ≥ 40 场。多让核心球员上场、进球，候选名单自然就有了。</p>';
+  var legends=STARS.filter(function(s){ return s.legend; });
+  var worldHTML='<div class="hon-grid">'+legends.map(function(s){
+    return '<div class="hon-card"><div class="hn"><img class="star-thumb" src="'+s.img+'" alt="'+s.name+'的真实比赛照片"> '+s.name+' <span class="mini">'+s.club+' · '+s.league+' · 能力 '+s.ab+'</span></div><div class="hl">🏅 '+(STAR_HONORS[s.id]||'')+'<br>'+s.tag+'</div><div style="margin-top:6px;"><button class="btn sm" onclick="go(\'stars\')">去图鉴签下他</button></div></div>';
+  }).join('')+'</div>';
+  return '<div class="card"><h3><span class="no">殿堂</span>荣耀殿堂<span class="hint">本俱乐部名人堂 + 世界足坛名人堂 · 与荣誉中心互通</span></h3>'
+  +'<p class="desc">这里供奉两种传奇：一种是<b>为你的俱乐部立下大功</b>的人——他们离队时入选名人堂，号码退役，名字永远留在墙上；一种是<b>世界足坛的传奇巨星</b>——C罗、梅西们的历史荣誉陈列于此，他们也都还在图鉴里等你签下。</p>'
+  +'<div class="acts"><button class="btn sm" onclick="go(\'honors\')">🎖️ 去荣誉中心</button><button class="btn sm" onclick="go(\'stars\')">⭐ 去球星图鉴</button><button class="btn sm" onclick="go(\'home\')">← 回大厅</button></div></div>'
+  +'<div class="card"><h3>🏛️ 本俱乐部名人堂<span class="hint">'+esc(G.club)+' · 已入选 '+entries.length+' 人</span></h3>'
+  +'<p class="desc"><b>入选条件（离队时评定，满足任意一条）：</b>① 为本队累计进球 ≥ 50 个；② 累计出场 ≥ 80 场；③ 效力期间夺得赛季个人奖项且出场 ≥ 30 场；④ 图鉴球星且出场 ≥ 40 场。入选者的<b>球衣号码随之退役</b>，陈列在下方。</p>'
+  +(retired? '<div style="margin:10px 0;"><span class="mini" style="display:block;margin-bottom:6px;">退役号码墙：</span><div style="display:flex;gap:8px;flex-wrap:wrap;">'+retired+'</div></div>':'')
+  + clubHTML
+  +'<h3 style="margin-top:16px;">🌟 现役传奇候选<span class="hint">已达成入选条件、还在队里的球员</span></h3>'+candHTML+'</div>'
+  +'<div class="card"><h3>🌍 世界足坛名人堂<span class="hint">图鉴传奇巨星 · 历史荣誉</span></h3>'+worldHTML+'</div>'
+  +'<div class="acts" style="margin:4px 0 10px;"><button class="btn" onclick="go(\'home\')">← 回大厅</button><button class="btn sm" onclick="go(\'honors\')">去荣誉中心 →</button></div>';
+}
+
+/* ---------------- 直播球场画面（canvas 俯视 2D） ----------------
+   与文字直播共用 LIVE.det 同一份比赛数据：比分、分钟、事件完全一致。
+   球员按首发阵型站位（我方蓝点向右攻、对方红点向左攻），随分钟与球的位置
+   整体移动；球按事件推进：射门/进球时冲向球门，进球瞬间球进网并闪字提示。 */
+var PITCH={raf:0, ball:{x:440,y:215,tx:440,ty:215}, trail:[], goals:-1, flashUntil:0, flashTxt:''};
+function liveSetView(v){
+  var w=document.getElementById('lv-pitch-wrap'), c=document.getElementById('lv-cols');
+  var bp=document.getElementById('lv-vp'), bt=document.getElementById('lv-vt');
+  if(w) w.style.display= v==='pitch'? 'block':'none';
+  if(c) c.style.display= v==='pitch'? 'none':'grid';
+  if(bp) bp.classList.toggle('on', v==='pitch');
+  if(bt) bt.classList.toggle('on', v==='text');
+  if(v==='text' && typeof liveReveal==='function') liveReveal();
+}
+function pitchStart(){
+  PITCH.goals=-1; PITCH.flashUntil=0; PITCH.ball={x:440,y:215,tx:440,ty:215}; PITCH.trail=[];
+  if(PITCH.raf) cancelAnimationFrame(PITCH.raf);
+  var step=function(){
+    var cv=document.getElementById('lv-pitch');
+    if(!cv || typeof LIVE==='undefined' || !LIVE){ PITCH.raf=0; return; }
+    pitchDraw(cv);
+    PITCH.raf=requestAnimationFrame(step);
+  };
+  step();
+}
+function pitchLineCoords(lineup, mine, nums){
+  var groups={'门将':[],'后卫':[],'中场':[],'前锋':[]};
+  lineup.forEach(function(p,i){ (groups[p.pos]||groups['中场']).push({p:p, i:i}); });
+  var xs= mine? {'门将':58,'后卫':205,'中场':425,'前锋':630} : {'门将':822,'后卫':675,'中场':455,'前锋':250};
+  var out=[];
+  Object.keys(groups).forEach(function(k){
+    var g=groups[k];
+    g.forEach(function(it,j){
+      out.push({ x:xs[k], y:(j+1)*(430/(g.length+1)), num: mine? (nums[it.p.name]||it.i+1) : it.i+1, name:it.p.name, gk:k==='门将', mine:mine, idx:out.length });
+    });
+  });
+  return out;
+}
+function pitchDraw(cv){
+  var ctx=cv.getContext('2d'); if(!ctx) return;
+  var W=880, H=430, d=LIVE.det, min=Math.min(90, LIVE.min);
+  var now=performance.now(), t=now/1000;
+  // 1) 由已揭示事件决定球的目标位置 + 进球闪字
+  var goals=0, lastEv=null;
+  d.events.forEach(function(e){
+    if(e.min>LIVE.min) return;
+    lastEv=e;
+    if(e.type==='goal') goals++;
+  });
+  if(PITCH.goals>=0 && goals>PITCH.goals && lastEv && lastEv.type==='goal'){
+    PITCH.flashUntil=now+2600;
+    PITCH.flashTxt='⚽ 进球！'+(lastEv.side==='me'? G.club : d.opp)+' · '+lastEv.scorer;
+  }
+  if(PITCH.goals<0) PITCH.goals=goals; else PITCH.goals=goals;
+  var seed= lastEv? lastEv.min*37 : 0;
+  var bx=440+Math.sin(min*0.32)*110, by=215+Math.cos(min*0.21)*55;
+  if(lastEv){
+    if(lastEv.type==='goal') { bx= lastEv.side==='me'? 866:14; by=215; }
+    else if(lastEv.type==='chance'){ bx= lastEv.side==='me'? 795:85; by= 120+ (seed%180); }
+    else if(lastEv.type==='yellow' || lastEv.type==='red'){ bx= 380+(seed%120); by= 150+(seed%130); }
+    else if(lastEv.type==='injury'){ bx= 300+(seed%200); by= 160+(seed%110); }
+    else if(lastEv.type==='ht' || lastEv.type==='ft'){ bx=440; by=215; }
+  }
+  if(LIVE.done){ bx=440; by=215; }
+  PITCH.ball.tx=bx; PITCH.ball.ty=by;
+  PITCH.ball.x+=(PITCH.ball.tx-PITCH.ball.x)*0.055;
+  PITCH.ball.y+=(PITCH.ball.ty-PITCH.ball.y)*0.055;
+  PITCH.trail.push({x:PITCH.ball.x, y:PITCH.ball.y});
+  if(PITCH.trail.length>16) PITCH.trail.shift();
+  // 2) 球场
+  ctx.fillStyle='#1a6e3e'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#1e7d46';
+  for(var sx=0;sx<8;sx+=2) ctx.fillRect(sx*(W/8),0,W/8,H);
+  ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=2;
+  ctx.strokeRect(24,24,W-48,H-48);
+  ctx.beginPath(); ctx.moveTo(W/2,24); ctx.lineTo(W/2,H-24); ctx.stroke();
+  ctx.beginPath(); ctx.arc(W/2,H/2,62,0,Math.PI*2); ctx.stroke();
+  ctx.strokeRect(24,95,120,H-190); ctx.strokeRect(W-144,95,120,H-190);
+  ctx.strokeRect(24,155,48,H-310); ctx.strokeRect(W-72,155,48,H-310);
+  ctx.fillStyle='#0b2e1a'; ctx.fillRect(6,175,18,80); ctx.fillRect(W-24,175,18,80);
+  ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.strokeRect(6,175,18,80); ctx.strokeRect(W-24,175,18,80);
+  // 3) 球员
+  var nums={}; try{ nums=jerseyNumbers(); }catch(e){}
+  var mine=pitchLineCoords(d.myLineup||[], true, nums);
+  var opps=pitchLineCoords(d.oppLineup||[], false, nums);
+  var shift=(PITCH.ball.x-440)*0.09;
+  function drawTeam(list){
+    var nearest=null, nd=1e9;
+    list.forEach(function(pl){ var dd=Math.pow(pl.x+ (pl.mine?shift:-shift) -PITCH.ball.x,2)+Math.pow(pl.y-PITCH.ball.y,2); if(dd<nd){ nd=dd; nearest=pl; } });
+    list.forEach(function(pl){
+      var px=pl.x + (pl.mine? shift : -shift) + Math.sin(t*0.8 + pl.idx*1.93)*9;
+      var py=pl.y + Math.cos(t*0.66 + pl.idx*2.41)*7;
+      if(pl===nearest){ px+=(PITCH.ball.x-px)*0.38; py+=(PITCH.ball.y-py)*0.38; }
+      ctx.beginPath(); ctx.arc(px,py,13.5,0,Math.PI*2);
+      ctx.fillStyle= pl.gk? '#e8b71f' : (pl.mine? '#2f7fe0' : '#e05252');
+      ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#ffffff'; ctx.stroke();
+      ctx.fillStyle= pl.gk? '#101d29' : '#ffffff';
+      ctx.font='800 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(pl.num), px, py+0.5);
+      if(pl.mine){ ctx.font='10px sans-serif'; ctx.fillStyle='rgba(255,255,255,.92)'; ctx.fillText(pl.name, px, py+21); }
+    });
+  }
+  drawTeam(mine); drawTeam(opps);
+  // 4) 足球（带轨迹）
+  for(var ti=0; ti<PITCH.trail.length; ti++){ var tp=PITCH.trail[ti]; ctx.beginPath(); ctx.arc(tp.x,tp.y,3.5,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,'+(0.10+0.05*ti)+')'; ctx.fill(); }
+  ctx.beginPath(); ctx.arc(PITCH.ball.x, PITCH.ball.y, 6.5, 0, Math.PI*2);
+  ctx.fillStyle='#ffffff'; ctx.fill(); ctx.lineWidth=1.6; ctx.strokeStyle='#101d29'; ctx.stroke();
+  ctx.fillStyle='#101d29'; ctx.beginPath(); ctx.arc(PITCH.ball.x, PITCH.ball.y, 2.2, 0, Math.PI*2); ctx.fill();
+  // 5) 队名与进球闪字
+  ctx.font='800 12px sans-serif'; ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,.9)';
+  ctx.fillText('🔵 '+G.club+'（向右攻）', 30, 16);
+  ctx.textAlign='right'; ctx.fillText('🔴 '+d.opp+'（向左攻）', W-30, 16);
+  if(now<PITCH.flashUntil){
+    ctx.font='900 34px sans-serif'; ctx.textAlign='center';
+    ctx.lineWidth=6; ctx.strokeStyle='rgba(16,29,41,.75)'; ctx.strokeText(PITCH.flashTxt, W/2, H/2-84);
+    ctx.fillStyle='#ffd76a'; ctx.fillText(PITCH.flashTxt, W/2, H/2-84);
+  }
+}
+
+/* ---------------- 体彩竞猜（只用游戏内现金 · 虚拟玩法） ----------------
+   赔率按双方球队强度算：用与比赛引擎同口径的期望进球推胜平负 / 比分 /
+   总进球概率，赔率 = 0.92 / 概率（庄家留 8% 边际），强队赔率低、弱队高。
+   本队比赛的注单在本场踢完时按真实赛果结算（playFixture 钩子）；
+   其他球队的比赛在月末统一模拟开奖（settleMonth 钩子）。 */
+var BET_SCORES=['0:0','1:0','2:0','2:1','3:0','3:1','3:2','1:1','2:2','0:1','0:2','1:2','2:3','0:3','1:3'];
+var betSel={key:'', market:'wdl', pick:''};
+function poisPmf(k, lam){ var p=Math.exp(-lam); for(var i=1;i<=k;i++) p*=lam/i; return p; }
+function betXG(m){
+  var adv= m.mine? (m.fx && m.fx.home? 2.5 : -1.5) : 1.5;
+  var dd=(m.hs-m.as)+adv;
+  return { xg:clamp(1.38+dd*0.085,0.15,4.4), xa:clamp(1.22-dd*0.085,0.1,4.2) };
+}
+function betProbs(m){
+  var e=betXG(m), pw=0, pd=0, pl=0, scores={}, totals={};
+  for(var i=0;i<=8;i++) for(var j=0;j<=8;j++){
+    var p=poisPmf(i,e.xg)*poisPmf(j,e.xa);
+    if(i>j) pw+=p; else if(i===j) pd+=p; else pl+=p;
+    scores[i+':'+j]=p;
+    var tt=i+j; totals[tt]=(totals[tt]||0)+p;
+  }
+  var t6=0; Object.keys(totals).forEach(function(k){ if(+k>=6) t6+=totals[k]; });
+  totals['6+']=t6;
+  return { w:pw, d:pd, l:pl, scores:scores, totals:totals };
+}
+function betOdds(p){ return Math.min(80, Math.max(1.02, Math.round(0.92/Math.max(p,0.004)*100)/100)); }
+function betRound(){
+  ensureX2();
+  var key='R'+G.month;
+  if(!G.bet.rounds[key]){
+    var teams=G.table.slice(), ms=[];
+    for(var i=0;i+1<teams.length;i+=2){
+      ms.push({ key:key+'-'+i, mine:false, h:teams[i].name, a:teams[i+1].name, hs:teams[i].str, as:teams[i+1].str, day:8+(i/2)*7, played:false, score:'', res:'' });
+    }
+    G.bet.rounds[key]=ms;
+  }
+  return G.bet.rounds[key];
+}
+function betMatches(){
+  ensureX2(); ensureFixtures();
+  var list=[];
+  (G.fixtures||[]).forEach(function(fx){
+    var opp=null; G.table.forEach(function(t){ if(t.name===fx.opp) opp=t; });
+    list.push({ key:'M'+G.month+'-'+fx.day+'-'+fx.opp, mine:true, fx:fx, cup:!!fx.cup,
+      h: fx.home? G.club : fx.opp, a: fx.home? fx.opp : G.club,
+      hs: teamStr(), as: opp? opp.str : (fx.cup? ((G.div>0?DIVS[G.div-1]:DIVS[0]).base+8) : DIVS[G.div].base),
+      day: fx.day, played: !!fx.played, score: fx.result? fx.result.score : '', res: fx.result? fx.result.res : '' });
+  });
+  betRound().forEach(function(m){ list.push(m); });
+  return list;
+}
+function betSelect(key){ betSel={key:key, market:'wdl', pick:''}; render(); }
+function betSetMarket(mk){ betSel.market=mk; betSel.pick=''; render(); }
+function betSetPick(p){ betSel.pick=p; render(); }
+function betQuick(v){ var el=document.getElementById('bet-amt'); if(el) el.value=v; }
+function placeBet(){
+  ensureX2();
+  var m=null; betMatches().forEach(function(x){ if(x.key===betSel.key) m=x; });
+  if(!m){ toast('先选一场比赛'); return; }
+  if(m.played){ toast('这场比赛已经开赛/结束，不能下注了'); return; }
+  if(!betSel.pick){ toast('先选一个投注选项（点上面的赔率按钮）'); return; }
+  var amtEl=document.getElementById('bet-amt');
+  var amt=parseInt(amtEl? amtEl.value : '', 10);
+  if(isNaN(amt) || amt<10){ toast('单注最低 10万'); return; }
+  if(amt>500){ toast('单注上限 500万'); return; }
+  if(G.cash<amt){ toast('现金不够下注，还差 '+fmt(amt-G.cash)); return; }
+  var used=0; G.bet.slips.forEach(function(s){ if(s.key===m.key && s.status==='待开赛') used+=s.amt; });
+  if(used+amt>1000){ toast('这场已投 '+fmt(used)+'，单场累计上限 1000万'); return; }
+  var pr=betProbs(m), o, pickTxt;
+  if(betSel.market==='wdl'){ o=betOdds(betSel.pick==='主胜'? pr.w : betSel.pick==='平局'? pr.d : pr.l); pickTxt= betSel.pick==='主胜'? m.h+' 获胜' : betSel.pick==='客胜'? m.a+' 获胜' : '双方战平'; }
+  else if(betSel.market==='score'){ var sp= betSel.pick==='其他比分'? Math.max(0.004, 1-BET_SCORES.reduce(function(sm,x){ return sm+(pr.scores[x]||0); },0)) : (pr.scores[betSel.pick]||0.004); o=betOdds(sp); pickTxt='比分 '+betSel.pick; }
+  else { o=betOdds(pr.totals[betSel.pick]||0.004); pickTxt='总进球 '+betSel.pick+(betSel.pick==='6+'?' 个或更多':' 个'); }
+  G.cash-=amt; G.bet.totalBet+=amt;
+  G.bet.slips.unshift({ key:m.key, label:m.h+' vs '+m.a, mine:!!m.mine, market:betSel.market, pick:betSel.pick, pickTxt:pickTxt, odds:o, amt:amt, status:'待开赛', payout:0, score:'', when:G.year+'/'+G.mon });
+  log('🎟️ 体彩竞猜下注：'+m.h+' vs '+m.a+'，'+pickTxt+'，赔率 '+o+'，注金 '+fmt(amt)+'（游戏内现金）。比赛结束自动结算。','');
+  toast('下注成功：'+pickTxt+' · '+fmt(amt)+' · 赔率 '+o);
+  betSel.pick='';
+  render();
+}
+function settleSlip(s, hg, ag, wdlOver){
+  var win=false;
+  if(s.market==='wdl'){ var r= wdlOver || (hg>ag? '主胜' : hg===ag? '平局' : '客胜'); win= s.pick===r; }
+  else if(s.market==='score'){ win= s.pick===(hg+':'+ag) || (s.pick==='其他比分' && BET_SCORES.indexOf(hg+':'+ag)<0); }
+  else { var tt=hg+ag; win= s.pick===(tt>=6? '6+' : String(tt)); }
+  s.score=hg+':'+ag;
+  G.bet.settled++;
+  if(win){
+    s.payout=Math.round(s.amt*s.odds); s.status='已中奖'; G.cash+=s.payout; G.bet.totalWin+=s.payout; G.bet.won++;
+    log('🎟️ 体彩中奖！'+s.label+'（'+s.pickTxt+'）实际比分 '+s.score+'，注金 '+fmt(s.amt)+' × 赔率 '+s.odds+'，派奖 +'+fmt(s.payout)+' 已到账。','good');
+  } else {
+    s.payout=0; s.status='未中奖';
+    log('🎟️ 体彩未中：'+s.label+'（'+s.pickTxt+'）实际比分 '+s.score+'，注金 '+fmt(s.amt)+' 没了。小赌怡情，别上头。','bad');
+  }
+}
+function settleBetsForMatch(fx){
+  if(!G || !G.bet || !fx || !fx.result) return;
+  ensureX2();
+  var key='M'+G.month+'-'+fx.day+'-'+fx.opp;
+  var pend=G.bet.slips.filter(function(s){ return s.key===key && s.status==='待开赛'; });
+  if(!pend.length) return;
+  var mm=String(fx.result.score||'').match(/(\d+)\s*[:：]\s*(\d+)/);
+  if(!mm) return;
+  var myG=+mm[1], opG=+mm[2];
+  var hg= fx.home? myG:opG, ag= fx.home? opG:myG;
+  var wdlOver=null;
+  if(fx.cup && hg===ag) wdlOver= fx.result.res==='胜'? (fx.home?'主胜':'客胜') : (fx.home?'客胜':'主胜'); // 杯赛点球决胜：胜平负按晋级方算
+  pend.forEach(function(s){ settleSlip(s, hg, ag, wdlOver); });
+  if(typeof autoSave==='function') autoSave();
+}
+function settleOtherBets(upTo){
+  if(!G || !G.bet) return;
+  ensureX2();
+  Object.keys(G.bet.rounds).forEach(function(rk){
+    var mon=parseInt(rk.slice(1),10);
+    if(isNaN(mon) || mon>upTo) return;
+    G.bet.rounds[rk].forEach(function(m){
+      if(m.played) return;
+      var e=betXG(m);
+      var hg=pois(e.xg), ag=pois(e.xa);
+      m.played=true; m.score=hg+':'+ag; m.res= hg>ag?'主胜': hg===ag?'平局':'客胜';
+      G.bet.slips.forEach(function(s){ if(s.key===m.key && s.status==='待开赛') settleSlip(s, hg, ag, null); });
+    });
+  });
+}
+function pageBet(){
+  ensureX2();
+  var B=G.bet;
+  var profit=B.totalWin-B.totalBet;
+  var stats='<div class="kpis" style="margin:0 0 6px;">'
+  +'<div class="kpi"><div class="lb">累计投注</div><div class="vl num">'+fmt(B.totalBet)+'</div><div class="sub">全部用游戏内现金</div></div>'
+  +'<div class="kpi"><div class="lb">累计派奖</div><div class="vl num">'+fmt(B.totalWin)+'</div><div class="sub">中奖自动到账</div></div>'
+  +'<div class="kpi"><div class="lb">净盈亏</div><div class="vl num" style="color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+(profit>=0?'+':'')+fmt(profit)+'</div><div class="sub">派奖 − 投注</div></div>'
+  +'<div class="kpi"><div class="lb">中奖率</div><div class="vl num">'+(B.settled? Math.round(B.won/B.settled*100)+'%':'—')+'</div><div class="sub">已结算 '+B.settled+' 注 · 中奖 '+B.won+' 注</div></div></div>';
+  var matches=betMatches();
+  var matchHTML=matches.map(function(m){
+    var sel= betSel.key===m.key;
+    var head='<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline;"><b style="font-size:15px;">'+esc(m.h)+' <span style="color:var(--ink3);">vs</span> '+esc(m.a)+'</b>'
+    +'<span class="mini">'+G.mon+'月'+m.day+'日 · '+(m.mine? (m.cup?'🏆 足协杯':'⭐ 我的比赛') : '联赛其他场次 · 月末开奖')+' · 实力 '+m.hs+' : '+m.as+'</span></div>';
+    if(m.played) return '<div class="card"><h3 style="margin:0;">'+(m.mine?'⭐':'⚽')+' 已结束</h3>'+head+'<p class="desc" style="margin:6px 0 0;">全场比分 <b class="num">'+esc(m.score)+'</b>（'+esc(m.res||'')+'），相关注单已结算，见下方投注记录。</p></div>';
+    var body='';
+    if(sel){
+      var pr=betProbs(m);
+      var tabs=[['wdl','胜平负'],['score','猜比分'],['total','总进球数']].map(function(tb){ return '<button class="btn sm'+(betSel.market===tb[0]?' on':'')+'" onclick="betSetMarket(\''+tb[0]+'\')">'+tb[1]+'</button>'; }).join('');
+      var picks='';
+      if(betSel.market==='wdl'){
+        picks=[['主胜',m.h+' 胜',pr.w],['平局','平局',pr.d],['客胜',m.a+' 胜',pr.l]].map(function(x){ return '<button class="btn sm'+(betSel.pick===x[0]?' on':'')+'" onclick="betSetPick(\''+x[0]+'\')">'+x[1]+' · 赔率 '+betOdds(x[2])+'</button>'; }).join('');
+      } else if(betSel.market==='score'){
+        var otherP=Math.max(0.004, 1-BET_SCORES.reduce(function(sm,x){ return sm+(pr.scores[x]||0); },0));
+        picks=BET_SCORES.map(function(sc){ return '<button class="btn sm'+(betSel.pick===sc?' on':'')+'" onclick="betSetPick(\''+sc+'\')">'+sc+' · '+betOdds(pr.scores[sc]||0.004)+'</button>'; }).join('')
+          +'<button class="btn sm'+(betSel.pick==='其他比分'?' on':'')+'" onclick="betSetPick(\'其他比分\')">其他比分 · '+betOdds(otherP)+'</button>';
+      } else {
+        picks=['0','1','2','3','4','5','6+'].map(function(tt){ return '<button class="btn sm'+(betSel.pick===tt?' on':'')+'" onclick="betSetPick(\''+tt+'\')">'+tt+(tt==='6+'?' 球+':' 球')+' · '+betOdds(pr.totals[tt]||0.004)+'</button>'; }).join('');
+      }
+      body='<div class="bet-mtabs">'+tabs+'</div><div class="bet-picks">'+picks+'</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;"><span class="mini">注金（万）</span><input class="bet-amt" id="bet-amt" type="number" value="50" min="10" max="500" step="10">'
+      +[10,50,100,300,500].map(function(v){ return '<button class="btn sm" onclick="betQuick('+v+')">'+v+'万</button>'; }).join('')
+      +'<button class="btn pri" onclick="placeBet()">确认下注</button><span class="mini">现金 '+fmt(G.cash)+' · 单注 10–500万 · 单场累计上限 1000万 · 赔率下单时锁定</span></div>';
+    }
+    return '<div class="card">'+head+'<div class="acts" style="margin-top:8px;">'+(sel? '<button class="btn sm" onclick="betSelect(\'\')">收起</button>' : '<button class="btn pri sm" onclick="betSelect(\''+m.key+'\')">选这场下注</button>')+'<span class="mini">开赛前可下注；我的比赛踢完即结算，其他场次月末开奖</span></div>'+body+'</div>';
+  }).join('');
+  var slips= B.slips.length? B.slips.slice(0,30).map(function(s){
+    var pill= s.status==='已中奖'? '<span class="pill up">已中奖 +'+fmt(s.payout)+'</span>' : s.status==='未中奖'? '<span class="pill dn">未中奖</span>' : '<span class="pill">待开赛</span>';
+    return '<div class="item">'+pill+'<div class="grow"><div class="nm" style="font-weight:700;">'+esc(s.label)+' · '+esc(s.pickTxt)+'</div><div class="meta">注金 '+fmt(s.amt)+' · 赔率 '+s.odds+' · '+s.when+(s.score?' · 实际比分 '+s.score:'')+'</div></div></div>';
+  }).join('') : '<p class="desc">还没有注单。在上面选一场比赛，点赔率、下注金，开赛前都能投。</p>';
+  return '<div class="card"><h3><span class="no">竞猜</span>体彩竞猜<span class="hint">本月可投注 '+matches.filter(function(m){ return !m.played; }).length+' 场 · 待开赛注单 '+B.slips.filter(function(s){ return s.status==='待开赛'; }).length+' 张</span></h3>'
+  +'<p class="desc"><b>游戏内虚拟玩法，不涉及真实货币。</b>只能用俱乐部<b>游戏内现金</b>下注，赢了派发的也是游戏内现金，不与任何真实支付挂钩。玩法三种：<b>胜平负、猜比分、总进球数</b>；赔率按双方球队实力计算（强队赔率低、弱队赔率高，下单时锁定）。<b>限额：单注 10万–500万，单场累计投注上限 1000万。</b>本队比赛踢完立即按真实赛果结算；联赛其他场次在月末统一模拟开奖。小赌怡情，别把转会预算赌没了。</p>'
+  + stats
+  +'<div class="acts"><button class="btn sm" onclick="go(\'league\')">🏆 看积分榜</button><button class="btn sm" onclick="go(\'home\')">← 回大厅</button></div></div>'
+  + matchHTML
+  +'<div class="card"><h3>🧾 我的注单<span class="hint">投注记录与盈亏都在这里</span></h3>'+slips+'</div>'
+  +'<div class="acts" style="margin:4px 0 10px;"><button class="btn" onclick="go(\'home\')">← 回大厅</button></div>';
 }
 </script>
 </body>
