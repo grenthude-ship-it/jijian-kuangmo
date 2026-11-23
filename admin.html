@@ -1176,34 +1176,53 @@
           }
           // 同步判断一律走 GitHub API 取线上最新 sha 和内容；
           // Pages 地址（./admin-data.json）有缓存、会拿到旧版本，绝不用它做同步判断，只用来平时读数据展示。
-          // GitHub 返回错误时把状态码和它返回的 message 原样带出来，不再吞掉只剩一句模板话。
+          // GitHub 返回错误时把状态码和它返回的原始全文原样带出来，不截断、不再吞掉只剩一句模板话。
+          // 【版本号铁律】sha 绝不存进任何变量长期保存、绝不写 localStorage、绝不复用上次同步的：
+          // 每次同步（包括 409 自动重试那一次）都在 PUT 之前当场重新 GET 一次，PUT 只用这一次刚取回的 response.sha。
+          var lastSubmitShaShort = ''; // 仅本次 syncToGame 调用内暂存「提交版本前 7 位」供状态栏显示，不落盘存全量 sha
+          var lastFetchShaShort = '';  // 仅本次调用内暂存「刚取回版本前 7 位」供状态栏核对，不落盘存全量 sha
           function ghFail(r, kind) {
             return r.text().then(function (t) {
+              var raw = t == null ? '' : String(t); // 原始错误全文，不截断
               var msg = '';
-              try { var j = JSON.parse(t); if (j && j.message) msg = String(j.message); } catch (e) { /* 忽略 */ }
-              if (!msg && t) msg = String(t).slice(0, 300);
+              try { var j = JSON.parse(raw); if (j && j.message) msg = String(j.message); } catch (e) { /* 忽略 */ }
+              if (!msg) msg = raw;
               var err = new Error(kind || '__gh__');
               err.ghStatus = r.status;
               err.ghMessage = msg;
+              err.ghRaw = raw;
               throw err;
             });
           }
+          // 每次调用都生成带全新时间戳的 API 地址，防止浏览器/代理缓存住旧的 GET 响应（旧 sha 的根源）
+          function freshApiUrl() {
+            return GH_API + '?ref=main&t=' + Date.now() + '&r=' + Math.random().toString(36).slice(2);
+          }
           function getCurrent() {
-            return fetch(GH_API + '?ref=main', { headers: headers, cache: 'no-store' })
+            // PUT 之前立即调用：cache:'no-store' + URL 时间戳参数，每次都不同
+            return fetch(freshApiUrl(), { headers: headers, cache: 'no-store' })
               .then(function (r) {
                 if (r.status === 401 || r.status === 403) return ghFail(r, '__auth__');
                 if (r.status === 404) return null; // 文件不存在时按新建处理（PUT 不带 sha）
                 if (!r.ok) return ghFail(r);
                 return r.json();
+              })
+              .then(function (j) {
+                // j.sha 就是这一次刚取回的当前最新版本号，只交给紧接着的 PUT 用，不存到任何地方
+                if (j && j.sha) lastFetchShaShort = String(j.sha).slice(0, 7);
+                return j;
               });
           }
           function putOnce(cur) {
+            // freshSha 只来自本次 getCurrent() 刚返回的 cur.sha，当场取、当场用
+            var freshSha = (cur && cur.sha) ? String(cur.sha) : null;
+            lastSubmitShaShort = freshSha ? freshSha.slice(0, 7) : '';
             var body = {
               message: '后台同步：更新 admin-data.json',
               content: utf8ToBase64(JSON.stringify(syncPayload(), null, 2)),
               branch: 'main'
             };
-            if (cur && cur.sha) body.sha = cur.sha; // 每次都用刚从 API 拉到的最新 sha，不用缓存的旧 sha
+            if (freshSha) body.sha = freshSha;
             return fetch(GH_API, {
               method: 'PUT',
               headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
@@ -1217,7 +1236,8 @@
           }
           function trySync(isRetry) {
             return getCurrent().then(function (cur) {
-              // 「线上是否被改动」只认 API 刚返回的最新内容：
+              if (cur && cur.sha) setSyncUI('busy', '正在同步… 提交版本 ' + String(cur.sha).slice(0, 7) + '…（刚从 GitHub 接口取回的最新版本）');
+              // 「线上是否被改动」只认 API 刚返回的最新内容（cur 就是这次带时间戳当场取回的，不用启动时 Pages 拉到的旧内容比）：
               // 和本地已一致 → 不用重复提交；和上次成功同步时的内容一致 → 没人动过，直接提交；
               // 只有真的和上次同步时不一样（别人改过）才拦下来提示冲突，防止覆盖掉别人的改动。
               var apiOnline = cur ? decodeOnlineFile(cur) : null;
@@ -1254,7 +1274,8 @@
                 }
               }
               return putOnce(cur).then(function () { return 'ok'; }, function (e) {
-                // 提交时线上又变了：自动重新拉一次最新 sha 再试一次
+                // 提交时线上又变了（409）：绝不复用第一次那个 sha，
+                // 重新走 trySync → getCurrent() 当场再取一次最新版本号（同样带时间戳 + no-store），用新 sha 重试一次
                 if (e && e.message === '__conflict__' && !isRetry) return trySync(true);
                 throw e;
               });
@@ -1262,16 +1283,20 @@
           }
           return trySync(false).then(function (res) {
             if (res === 'paused') return false;
-            if (res === 'already') return done(true, '本地与线上已经一致，已确认同步');
-            return done(true, '已同步到游戏，约 1 分钟后玩家就能在邮箱里看到');
+            var verTxt = lastSubmitShaShort ? ('提交版本 ' + lastSubmitShaShort + '…') : (lastFetchShaShort ? ('线上版本 ' + lastFetchShaShort + '…') : '');
+            if (res === 'already') return done(true, '本地与线上已经一致，已确认同步' + (verTxt ? '（' + verTxt + '）' : ''));
+            return done(true, '已同步到游戏，约 1 分钟后玩家就能在邮箱里看到' + (verTxt ? '（' + verTxt + '）' : ''));
           }).catch(function (e) {
             var m = e && e.message ? e.message : '';
-            var ghTxt = e && e.ghStatus ? ('GitHub 返回 HTTP ' + e.ghStatus + (e.ghMessage ? '：' + e.ghMessage : '')) : '';
-            if (m === '__external__') return done(false, '同步失败：线上数据和你上次同步时不一样，可能刚被其他地方改动过（线上最后修改：' + (e.onlineUpdatedAt ? fmtTime(e.onlineUpdatedAt) : '未知') + '）。为防止覆盖，本地数据没有推上去；请先点「拉取线上数据」看一下，再决定要不要同步');
-            if (m === '__auth__') return done(false, '同步失败：令牌不对或没有权限，请检查令牌' + (ghTxt ? '（' + ghTxt + '）' : ''));
-            if (m === '__conflict__') return done(false, '同步失败：提交被拒绝，已重新拉取最新版本自动重试过一次还是不行。' + (ghTxt || '请稍后再点一次「同步到游戏」'));
-            if (m === '__gh__') return done(false, '同步失败：' + (ghTxt || 'GitHub 返回错误') + '，请稍后再试');
-            return done(false, '同步失败：网络连不上 GitHub，请检查网络后重试');
+            // 状态栏显示：本次提交用的版本号前 7 位 + GitHub 返回的原始错误全文，方便核对是不是最新版
+            var verTxt = lastSubmitShaShort ? ('提交版本 ' + lastSubmitShaShort + '…') : (lastFetchShaShort ? ('取回版本 ' + lastFetchShaShort + '…') : '未取到版本');
+            var rawTxt = e && e.ghRaw ? String(e.ghRaw) : (e && e.ghMessage ? String(e.ghMessage) : '');
+            var ghTxt = e && e.ghStatus ? ('GitHub 返回 HTTP ' + e.ghStatus + ' 原始错误全文：' + (rawTxt || '（无正文）')) : (rawTxt ? ('GitHub 原始错误全文：' + rawTxt) : '');
+            if (m === '__external__') return done(false, '同步失败：线上数据和你上次同步时不一样，可能刚被其他地方改动过（线上最后修改：' + (e.onlineUpdatedAt ? fmtTime(e.onlineUpdatedAt) : '未知') + '）。为防止覆盖，本地数据没有推上去；请先点「拉取线上数据」看一下，再决定要不要同步（' + verTxt + '）');
+            if (m === '__auth__') return done(false, '同步失败：令牌不对或没有权限，请检查令牌（' + verTxt + (ghTxt ? '；' + ghTxt : '') + '）');
+            if (m === '__conflict__') return done(false, '同步失败：提交被拒绝，已当场重新取最新版本自动重试过一次还是不行（' + verTxt + '）。' + (ghTxt || '请稍后再点一次「同步到游戏」'));
+            if (m === '__gh__') return done(false, '同步失败（' + verTxt + '）：' + (ghTxt || 'GitHub 返回错误') + '，请稍后再试');
+            return done(false, '同步失败（' + verTxt + '）：网络连不上 GitHub，请检查网络后重试' + (rawTxt ? '；原始错误全文：' + rawTxt : ''));
           });
         }
         // 拉取线上数据：把游戏仓库里的 admin-data.json 拉下来覆盖本地（拉取前自动备份本地）
@@ -1280,7 +1305,7 @@
           var headers = { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
           if (token) headers['Authorization'] = 'Bearer ' + token;
           toast('正在拉取线上数据…');
-          return fetch(GH_API + '?ref=main', { headers: headers, cache: 'no-store' })
+          return fetch(GH_API + '?ref=main&t=' + Date.now() + '&r=' + Math.random().toString(36).slice(2), { headers: headers, cache: 'no-store' })
             .then(function (r) {
               if (r.status === 404) throw new Error('__nofile__');
               if (!r.ok) throw new Error('__http_' + r.status + '__');
