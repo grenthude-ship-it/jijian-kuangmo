@@ -2534,11 +2534,20 @@ function pickLineup(){
   var F=FORMATIONS[G.formation||'4-3-3']||FORMATIONS['4-3-3'];
   var need={'门将':1,'后卫':F.DF,'中场':F.MF,'前锋':F.FW};
   var groups={'门将':[],'后卫':[],'中场':[],'前锋':[]};
-  G.squad.forEach(function(p){ (groups[p.pos]||groups['中场']).push(p); });
+  G.squad.forEach(function(p){
+    /* 创作者邓元元三栖：同时进门将 / 中场 / 前锋三个候选组，三个位置都认他；下方填位按 used 去重，只占一个首发位 */
+    if(p.star==='creator' && typeof CREATOR_SLOTS!=='undefined'){ CREATOR_SLOTS.forEach(function(cp){ groups[cp].push(p); }); }
+    else (groups[p.pos]||groups['中场']).push(p);
+  });
   Object.keys(groups).forEach(function(k){ groups[k].sort(function(a,b){ return ((a.inj>0)-(b.inj>0)) || ((a.rest?1:0)-(b.rest?1:0)) || effAb(b)-effAb(a); }); });
   var used={}, slots=[];
   ['门将','后卫','中场','前锋'].forEach(function(pos){
-    groups[pos].slice(0,need[pos]).forEach(function(p){ used[p.name]=1; slots.push({p:p, slot:pos}); });
+    var picked=0;
+    for(var gi=0; gi<groups[pos].length && picked<need[pos]; gi++){
+      var gp=groups[pos][gi];
+      if(used[gp.name]) continue;
+      used[gp.name]=1; slots.push({p:gp, slot:pos}); picked++;
+    }
   });
   // 某个位置人数不够时，从其余位置能力最高的人里补位（图上会标出他实际踢的位置）
   ['门将','后卫','中场','前锋'].forEach(function(pos){
@@ -2576,14 +2585,14 @@ function pitchHTML(){
   var marks=slots.map(function(s){
     var p=s.p;
     var inner= p.img? '<img src="'+p.img+'" alt="'+esc(p.name)+'的真实照片">' : nums[p.name];
-    return '<button class="pmark'+(p.star?' me':'')+'" style="left:'+s.x+'%;top:'+s.y+'%;" onclick="showPlayer(\''+esc(p.name)+'\')" title="'+esc(p.name)+' · '+p.pos+' · 能力 '+p.ab+'，点开看球员卡">'
+    return '<button class="pmark'+(p.star?' me':'')+'" style="left:'+s.x+'%;top:'+s.y+'%;" onclick="showPlayer(\''+esc(p.name)+'\')" title="'+esc(p.name)+' · '+((typeof squadPosText==='function')? squadPosText(p):p.pos)+' · 能力 '+p.ab+'，点开看球员卡">'
     +'<span class="pc">'+inner+'</span>'
     +'<span class="pl">'+esc(p.name)+' <b>'+p.ab+'</b></span>'
-    +'<span class="pl" style="background:rgba(201,147,10,.85);">'+s.slot+(p.pos!==s.slot?'（客串）':'')+(p.inj>0?' · 伤停':'')+'</span></button>';
+    +'<span class="pl" style="background:rgba(201,147,10,.85);">'+s.slot+(((typeof fitsSlot==='function')? !fitsSlot(p,s.slot) : p.pos!==s.slot)?'（客串）':'')+(p.inj>0?' · 伤停':'')+'</span></button>';
   }).join('');
   var bench=G.squad.filter(function(p){ return !slots.some(function(s){ return s.p===p; }); })
     .sort(function(a,b){ return b.ab-a.ab; })
-    .map(function(p){ return '<button class="chip" onclick="showPlayer(\''+esc(p.name)+'\')">'+nums[p.name]+' 号 '+esc(p.name)+' · '+p.pos+' '+p.ab+'</button>'; }).join('');
+    .map(function(p){ return '<button class="chip" onclick="showPlayer(\''+esc(p.name)+'\')">'+nums[p.name]+' 号 '+esc(p.name)+' · '+((typeof squadPosText==='function')? squadPosText(p):p.pos)+' '+p.ab+'</button>'; }).join('');
   var btns=Object.keys(FORMATIONS).map(function(f){ return '<button class="btn sm '+(G.formation===f?'pri':'')+'" onclick="setFormation(\''+f+'\')">'+f+'</button>'; }).join('');
   return '<div class="card"><h3><span class="no">球场</span>首发阵容 · 阵型图<span class="hint">当前阵型 '+(G.formation||'4-3-3')+' · 点任意球员看他的球员卡</span></h3>'
   +'<div class="form-btns"><span class="mini" style="align-self:center;">切换阵型：</span>'+btns+'</div>'
@@ -2603,7 +2612,7 @@ function showPlayer(name){
   var hon=(G.playerHonors&&G.playerHonors[p.name])||[];
   var honHTML= hon.length? hon.map(function(h){ return '<div class="item"><span class="pill up">'+h.icon+' '+h.award+'</span><div class="grow"><div class="nm" style="font-weight:600;">第 '+h.season+' 赛季 · '+h.year+' 年 · '+h.div+'</div><div class="meta">'+h.detail+'</div></div></div>'; }).join('') : '<p class="desc">还没有拿到赛季奖项。赛季末（12 月）颁奖：进球多、能力高、年轻，都有机会——荣誉中心有实时领跑预测。</p>';
   $modal.innerHTML='<div class="overlay"><div class="modal">'
-  +'<div class="hero"><div class="big" style="font-size:23px;">'+(p.img?'':'⚽ ')+esc(p.name)+' <span style="font-size:14px;color:#ffd76a;">'+nums[p.name]+' 号</span></div><div class="sub">'+esc(G.club)+' · '+p.pos+' · '+(star? star.club+' 出品 · ⭐ 球星':'一线队球员')+'</div></div>'
+  +'<div class="hero"><div class="big" style="font-size:23px;">'+(p.img?'':'⚽ ')+esc(p.name)+' <span style="font-size:14px;color:#ffd76a;">'+nums[p.name]+' 号</span></div><div class="sub">'+esc(G.club)+' · '+((typeof squadPosText==='function')? squadPosText(p):p.pos)+' · '+(star? star.club+' 出品 · ⭐ 球星':'一线队球员')+'</div></div>'
   +'<div class="body">'
   +(p.img? '<img src="'+p.img+'" alt="'+esc(p.name)+'的真实比赛照片" style="width:100%;border-radius:10px;display:block;margin-bottom:10px;">':'')
   +'<div class="item"><div class="grow"><div class="nm">能力 '+p.ab+' · 潜力 '+(p.pot||p.ab)+'</div><div class="meta">'+p.age+' 岁 · 月薪 '+p.wage+'万 · 当前身价 '+fmt(p.value)+' · 签约价 '+fmtSign(p)+(p.inj>0?' · 🚑 伤停约 '+p.inj+' 天':'')+'</div></div></div>'
@@ -2617,7 +2626,7 @@ function showPlayer(name){
 function pageSquad(){
   var sorted=G.squad.slice().sort(function(a,b){ return b.ab-a.ab; });
   var rows=sorted.map(function(p){
-    return '<tr><td>'+(p.img?'<img class="star-thumb" src="'+p.img+'" alt="'+esc(p.name)+'的真实照片">':'')+'<b>'+esc(p.name)+'</b>'+(p.star?' <span class="pill" style="background:#fdf3d3;color:#8a6508;">⭐ 球星</span>':'')+(p.peak?' <span class="pill" style="background:#12263f;color:#ffd968;">🌟 卡包限定</span>':'')+(p.foreign?' <span class="pill">外援</span>':'')+(p.inj>0?' <span class="pill dn">伤停 '+p.inj+' 天</span>':'')+(p.rest?' <span class="pill">轮休</span>':'')+((p.fat||0)>=50?' <span class="pill dn">疲劳 '+(p.fat||0)+'</span>':'')+'</td><td>'+posPill(p.pos)+'</td><td class="num">'+p.age+'</td><td>'+abBar(p)+'</td><td class="num">'+p.pot+'</td><td class="num">'+p.wage+'万</td><td class="num">'+fmt(p.value)+'</td><td class="num">'+fmtSign(p)+'</td><td style="white-space:nowrap;"><button class="btn sm" onclick="trainPlayer(\''+esc(p.name)+'\')">特训 30万</button> <button class="btn sm" onclick="releasePlayer(\''+esc(p.name)+'\')">解约</button></td></tr>';
+    return '<tr><td>'+(p.img?'<img class="star-thumb" src="'+p.img+'" alt="'+esc(p.name)+'的真实照片">':'')+'<b>'+esc(p.name)+'</b>'+(p.star?' <span class="pill" style="background:#fdf3d3;color:#8a6508;">⭐ 球星</span>':'')+(p.peak?' <span class="pill" style="background:#12263f;color:#ffd968;">🌟 卡包限定</span>':'')+(p.foreign?' <span class="pill">外援</span>':'')+(p.inj>0?' <span class="pill dn">伤停 '+p.inj+' 天</span>':'')+(p.rest?' <span class="pill">轮休</span>':'')+((p.fat||0)>=50?' <span class="pill dn">疲劳 '+(p.fat||0)+'</span>':'')+'</td><td>'+((typeof squadPosHTML==='function')? squadPosHTML(p):posPill(p.pos))+'</td><td class="num">'+p.age+'</td><td>'+abBar(p)+'</td><td class="num">'+p.pot+'</td><td class="num">'+p.wage+'万</td><td class="num">'+fmt(p.value)+'</td><td class="num">'+fmtSign(p)+'</td><td style="white-space:nowrap;"><button class="btn sm" onclick="trainPlayer(\''+esc(p.name)+'\')">特训 30万</button> <button class="btn sm" onclick="releasePlayer(\''+esc(p.name)+'\')">解约</button></td></tr>';
   }).join('');
   var coachCands=COACH_POOL.map(function(c,i){
     var cur= G.coach.name===c.name;
@@ -2860,9 +2869,11 @@ var STARS=[
   {id:'gaozhunyi', name:'高准翼', en:'Gao Zhunyi', nat:'中国', club:'山东泰山', league:'中超', pos:'后卫', age:31, ab:74, fee:350, img:'photo-54.jpg', tag:'泰山后卫，出球型中卫，也能客串边后卫。'},
   {id:'hanjiaqi', name:'韩佳奇', en:'Han Jiaqi', nat:'中国', club:'北京国安', league:'中超', pos:'门将', age:27, ab:74, fee:340, img:'photo-55.jpg', tag:'国安 1 号门将，反应奇快，年轻门将里的佼佼者。'},
   {id:'jiantao', name:'蹇韬', en:'Jian Tao', nat:'中国', club:'成都蓉城', league:'中超', pos:'门将', age:25, ab:74, fee:330, img:'photo-56.jpg', tag:'蓉城 16 号门将，拿过中超月度最佳门将，扑救稳健。'},
-  /* ---- 创作者（creator:true）：游戏创作者邓元元本人，守门员，能力 99，图鉴置顶单独成组；
+  /* ---- 创作者（creator:true）：游戏创作者邓元元本人，三栖球员（守门员 / 中场 / 前锋），能力 99，图鉴置顶单独成组，
+     并同时出现在门将 / 中场 / 前锋三个位置分组里（同一张卡、同一个人，签一次全组同步已签约）；
+     pos 存主位置「门将」（存档与既有逻辑不变），posList 是他能踢的三个位置，阵容排阵时三处都认他、不算客串；
      照片用游戏内已有的创作者海报照片；现金 / 直签券可签，抽卡与钻石招募不产出 ---- */
-  {id:'creator', name:'邓元元', en:'Deng Yuanyuan', nat:'中国', club:'《豪门缔造者》', league:'游戏创作者', pos:'门将', age:30, ab:99, fee:5000, img:'photo-32.jpg', creator:true, tag:'本游戏的创作者亲自下场：守门员，能力 99，全图鉴最高。把他签进球队，球门前站着的就是写下这个游戏的人。'},
+  {id:'creator', name:'邓元元', en:'Deng Yuanyuan', nat:'中国', club:'《豪门缔造者》', league:'游戏创作者', pos:'门将', posList:['门将','中场','前锋'], posText:'守门员 · 中场 · 前锋', age:30, ab:99, fee:5000, img:'photo-32.jpg', creator:true, tag:'本游戏的创作者亲自下场：守门员、中场、前锋三栖全能，能力 99，全图鉴最高。把他签进球队，门前、中场、锋线——哪里需要，他就站哪里。'},
   /* ---- 传奇巨星（legend:true）：照片均为本人真实比赛动作照，与下方图鉴一一对应 ---- */
   {id:'messi', name:'梅西', en:'Lionel Messi', nat:'阿根廷', club:'迈阿密国际', league:'美职联', pos:'前锋', age:39, ab:95, fee:3200, img:'photo-57.jpg', legend:true, tag:'八座金球奖的历史第一人，迈阿密国际 10 号，左脚依旧是这个星球上最危险的武器。'},
   {id:'ronaldo', name:'C罗', en:'Cristiano Ronaldo', nat:'葡萄牙', club:'利雅得胜利', league:'沙特联', pos:'前锋', age:41, ab:97, fee:3000, img:'photo-58.jpg', legend:true, tag:'克里斯蒂亚诺·罗纳尔多，利雅得胜利 7 号，41 岁还在刷新进球纪录，自律的代名词。'},
@@ -2919,7 +2930,7 @@ var STAR_HONORS={
   gaozhunyi:'国足后卫 · 中超冠军',
   hanjiaqi:'国足门将 · 国安一号门将',
   jiantao:'中超月度最佳门将 · 蓉城主力门将',
-  creator:'《豪门缔造者》游戏创作者 · 荣耀殿堂永久置顶 · 亲自镇守球门的 99 能力门神',
+  creator:'《豪门缔造者》游戏创作者 · 荣耀殿堂永久置顶 · 守门员 / 中场 / 前锋三栖全能的 99 能力王牌',
   messi:'世界杯冠军（2022）· 金球奖 ×8（历史第一）· 欧冠冠军 ×4 · 美洲杯冠军（2021）',
   ronaldo:'欧冠冠军 ×5 · 金球奖 ×5 · 欧洲杯冠军（2016）· 职业生涯进球 900+',
   lewandowski:'欧冠冠军（2020）· 世界足球先生 ×2 · 德甲金靴 ×7',
@@ -2968,6 +2979,14 @@ function cnClubHonors(name, divIdx){
 function starById(id){ var f=null; STARS.forEach(function(s){ if(s.id===id) f=s; }); return f; }
 function starWage(ab){ return Math.round(Math.max(0.4, Math.pow(Math.max(ab-40,2),2)*0.016)*10)/10; }
 function starInSquad(s){ return G.squad.some(function(p){ return p.star===s.id || p.name===s.name; }); }
+/* 创作者邓元元是三栖球员：守门员 / 中场 / 前锋三个位置都是他的本行——
+   图鉴卡、详情、殿堂、阵容表都显示三个位置；排阵时三个位置都认他、不算客串 */
+var CREATOR_SLOTS=['门将','中场','前锋'];
+var CREATOR_POS_TEXT='守门员 · 中场 · 前锋';
+function creatorPosPills(){ return '<span class="pill gk">守门员</span> <span class="pill mf">中场</span> <span class="pill fw">前锋</span>'; }
+function squadPosHTML(p){ return (p && p.star==='creator')? creatorPosPills() : posPill(p.pos); }
+function squadPosText(p){ return (p && p.star==='creator')? CREATOR_POS_TEXT : p.pos; }
+function fitsSlot(p, slot){ if(!p) return false; if(p.pos===slot) return true; return p.star==='creator' && CREATOR_SLOTS.indexOf(slot)>=0; }
 function signStar(id){
   var s=starById(id); if(!s) return;
   if(starInSquad(s)){ toast(s.name+' 已经在你的球队里了'); return; }
@@ -3023,7 +3042,7 @@ function creatorCardHTML(s){
   +'<img src="'+s.img+'" alt="游戏创作者邓元元的海报照片" style="cursor:pointer;" onclick="showCreatorDetail()">'
   +'<div class="sb"><div class="sn">'+s.name+'<small>'+s.en+'</small></div>'
   +'<div><span class="pill" style="background:#12263f;color:#ffd968;font-weight:800;">✍️ 游戏创作者</span></div>'
-  +'<div class="sm">'+s.club+' · '+s.nat+'<br>'+posPill(s.pos)+' '+s.age+' 岁 · 潜力 99</div>'
+  +'<div class="sm">'+s.club+' · '+s.nat+'<br>'+creatorPosPills()+' '+s.age+' 岁 · 潜力 99</div>'
   +'<div class="ab-wrap"><div class="bar g"><i style="width:'+s.ab+'%"></i></div><b class="num">'+s.ab+'</b></div>'
   +'<div class="stag">'+s.tag+'</div>'
   +(STAR_HONORS[s.id]? '<div class="stag" style="color:#8a6508;">🏅 '+STAR_HONORS[s.id]+'</div>':'')
@@ -3038,13 +3057,13 @@ function showCreatorDetail(){
     : '<button class="btn pri" onclick="closeModal();signStar(\'creator\')">现金签下 · '+fmt(s.fee)+'</button>'
       +((G.pay2 && G.pay2.vouchers>0)? '<button class="btn" style="border-color:#d4af37;color:#8a6508;font-weight:800;" onclick="closeModal();signStarVoucher(\'creator\')">🎟️ 直签券签下</button>':'');
   $modal.innerHTML='<div class="overlay"><div class="modal">'
-  +'<div class="hero"><div class="big" style="font-size:23px;">✍️ '+s.name+' <span style="font-size:14px;color:#ffd76a;">游戏创作者</span></div><div class="sub">'+s.club+' · '+s.pos+' · 能力 '+s.ab+'</div></div>'
+  +'<div class="hero"><div class="big" style="font-size:23px;">✍️ '+s.name+' <span style="font-size:14px;color:#ffd76a;">游戏创作者</span></div><div class="sub">'+s.club+' · '+CREATOR_POS_TEXT+' · 能力 '+s.ab+'</div></div>'
   +'<div class="body">'
   +'<img src="'+s.img+'" alt="游戏创作者邓元元的海报照片" style="width:100%;border-radius:10px;display:block;margin-bottom:10px;">'
-  +'<div class="item"><div class="grow"><div class="nm">能力 '+s.ab+' · 潜力 99</div><div class="meta">'+s.pos+' · '+s.nat+' · '+s.age+' 岁 · 月薪 '+starWage(s.ab)+'万 · 转会费 '+fmt(s.fee)+'</div></div></div>'
+  +'<div class="item"><div class="grow"><div class="nm">能力 '+s.ab+' · 潜力 99</div><div class="meta">'+CREATOR_POS_TEXT+' · '+s.nat+' · '+s.age+' 岁 · 月薪 '+starWage(s.ab)+'万 · 转会费 '+fmt(s.fee)+'</div></div></div>'
   +'<div class="item"><div class="grow"><div class="nm">✍️ 游戏创作者</div><div class="meta">'+s.tag+'</div></div></div>'
   +(STAR_HONORS[s.id]? '<div class="item"><div class="grow"><div class="nm">🏅 荣誉</div><div class="meta">'+STAR_HONORS[s.id]+'</div></div></div>':'')
-  +'<div class="item"><div class="grow"><div class="nm">签约方式</div><div class="meta">和图鉴传奇一样：现金直签或球星直签券签下；球星抽卡与钻石招募不会产出创作者卡。签下后他进入一线队名单镇守球门，也陈列在荣耀殿堂最顶部。</div></div></div>'
+  +'<div class="item"><div class="grow"><div class="nm">签约方式</div><div class="meta">和图鉴传奇一样：现金直签或球星直签券签下；球星抽卡与钻石招募不会产出创作者卡。签下后他进入一线队名单，守门员、中场、前锋三个位置都能首发（排阵时三处都算他的本行），也陈列在荣耀殿堂最顶部。</div></div></div>'
   +'</div><div class="foot">'+signBtns+'<button class="btn" onclick="closeModal()">关闭</button></div></div></div>';
 }
 function peakLockCardHTML(s){
@@ -3090,8 +3109,8 @@ function pageStars(){
     return '<div class="news-it">'+(st?'<img src="'+st.img+'" alt="'+st.name+'的真实照片">':'')+'<div><b>'+esc(n.t)+'</b><div class="mini">'+n.m+'</div></div></div>';
   }).join('') : '<p class="desc">暂无播报。踢完一个月（开始比赛），这里会播报姆巴佩、哈兰德、武磊们在各自联赛的进球动态。</p>';
   var creatorS=starById('creator');
-  var creatorHTML= creatorS? '<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>✍️ 创作者<span class="hint">图鉴置顶 · 游戏创作者邓元元 · 守门员 · 能力 99</span></h3>'
-  +'<p class="desc">图鉴第一行，只有一个人：<b>这个游戏的创作者邓元元</b>。他亲自下场当<b>守门员</b>，能力 <b>99</b>，和巅峰C罗并列全游戏最高。签约方式和传奇巨星一样：<b>现金直签</b>或<b>球星直签券</b>；抽卡和钻石招募都抽不到他。点照片或「看详情」看他的完整资料——他同时陈列在<b>荣耀殿堂</b>最顶部。</p>'
+  var creatorHTML= creatorS? '<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>✍️ 创作者<span class="hint">图鉴置顶 · 游戏创作者邓元元 · 守门员 · 中场 · 前锋 · 能力 99</span></h3>'
+  +'<p class="desc">图鉴第一行，只有一个人：<b>这个游戏的创作者邓元元</b>。他是<b>三栖球员</b>——<b>守门员、中场、前锋</b>三个位置都能踢，能力 <b>99</b>，和巅峰C罗并列全游戏最高。下面的<b>门将 / 中场 / 前锋</b>三个位置分组里也都有他（带「创作者」角标，是同一张卡、同一个人，签一次全组同步显示已签约）。签约方式和传奇巨星一样：<b>现金直签</b>或<b>球星直签券</b>；抽卡和钻石招募都抽不到他。点照片或「看详情」看他的完整资料——他同时陈列在<b>荣耀殿堂</b>最顶部。</p>'
   +'<div class="star-grid"><div style="display:flex;">'+creatorCardHTML(creatorS)+'</div></div></div>' : '';
   var legends=STARS.filter(function(s){ return s.legend; }).sort(function(a,b){ return b.ab-a.ab; });
   var legendHTML='<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>👑 传奇巨星<span class="hint">C罗（97）领衔 · 梅西（95） · 能力 88–97 · 照片均为本人真实比赛动作照</span></h3>'
@@ -3103,10 +3122,12 @@ function pageStars(){
   +'<div class="star-grid">'+PEAK_STARS.map(function(s){ return '<div style="display:flex;">'+peakLockCardHTML(s)+'</div>'; }).join('')+'</div></div>';
   var POSG=[['前锋','⚡ 前锋'],['中场','🎯 中场'],['后卫','🛡️ 后卫'],['门将','🧤 门将']];
   var posHTML=POSG.map(function(pg){
-    var arr=STARS.filter(function(s){ return s.pos===pg[0] && !s.creator; }).sort(function(a,b){ return b.ab-a.ab; });
+    /* 创作者邓元元是三栖球员：门将 / 中场 / 前锋三个分组里都有他，用同一张创作者卡渲染——
+       点开是同一个详情、同一个球员；starInSquad 按 id 判定，签过一次三组同步显示已签约，不会重复签、不会出现两个邓元元 */
+    var arr=STARS.filter(function(s){ return s.creator? CREATOR_SLOTS.indexOf(pg[0])>=0 : s.pos===pg[0]; }).sort(function(a,b){ return b.ab-a.ab; });
     var wn=arr.filter(function(s){ return s.league!=='中超'; }).length;
     return '<div class="card"><h3>'+pg[1]+'<span class="hint">共 '+arr.length+' 人 · 世界球星 '+wn+' · 中超 '+(arr.length-wn)+' · 按能力排序</span></h3><div class="star-grid">'
-    + arr.map(function(s){ return '<div id="star-'+s.id+'" style="display:flex;">'+starCardHTML(s)+'</div>'; }).join('') +'</div></div>';
+    + arr.map(function(s){ return s.creator? '<div style="display:flex;">'+creatorCardHTML(s)+'</div>' : '<div id="star-'+s.id+'" style="display:flex;">'+starCardHTML(s)+'</div>'; }).join('') +'</div></div>';
   }).join('');
   return '<div class="card"><h3><span class="no">球星</span>球星图鉴<span class="hint">按位置分组 · 前锋 / 中场 / 后卫 / 门将 · 照片全部本人对应</span></h3>'
   +'<p class="desc">照片都是每位球员本人的真实比赛照片，名字、球队、联赛、位置一一对应。图鉴已按<b>前锋 / 中场 / 后卫 / 门将</b>四个位置分组，每个位置都有世界球星和中超名将。这些球星<b>可以真签进你的球队</b>：付转会费签下后，他进入一线队名单，能力直接拉高球队强度，比赛进球记在他名下，首页赛果会写清谁进的球。世界球星身价高、月薪也高，是冲超夺冠后攒钱追的终极目标；中超名将便宜得多，中甲阶段就能下手。有<b>球星直签券</b>时（累计充值奖励发放），任意球星可免转会费直接签下；也可以去充值中心用<b>钻石招募</b>抽图鉴球星。当前现金 '+fmt(G.cash)+' · 已签下球星 '+signedN+' 位 · 阵容 '+G.squad.length+'/22。</p></div>'
@@ -5800,8 +5821,8 @@ function pageHall(){
     return '<div class="hon-card"><div class="hn"><img class="star-thumb" src="'+s.img+'" alt="'+s.name+'的真实比赛照片"> '+s.name+' <span class="mini">'+s.club+' · '+s.league+' · 能力 '+s.ab+'</span></div><div class="hl">🏅 '+(STAR_HONORS[s.id]||'')+'<br>'+s.tag+'</div><div style="margin-top:6px;"><button class="btn sm" onclick="go(\'stars\')">去图鉴签下他</button></div></div>';
   }).join('')+'</div>';
   var creatorHallHTML='<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>✍️ 创作者<span class="hint">殿堂置顶 · 永久陈列</span></h3>'
-  +'<div class="hon-grid"><div class="hon-card" style="border:2px solid #d4af37;"><div class="hn"><img class="star-thumb" src="photo-32.jpg" alt="游戏创作者邓元元的海报照片"> 邓元元 <span class="mini">守门员 · 能力 99</span></div>'
-  +'<div class="hl">✍️ <b>游戏创作者</b>——这个游戏的作者本人，亲自下场镇守球门。<br>🏅 《豪门缔造者》游戏创作者 · 荣耀殿堂永久置顶 · 图鉴第一行同样是他，现金或直签券就能把他签进你的球队。</div>'
+  +'<div class="hon-grid"><div class="hon-card" style="border:2px solid #d4af37;"><div class="hn"><img class="star-thumb" src="photo-32.jpg" alt="游戏创作者邓元元的海报照片"> 邓元元 <span class="mini">守门员 · 中场 · 前锋 · 能力 99</span></div>'
+  +'<div class="hl">✍️ <b>游戏创作者</b>——这个游戏的作者本人，亲自下场，还是三栖球员：守门员、中场、前锋都能踢。<br>🏅 《豪门缔造者》游戏创作者 · 荣耀殿堂永久置顶 · 守门员 / 中场 / 前锋三栖全能的 99 能力王牌 · 图鉴第一行同样是他，现金或直签券就能把他签进你的球队。</div>'
   +'<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;"><button class="btn sm" onclick="showCreatorDetail()">看详情</button><button class="btn sm" onclick="go(\'stars\')">去图鉴签下他</button></div></div></div></div>';
   return creatorHallHTML
   +'<div class="card"><h3><span class="no">殿堂</span>荣耀殿堂<span class="hint">本俱乐部名人堂 + 世界足坛名人堂 · 与荣誉中心互通</span></h3>'
