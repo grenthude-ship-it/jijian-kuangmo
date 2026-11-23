@@ -3155,7 +3155,7 @@ function pageStars(){
   }).join('') : '<p class="desc">暂无播报。踢完一个月（开始比赛），这里会播报姆巴佩、哈兰德、武磊们在各自联赛的进球动态。</p>';
   var creatorTrio=STARS.filter(function(s){ return s.creator; }).sort(function(a,b){ return (POS_ORDER[a.pos]||0)-(POS_ORDER[b.pos]||0); });
   var creatorHTML= creatorTrio.length? '<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>✍️ 创作者<span class="hint">图鉴置顶 · 三个链接球员 · 邓元元（守门员 / 中场 / 前锋）· 能力 99</span></h3>'
-  +'<p class="desc" style="font-size:14px;line-height:1.7;"><b>邓元元 · 游戏创作者 · 能力 99</b> —— 守门员、中场、前锋三栖全能，三个位置都能踢到顶级。球场上的掌控者，商场上的资本家；三个位置，一种气场。</p>'
+  +'<p class="desc" style="font-size:14px;line-height:1.7;"><b>邓元元</b>，游戏创作者，从中乙到中超冠军的缔造者，能力99，三栖全能巨星。守门员反应神速、扑救稳健、指挥防线如指挥董事会；中场视野开阔、调度从容，是攻防转换的节拍器；前锋射门果断、跑位鬼魅，是禁区里的终结者。球场上的绝对掌控者，商场上的资本大佬，三个位置，一种气场。</p>'
   +'<div class="star-grid">'+creatorTrio.map(function(s){ return '<div style="display:flex;">'+creatorCardHTML(s)+'</div>'; }).join('')+'</div></div>' : '';
   var legends=STARS.filter(function(s){ return s.legend; }).sort(function(a,b){ return b.ab-a.ab; });
   var legendHTML='<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>👑 传奇巨星<span class="hint">C罗（97）领衔 · 梅西（95） · 能力 88–97 · 照片均为本人真实比赛动作照</span></h3>'
