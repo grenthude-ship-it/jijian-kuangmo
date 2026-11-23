@@ -1,8 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-23T18:10:00+08:00",
+  "updatedAt": "2026-11-23T18:17:00+08:00",
   "bans": [],
-  "mail": [],
+  "mail": [
+    {"id": "m-test-code", "to": "HM-88YQAK", "title": "后台测试编码邮件", "body": "这封是按游戏账号编码发的", "tag": "奖励", "items": {"diamonds": 20, "cash": 0, "vouchers": 0, "trialCards": 0, "shards": 0, "playerId": null}, "sentAt": "2026-11-23T18:17:00+08:00", "expiresAt": null},
+    {"id": "m-test-username", "to": "测试四号", "title": "后台测试用户名邮件", "body": "这封是按用户名发的", "tag": "奖励", "items": {"diamonds": 10, "cash": 0, "vouchers": 0, "trialCards": 0, "shards": 0, "playerId": null}, "sentAt": "2026-11-23T18:17:00+08:00", "expiresAt": null},
+    {"id": "m-test-broadcast2", "to": "*", "title": "后台测试全服消息", "body": "这是一封全服消息", "tag": "通知", "items": {"diamonds": 0, "cash": 0, "vouchers": 0, "trialCards": 0, "shards": 0, "playerId": null}, "sentAt": "2026-11-23T18:17:00+08:00", "expiresAt": null}
+  ],
   "announcement": null,
   "players": []
 }

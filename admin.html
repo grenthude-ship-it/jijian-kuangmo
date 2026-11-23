@@ -197,6 +197,14 @@
         color: var(--ink-2); font-size: 14px; line-height: 1.7;
       }
       .sync-note b { color: var(--gold-2); }
+      .sync-status {
+        margin: 14px 0 0; padding: 11px 13px; border-radius: var(--radius-s);
+        background: var(--bg-2); border: 1px solid var(--line-soft);
+        color: var(--ink-2); font-size: 14px; line-height: 1.6; word-break: break-word;
+      }
+      .sync-status.ok { border-color: var(--ok); color: var(--ink); }
+      .sync-status.err { border-color: var(--danger); color: #ff9d97; }
+      .sync-status.busy { border-color: var(--gold); color: var(--gold-2); }
       .stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
       .stat {
         flex: 1; min-width: 130px; background: var(--panel); border: 1px solid var(--line);
@@ -325,6 +333,7 @@
           <div class="brand">豪门缔造者 · <span class="gold">管理后台</span></div>
           <div class="spacer"></div>
           <span class="src-badge" id="srcBadge">数据来源：<b>—</b></span>
+          <span class="src-badge" id="syncBadge" hidden>同步：<b>—</b></span>
           <button class="btn-lock" id="lockBtn" type="button">锁定后台</button>
         </div>
       </header>
@@ -432,8 +441,9 @@
             <form id="mailForm" autocomplete="off">
               <div class="grid2">
                 <div class="field">
-                  <label for="mailTo">收件人用户名</label>
-                  <input type="text" id="mailTo" placeholder="玩家用户名" maxlength="32" />
+                  <label for="mailTo">收件人（用户名或账号编码）</label>
+                  <input type="text" id="mailTo" placeholder="玩家用户名或账号编码，如 HM-K7X2P9" maxlength="32" />
+                  <p class="hint">填玩家用户名或他的游戏账号编码（玩家在账号中心能看到编码）</p>
                 </div>
                 <div class="field">
                   <label for="mailTitle">邮件标题</label>
@@ -613,6 +623,22 @@
 
         <!-- ========== 页签4：数据同步 ========== -->
         <section id="tab-sync" hidden>
+          <div class="panel">
+            <h2>同步设置</h2>
+            <p class="desc">没有服务器时，后台改的数据要推到游戏仓库才会生效。在这里保存一次 GitHub 令牌，之后每次改完数据（发邮件、封禁/解封、发公告/撤回、添加/删除玩家）都会自动同步到游戏，也可以随时点「同步到游戏」手动推一次。</p>
+            <div class="field">
+              <label for="ghToken">GitHub 令牌 <span class="opt">（只保存在这台设备的浏览器里，不会写进数据文件，也不会显示出来）</span></label>
+              <input type="password" id="ghToken" placeholder="GitHub 令牌（只用来把数据推到游戏仓库）" autocomplete="off" />
+              <p class="hint" id="tokenState">还没保存令牌。</p>
+            </div>
+            <div class="sync-actions" style="margin-top:0">
+              <button class="btn-gold" id="saveTokenBtn" type="button">保存令牌</button>
+              <button class="btn-ghost" id="syncNowBtn" type="button">同步到游戏</button>
+            </div>
+            <p class="sync-status" id="syncStatusLine">上次同步：—</p>
+            <p class="form-err" id="syncErr"></p>
+          </div>
+
           <div class="stat-row">
             <div class="stat"><div class="n" id="statBans">0</div><div class="t">封禁账号</div></div>
             <div class="stat"><div class="n" id="statMail">0</div><div class="t">已发邮件</div></div>
@@ -628,7 +654,7 @@
               <button class="btn-gold" id="copyJsonBtn" type="button">复制 JSON</button>
               <button class="btn-ghost" id="dlJsonBtn" type="button">下载 admin-data.json</button>
             </div>
-            <div class="sync-note"><b>同步方法：</b>改完后把这个 JSON 发给管理员同步到线上，玩家那边才会生效。本页的修改只保存在这台设备的浏览器里，不会自动上传。</div>
+            <div class="sync-note" id="manualSyncNote"><b>同步方法：</b>还没设置令牌，同步需要把 JSON 发给 Muse。设置令牌后（见上方「同步设置」），改完数据会自动同步到游戏，不用再手动发 JSON。</div>
             <div class="info-note" style="margin:14px 0 0">
               <b>邮件字段说明（发邮件页签的新玩法）：</b><br />
               · <b>tag</b>：邮件标签，取值 奖励 / 通知 / 活动 / 补偿 / 私人定制。<br />
@@ -649,6 +675,9 @@
 
         var LS_PW = 'hm-admin-pw-hash-v1';
         var LS_DATA = 'hm-admin-data-v1';
+        var LS_TOKEN = 'hm-github-token';
+        var LS_SYNC_INFO = 'hm-sync-info-v1';
+        var GH_API = 'https://api.github.com/repos/grenthude-ship-it/jijian-kuangmo/contents/admin-data.json';
 
         var PLAYER_NAMES = {
           'ronaldo': 'C罗', 'messi': '梅西', 'neymar': '内马尔', 'modric': '莫德里奇',
@@ -722,6 +751,7 @@
           var top = Array.isArray(sq.top) ? sq.top.filter(function (x) { return typeof x === 'string' && x; }) : [];
           return {
             username: p.username,
+            code: typeof p.code === 'string' ? p.code : '',
             club: typeof p.club === 'string' ? p.club : '',
             value: pNum(p.value),
             vb: {
@@ -816,6 +846,137 @@
           data.updatedAt = isoNow();
           saveLocal();
           renderAll();
+          autoSyncAfterChange();
+        }
+
+        /* ---------- 直接同步到游戏（GitHub） ---------- */
+        // 令牌只存在本机 localStorage，绝不写进 admin-data.json，也不回显
+        function getToken() {
+          try { return (localStorage.getItem(LS_TOKEN) || '').trim(); } catch (e) { return ''; }
+        }
+        function loadSyncInfo() {
+          try {
+            var s = localStorage.getItem(LS_SYNC_INFO);
+            if (s) { var j = JSON.parse(s); if (j && typeof j === 'object') return j; }
+          } catch (e) { /* 忽略 */ }
+          return null;
+        }
+        function saveSyncInfo(info) {
+          try { localStorage.setItem(LS_SYNC_INFO, JSON.stringify(info)); } catch (e) { /* 忽略 */ }
+        }
+        function utf8ToBase64(str) {
+          var bytes = new TextEncoder().encode(str);
+          var bin = '';
+          for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+          return btoa(bin);
+        }
+        function setSyncUI(state, msg) {
+          // state: idle | busy | ok | err
+          var line = $('syncStatusLine');
+          var info = loadSyncInfo();
+          var lastTxt = info && info.time ? fmtTime(info.time) : '—';
+          if (line) {
+            line.className = 'sync-status' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : state === 'busy' ? ' busy' : '');
+            line.textContent = '上次同步：' + lastTxt + (msg ? '　' + msg : (info && info.msg ? '　' + info.msg : ''));
+          }
+          var badge = $('syncBadge');
+          if (badge) {
+            if (state === 'busy') { badge.hidden = false; badge.innerHTML = '同步：<b>正在同步…</b>'; }
+            else if (state === 'ok') { badge.hidden = false; badge.innerHTML = '同步：<b>已同步</b>'; }
+            else if (state === 'err') { badge.hidden = false; badge.innerHTML = '同步：<b>同步失败</b>'; }
+            else if (info && info.time) { badge.hidden = false; badge.innerHTML = '同步：<b>' + (info.ok ? '已同步' : '同步失败') + '</b>'; }
+            else { badge.hidden = true; }
+          }
+          var ts = $('tokenState');
+          if (ts) ts.textContent = getToken() ? '令牌已保存（不会显示出来）。改完数据会自动同步到游戏。' : '还没保存令牌。没令牌时只能用下面的复制/下载，把 JSON 发给 Muse 同步。';
+          var note = $('manualSyncNote');
+          if (note) {
+            if (getToken()) {
+              note.innerHTML = '<b>自动同步已开启：</b>每次改完数据都会自动把数据推到游戏仓库，约 1 分钟后玩家就能看到。也可以点上方「同步到游戏」手动推一次。下面的 JSON 仍可复制/下载备份。';
+            } else {
+              note.innerHTML = '<b>同步方法：</b>还没设置令牌，同步需要把 JSON 发给 Muse。设置令牌后（见上方「同步设置」），改完数据会自动同步到游戏，不用再手动发 JSON。';
+            }
+          }
+        }
+        var syncInFlight = false;
+        var syncQueued = false;
+        var syncDebounce = null;
+        function syncToGame() {
+          var token = getToken();
+          if (!token) {
+            setSyncUI('err', '同步失败：还没设置令牌，请先在「同步设置」里保存令牌');
+            return Promise.resolve(false);
+          }
+          if (syncInFlight) { syncQueued = true; return Promise.resolve(false); }
+          syncInFlight = true;
+          setSyncUI('busy', '正在同步…');
+          var headers = {
+            'Authorization': 'Bearer ' + token,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28'
+          };
+          function fail(msg) {
+            syncInFlight = false;
+            saveSyncInfo({ time: loadSyncInfo() && loadSyncInfo().time ? loadSyncInfo().time : null, ok: false, msg: msg });
+            setSyncUI('err', msg);
+            toast(msg);
+            if (syncQueued) { syncQueued = false; syncToGame(); }
+            return false;
+          }
+          return fetch(GH_API + '?ref=main', { headers: headers, cache: 'no-store' })
+            .then(function (r) {
+              if (r.status === 401 || r.status === 403) throw new Error('__auth__');
+              if (r.status === 404) return null; // 文件不存在时按新建处理（PUT 不带 sha）
+              if (!r.ok) throw new Error('__http_' + r.status + '__');
+              return r.json();
+            })
+            .then(function (cur) {
+              var payload = {
+                version: data.version || 1,
+                updatedAt: data.updatedAt,
+                bans: data.bans, mail: data.mail,
+                announcement: data.announcement, players: data.players
+              };
+              var body = {
+                message: '后台同步：更新 admin-data.json',
+                content: utf8ToBase64(JSON.stringify(payload, null, 2)),
+                branch: 'main'
+              };
+              if (cur && cur.sha) body.sha = cur.sha;
+              return fetch(GH_API, {
+                method: 'PUT',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+                body: JSON.stringify(body)
+              });
+            })
+            .then(function (r) {
+              if (r.status === 401 || r.status === 403) throw new Error('__auth__');
+              if (!r.ok) throw new Error('__http_' + r.status + '__');
+              return r.json();
+            })
+            .then(function () {
+              syncInFlight = false;
+              var okMsg = '已同步到游戏，约 1 分钟后玩家就能在邮箱里看到';
+              saveSyncInfo({ time: isoNow(), ok: true, msg: okMsg });
+              setSyncUI('ok', okMsg);
+              toast('已同步到游戏');
+              if (syncQueued) { syncQueued = false; syncToGame(); }
+              return true;
+            })
+            .catch(function (e) {
+              var m = e && e.message ? e.message : '';
+              if (m === '__auth__') return fail('同步失败：令牌不对或没有权限，请检查令牌');
+              if (m.indexOf('__http_404__') === 0) return fail('同步失败：找不到游戏仓库或文件，请检查令牌的仓库权限');
+              if (m.indexOf('__http_409__') === 0 || m.indexOf('__http_422__') === 0) return fail('同步失败：线上数据刚被改动，请再点一次「同步到游戏」');
+              if (m.indexOf('__http_') === 0) return fail('同步失败：GitHub 返回错误（' + m.replace(/__/g, '').replace('http_', 'HTTP ') + '），请稍后再试');
+              return fail('同步失败：网络连不上 GitHub，请检查网络后重试');
+            });
+        }
+        function autoSyncAfterChange() {
+          if (!getToken()) { setSyncUI('idle', ''); return; }
+          setSyncUI('busy', '正在同步…');
+          clearTimeout(syncDebounce);
+          syncDebounce = setTimeout(function () { syncToGame(); }, 700);
         }
         function loadLocal() {
           try {
@@ -894,6 +1055,8 @@
           });
           box.innerHTML = list.map(function (p) {
             var u = esc(p.username);
+            var mailTarget = esc(p.code ? p.code : p.username);
+            var codeTxt = p.code ? esc(p.code) : '未同步编码';
             var topTxt = (p.squad.top && p.squad.top.length) ? p.squad.top.map(esc).join('、') : '—';
             var banned = data.bans.some(function (b) {
               if (b.username !== p.username) return false;
@@ -910,6 +1073,7 @@
               ' · 现金 ' + fmtNum(p.vb.cash) + ' · 阵容身价 ' + fmtNum(p.vb.squad) +
               ' · 钻石折算 ' + fmtNum(p.vb.diamonds) + ' · 商业价值 ' + fmtNum(p.vb.biz) + '</div>' +
               '<div class="kv-grid">' +
+              '<div class="kv"><span class="k">游戏账号编码</span><span class="v">' + codeTxt + '</span></div>' +
               '<div class="kv"><span class="k">阵容人数</span><span class="v">' + fmtNum(p.squad.n) + ' 人</span></div>' +
               '<div class="kv"><span class="k">阵容总身价</span><span class="v">' + fmtNum(p.squad.value) + '</span></div>' +
               '<div class="kv"><span class="k">主力球员</span><span class="v">' + topTxt + '</span></div>' +
@@ -924,7 +1088,7 @@
               '<div class="note-row"><input type="text" placeholder="备注（可编辑）" maxlength="100" value="' + esc(p.note || '') + '" data-note-for="' + u + '" aria-label="备注" />' +
               '<button type="button" class="btn-ghost" data-savenote="' + u + '">保存备注</button></div>' +
               '<div class="p-actions">' +
-              '<button type="button" class="btn-ghost" data-mailto="' + u + '">发邮件</button>' +
+              '<button type="button" class="btn-ghost" data-mailto="' + mailTarget + '">发邮件</button>' +
               '<button type="button" class="btn-ghost" data-banto="' + u + '">封禁</button>' +
               '<button type="button" class="btn-danger" data-delplayer="' + u + '">删除</button>' +
               '</div></div>';
@@ -1096,6 +1260,7 @@
           $('statMail').textContent = data.mail.length;
           $('statAnn').textContent = data.announcement ? '已发布' : '无';
           $('statUpdated').textContent = fmtTime(data.updatedAt);
+          if (!syncInFlight) setSyncUI('idle', '');
         }
 
         function renderAll() { renderPlayers(); renderBans(); renderMail(); renderAnnounce(); renderSync(); }
@@ -1140,6 +1305,7 @@
           var idx = findPlayer(username);
           var base = {
             username: username,
+            code: (typeof card.code === 'string' && card.code) ? card.code : (idx >= 0 && data.players[idx].code ? data.players[idx].code : ''),
             club: typeof card.club === 'string' ? card.club : '',
             value: card.value,
             vb: card.vb,
@@ -1264,7 +1430,7 @@
           var body = $('mailBody').value.trim();
           var err = $('mailErr'), ok = $('mailOk');
           err.textContent = ''; ok.textContent = '';
-          if (!all && !to) { err.textContent = '请填写收件人用户名，或勾选「发给全部玩家」。'; return; }
+          if (!all && !to) { err.textContent = '请填写收件人用户名或账号编码，或勾选「发给全部玩家」。'; return; }
           if (!title) { err.textContent = '请填写邮件标题。'; return; }
           var items = {
             diamonds: numVal('itDiamonds'), cash: numVal('itCash'), vouchers: numVal('itVouchers'),
@@ -1342,6 +1508,25 @@
         });
 
         /* ---------- 同步页按钮 ---------- */
+        $('saveTokenBtn').addEventListener('click', function () {
+          var v = $('ghToken').value.trim();
+          var err = $('syncErr');
+          err.textContent = '';
+          if (!v) { err.textContent = '请先粘贴 GitHub 令牌，再点保存。'; return; }
+          try { localStorage.setItem(LS_TOKEN, v); } catch (e) { err.textContent = '这台设备存不了令牌（浏览器存储不可用）。'; return; }
+          $('ghToken').value = ''; // 保存后立刻清空输入框，令牌不回显
+          setSyncUI('idle', '令牌已保存，改完数据会自动同步，也可以点「同步到游戏」手动推一次');
+          toast('令牌已保存');
+        });
+        $('syncNowBtn').addEventListener('click', function () {
+          $('syncErr').textContent = '';
+          if (!getToken()) {
+            $('syncErr').textContent = '还没设置令牌，同步需要把 JSON 发给 Muse。请先在上面保存令牌，或用下面的复制/下载把 JSON 发出去。';
+            setSyncUI('err', '同步失败：还没设置令牌');
+            return;
+          }
+          syncToGame();
+        });
         $('copyJsonBtn').addEventListener('click', function () {
           var txt = $('syncJson').value;
           function fallbackCopy() {

@@ -823,11 +823,54 @@ function pwHash(name, pw){
 function acctAll(){ try{ var o=JSON.parse(localStorage.getItem(ACCT_KEY)||'{}'); return (o&&typeof o==='object')? o : {}; }catch(e){ return {}; } }
 function acctSaveAll(all){ try{ localStorage.setItem(ACCT_KEY, JSON.stringify(all)); }catch(e){} }
 function acctGet(name){ if(!name) return null; var all=acctAll(); return all[name]||null; }
+/* ---------------- 游戏账号编码 ----------------
+   每个账号一个唯一编码：HM- + 6 位大写字母数字（去掉易混淆的 0/O/1/I）。
+   注册时自动生成，生成前对照已有账号的编码查重，重复就重新生成，绝不重号；
+   老账号没有编码的，登录 / 恢复会话时自动补一个并保存。编码存在账号记录里，
+   管理后台发邮件时收件人填用户名或这个编码，玩家都能收到。 */
+var ACCT_CODE_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function genAcctCode(all){
+  all=all||acctAll();
+  var used={}; Object.keys(all).forEach(function(n){ if(all[n] && all[n].code) used[all[n].code]=1; });
+  for(var t=0;t<500;t++){
+    var c='HM-';
+    for(var i=0;i<6;i++) c+=ACCT_CODE_CHARS.charAt(Math.floor(Math.random()*ACCT_CODE_CHARS.length));
+    if(!used[c]) return c;
+  }
+  return 'HM-'+Date.now().toString(36).toUpperCase().slice(-6);
+}
+function ensureAcctCode(name){
+  if(!name) return '';
+  var all=acctAll(), rec=all[name];
+  if(!rec) return '';
+  if(!rec.code){ rec.code=genAcctCode(all); acctSaveAll(all); }
+  return rec.code;
+}
+function curAcctCode(){ return CUR_USER? ensureAcctCode(CUR_USER) : ''; }
+function copyAcctCode(){
+  var code=curAcctCode();
+  if(!code){ toast('还没有账号编码'); return; }
+  function ok(){ toast('编码已复制，发给老板就能收到邮件'); }
+  function fallback(){
+    var done=false;
+    try{
+      var ta=document.createElement('textarea');
+      ta.value=code; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      done=document.execCommand('copy');
+      document.body.removeChild(ta);
+    }catch(e){}
+    if(done){ ok(); return; }
+    toast('自动复制没成功，你的编码是 '+code+'，记下来发给老板就能收到邮件');
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(code).then(ok, fallback); }
+  else fallback();
+}
 function setSession(s){ SESSION=s; try{ if(s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); }catch(e){} }
 function initSession(){
   var s=null; try{ s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null'); }catch(e){}
   CUR_USER=null; IS_GUEST=false; SESSION=null;
-  if(s && s.u && acctGet(s.u)){ CUR_USER=s.u; SESSION={u:s.u}; }
+  if(s && s.u && acctGet(s.u)){ CUR_USER=s.u; SESSION={u:s.u}; ensureAcctCode(CUR_USER); /* 老账号恢复会话时没有编码就自动补一个 */ }
   else if(s && s.g){ IS_GUEST=true; SESSION={g:1}; }
 }
 function fmtDayTime(ts){
@@ -933,7 +976,7 @@ function doLogin(){
   adminReady().then(function(){
     var ban=findActiveBan(name);
     if(ban){ _loginErr=banNoticeText(ban); showLoginScreen('login'); return; }
-    var all=acctAll(); all[name].last=Date.now(); acctSaveAll(all);
+    var all=acctAll(); all[name].last=Date.now(); if(!all[name].code) all[name].code=genAcctCode(all); /* 老账号登录时没有编码就自动补一个 */ acctSaveAll(all);
     CUR_USER=name; IS_GUEST=false; setSession({u:name});
     toast('欢迎回来，'+name+'！正在进入游戏…');
     enterGame();
@@ -964,7 +1007,7 @@ function doRegister(){
     var ban=findActiveBan(name);
     if(ban){ _loginErr=banNoticeText(ban); showLoginScreen('reg'); return; }
     var now=Date.now(), all=acctAll();
-    all[name]={h:pwHash(name,pw), hint:hint, reg:now, last:now, val:null};
+    all[name]={h:pwHash(name,pw), hint:hint, reg:now, last:now, val:null, code:genAcctCode(all)};
     acctSaveAll(all);
     CUR_USER=name; IS_GUEST=false; setSession({u:name});
     toast('账号「'+name+'」注册成功，开始新开局！');
@@ -993,7 +1036,7 @@ function playerCardData(){
   var parts=accountValueParts();
   var top=G.squad.slice().sort(function(a,b){ return ((b.ab||0)-(a.ab||0)) || ((b.value||0)-(a.value||0)); }).slice(0,3);
   var at=isoLocalNow();
-  var obj={t:'hmcard', v:1, u:CUR_USER, club:G.club||'', value:Math.round(parts.total),
+  var obj={t:'hmcard', v:1, u:CUR_USER, code:ensureAcctCode(CUR_USER), club:G.club||'', value:Math.round(parts.total),
     vb:{valuation:Math.round(parts.club), cash:Math.round(parts.cash), squad:Math.round(parts.squad), diamonds:Math.round(parts.dia), biz:Math.round(parts.biz)},
     squad:{n:G.squad.length, value:Math.round(parts.squad), top:top.map(function(p){ return p.name; })},
     diamonds:G.diamonds||0, vouchers:(G.pay2&&G.pay2.vouchers)||0, trialCards:(G.pay2&&G.pay2.trialCards)||0, shards:(G.pack&&G.pack.shards)||0, at:at};
@@ -1035,6 +1078,7 @@ function pageAccount(){
     var rec=acctGet(CUR_USER)||{};
     html+='<div class="card"><h3>👤 账号中心<span class="hint">账号的价值和装备都跟着账号走</span></h3>'
     +'<div class="item"><div class="grow"><div class="nm">用户名：<b>'+esc(CUR_USER)+'</b></div><div class="meta">注册时间 '+fmtDayTime(rec.reg)+' · 上次登录 '+fmtDayTime(rec.last)+'</div></div><span class="pill up">已登录</span></div>'
+    +'<div class="item"><div class="grow"><div class="nm">我的游戏账号编码：<b>'+esc(rec.code||ensureAcctCode(CUR_USER))+'</b></div><div class="meta">这个编码只属于你的账号，别的账号都不一样。老板在管理后台发邮件时，收件人填你的用户名或者这个编码，你都能收到；把编码发给老板，他就能直接按编码给你发邮件。</div></div><button class="btn sm" onclick="copyAcctCode()">复制编码</button></div>'
     +'<div class="item"><div class="grow"><div class="nm">称号：'+(G.customTitle? '<span class="pill custom">👑 '+esc(G.customTitle)+'</span>' : '<span style="color:var(--ink3);font-weight:500;">暂无</span>')+'</div><div class="meta">后台通过邮箱发放的专属称号，会以金色小标签显示在游戏大厅的俱乐部信息旁；收到新称号会覆盖旧称号。</div></div></div>'
     +'<p class="desc">当前进度——俱乐部、现金、阵容、钻石、道具、品牌、海外俱乐部等——全部保存在这个账号名下。退出登录换别的账号，进度互不干扰。</p></div>';
   } else {
@@ -1073,6 +1117,7 @@ function pageAccount(){
     +'<div class="pc-row"><span>钻石折算</span><b class="num">'+fmt(pc.parts.dia)+'</b></div>'
     +'<div class="pc-row"><span>品牌业务价值</span><b class="num">'+fmt(pc.parts.biz)+'</b></div>'
     +'<div class="pc-row"><span>钻石</span><b class="num">💎 '+(G.diamonds||0)+'</b></div>'
+    +'<div class="pc-row"><span>游戏账号编码</span><b>'+esc(pc.obj.code||'')+'</b></div>'
     +'</div>'
     +'<div class="pc-sec"><span class="pc-lab">阵容：</span>'+G.squad.length+' 人 · 总身价 <b class="num">'+fmt(pc.parts.squad)+'</b><br><span class="pc-lab">能力最高的 3 名球员：</span>'+pcTop+'</div>'
     +'<div class="pc-sec"><span class="pc-lab">道具：</span>🎟️ 直签券 × '+((G.pay2&&G.pay2.vouchers)||0)+' · 🧪 试用卡 × '+((G.pay2&&G.pay2.trialCards)||0)+' · 🧩 碎片 × '+((G.pack&&G.pack.shards)||0)+'</div>'
@@ -1111,7 +1156,7 @@ function guestToAccount(){
   var ban=findActiveBan(name);
   if(ban){ toast(banNoticeText(ban)); return; }
   var now=Date.now(), all=acctAll();
-  all[name]={h:pwHash(name,pw), hint:hint, reg:now, last:now, val:null};
+  all[name]={h:pwHash(name,pw), hint:hint, reg:now, last:now, val:null, code:genAcctCode(all)};
   acctSaveAll(all);
   autoSave(); /* 先把当前进度稳稳存进默认存档，保证一份不丢 */
   var raw=null; try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){}
@@ -1173,7 +1218,7 @@ function acctImportConfirm(){
   if(ban){ toast(banNoticeText(ban)); return; }
   autoSave(); /* 先把当前账号/游客的进度存好，再切换账号，不丢任何一边 */
   var now=Date.now(), all=acctAll(), old=all[p.name]||{};
-  all[p.name]={h:pwHash(p.name,pw), hint:old.hint||'', reg:old.reg||now, last:now, val:null};
+  all[p.name]={h:pwHash(p.name,pw), hint:old.hint||'', reg:old.reg||now, last:now, val:null, code:old.code||genAcctCode(all)};
   acctSaveAll(all);
   CUR_USER=p.name; IS_GUEST=false; setSession({u:p.name});
   try{ localStorage.setItem(curSaveKey(), JSON.stringify({v:1, savedAt:now, data:p.data})); }catch(e){}
@@ -1311,8 +1356,10 @@ function maybeShowAnnouncement(){
   });
 }
 /* ---------------- 邮箱（后台邮件） ----------------
-   邮件收件人是用户名；to 为 '*' 时是全服邮件，每个已登录账号都能收到
-   （游客不收）。已领取记录按账号存在 localStorage
+   邮件收件人可以是用户名，也可以是账号的游戏账号编码（HM-XXXXXX）：
+   to 等于当前用户名、或等于当前账号的编码、或 to 为 '*'（全服邮件），
+   这封邮件就显示在邮箱里；未读数、领取、标为已读都走同一套 myMails()，
+   规则一致。游客没有用户名和编码，不收邮件。已领取记录按账号存在 localStorage
    （zuqiu-km-mail-claimed-v1-<用户名>），领过的不重复发——全服邮件也是
    按账号各领一次。纯消息（无附件）的已读记录存在
    zuqiu-km-mail-read-v1-<用户名>。
@@ -1336,12 +1383,19 @@ function mailReadSet(){
 function mailIsReward(m){ return mailItemsParts(m).length>0; }
 function myMails(){
   if(!CUR_USER || !ADMIN || !(ADMIN.mail instanceof Array)) return [];
-  var now=Date.now();
+  var now=Date.now(), code=curAcctCode();
   return ADMIN.mail.filter(function(m){
-    if(!m || (m.to!==CUR_USER && m.to!=='*')) return false;
+    if(!m) return false;
+    if(!(m.to===CUR_USER || m.to==='*' || (code && m.to===code))) return false;
     if(m.expiresAt){ var t=Date.parse(m.expiresAt); if(!isNaN(t) && now>=t) return false; }
     return true;
   }).sort(function(a,b){ return (Date.parse(b.sentAt)||0)-(Date.parse(a.sentAt)||0); });
+}
+/* 点进邮箱时重新拉一次后台数据：老板刚同步到游戏里的新邮件，不用重启
+   游戏就能看到。拉取失败就继续用上次缓存的数据，不报错、不白屏。 */
+function refreshInboxOnOpen(){
+  if(!CUR_USER) return;
+  fetchAdminData(true).then(function(){ if(PAGE==='inbox') render(); });
 }
 /* 未读角标 = 未领取的奖励邮件数 + 未读的纯消息数 */
 function unreadMailCount(){
@@ -1391,8 +1445,8 @@ function pageInbox(){
     return '<div class="card"><h3>📬 邮箱<span class="hint">账号：'+esc(CUR_USER)+'</span></h3><p class="desc">'+(ADMIN_STATE==='failed'? '暂时读不到后台邮件数据（网络不通或后台文件不可用），不影响正常游戏，过一会儿再进来看看。' : '正在读取后台邮件…')+'</p></div>';
   }
   var list=myMails(), claimed=mailClaimedSet(), readSet=mailReadSet();
-  var head='<div class="card"><h3>📬 邮箱<span class="hint">账号：'+esc(CUR_USER)+' · 共 '+list.length+' 封 · 未读 '+unreadMailCount()+' 封</span></h3>'
-  +'<p class="desc">这里是游戏管理后台发给你的邮件，按发送时间从新到旧排列。标着「奖励」的邮件带附件，点「领取」，钻石、现金和道具就会发到你的账号里，领过的不能重复领；标着「消息」的是后台发来的纯消息，读完点「标为已读」就不算未读了。标着「全服」的邮件是发给所有玩家的，每个账号只能领一次；带「私人定制」标签的邮件里有只属于你的定制球星（能力可以超过图鉴里的所有球星）和专属称号。邮件会一直留在这里，过期邮件会自动消失。</p>';
+  var head='<div class="card"><h3>📬 邮箱<span class="hint">账号：'+esc(CUR_USER)+' · 编码 '+esc(curAcctCode())+' · 共 '+list.length+' 封 · 未读 '+unreadMailCount()+' 封</span></h3>'
+  +'<p class="desc">这里是游戏管理后台发给你的邮件，按发送时间从新到旧排列。老板发邮件时收件人填你的用户名或者你的游戏账号编码（在账号中心能看到、能复制），你都能收到；每次打开邮箱都会自动刷新一次，有新邮件不用重启游戏。标着「奖励」的邮件带附件，点「领取」，钻石、现金和道具就会发到你的账号里，领过的不能重复领；标着「消息」的是后台发来的纯消息，读完点「标为已读」就不算未读了。标着「全服」的邮件是发给所有玩家的，每个账号只能领一次；带「私人定制」标签的邮件里有只属于你的定制球星（能力可以超过图鉴里的所有球星）和专属称号。邮件会一直留在这里，过期邮件会自动消失。</p>';
   if(!list.length) return head+'<p class="desc">暂时没有发给你的邮件。</p></div>';
   var items=list.map(function(m){
     var parts=mailItemsParts(m), isReward=parts.length>0;
@@ -2333,7 +2387,7 @@ function endGame(kind){
 <script>
 "use strict";
 /* ---------------- 操作 ---------------- */
-function go(p){ PAGE=p; render(); window.scrollTo(0,0); if(p==='home' && typeof lobbyBanCheck==='function') lobbyBanCheck(); }
+function go(p){ PAGE=p; render(); window.scrollTo(0,0); if(p==='home' && typeof lobbyBanCheck==='function') lobbyBanCheck(); if(p==='inbox' && typeof refreshInboxOnOpen==='function') refreshInboxOnOpen(); }
 function buyPlayer(i){
   var p=G.market[i]; if(!p) return;
   if(G.director && G.director.mode==='none'){ toast('当前是「零引援」建队策略：只靠原阵容和青训。去转会页把策略改掉才能买人。'); return; }
