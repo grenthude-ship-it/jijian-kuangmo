@@ -205,6 +205,40 @@
       .stat .n { font-size: 22px; font-weight: 700; color: var(--gold-2); }
       .stat .t { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
 
+      /* ---------- 玩家 ---------- */
+      .info-note {
+        padding: 12px 15px; border-radius: var(--radius-s); margin-bottom: 18px;
+        background: var(--bg-2); border: 1px solid var(--line);
+        color: var(--ink-2); font-size: 14px; line-height: 1.7;
+      }
+      .stat-row.players-stats .stat { min-width: 150px; }
+      .card-input { min-height: 110px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.6; word-break: break-all; }
+      .player-card {
+        background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 16px 18px; margin-bottom: 12px;
+      }
+      .player-card .p-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+      .player-card .p-name { font-size: 17px; font-weight: 700; color: var(--gold-2); word-break: break-all; }
+      .player-card .p-club { color: var(--ink-2); font-size: 14px; word-break: break-all; }
+      .player-card .p-value { margin-left: auto; font-size: 15px; color: var(--ink-2); }
+      .player-card .p-value b { color: var(--gold-2); font-size: 19px; }
+      .kv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 18px; margin: 10px 0; }
+      .kv-grid .kv { font-size: 13.5px; color: var(--ink-2); word-break: break-all; }
+      .kv-grid .kv .k { color: var(--ink-3); display: block; font-size: 12.5px; }
+      .kv-grid .kv .v { color: var(--ink); font-weight: 600; }
+      .vb-line { font-size: 13.5px; color: var(--ink-2); line-height: 1.8; word-break: break-all; }
+      .vb-line .k { color: var(--ink-3); }
+      .stale-note { color: var(--ink-3); font-size: 12.5px; margin-left: 8px; }
+      .p-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+      .p-actions .btn-ghost, .p-actions .btn-danger { min-height: 36px; font-size: 13.5px; }
+      .btn-danger.armed { background: var(--danger); color: #fff; border-color: var(--danger); font-weight: 700; }
+      .note-row { display: flex; gap: 8px; margin-top: 10px; }
+      .note-row input { flex: 1; min-width: 0; }
+      @media (max-width: 640px) {
+        .player-card .p-value { margin-left: 0; }
+        .note-row { flex-wrap: wrap; }
+      }
+
       /* ---------- 提示条 ---------- */
       .toast {
         position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
@@ -269,14 +303,66 @@
 
       <div class="wrap">
         <nav class="tabs" role="tablist">
-          <button class="tab active" type="button" data-tab="bans" role="tab">账号封禁<span class="count" id="banCount">0</span></button>
+          <button class="tab active" type="button" data-tab="players" role="tab">玩家<span class="count" id="playerCount">0</span></button>
+          <button class="tab" type="button" data-tab="bans" role="tab">账号封禁<span class="count" id="banCount">0</span></button>
           <button class="tab" type="button" data-tab="mail" role="tab">发邮件<span class="count" id="mailCount">0</span></button>
           <button class="tab" type="button" data-tab="announce" role="tab">全服公告</button>
           <button class="tab" type="button" data-tab="sync" role="tab">数据同步</button>
         </nav>
 
-        <!-- ========== 页签1：账号封禁 ========== -->
-        <section id="tab-bans">
+        <!-- ========== 页签1：玩家 ========== -->
+        <section id="tab-players">
+          <div class="info-note">玩家名单来自玩家发来的玩家卡（或老板手动添加），不是实时在线状态；玩家重新发一次玩家卡就能刷新信息。</div>
+
+          <div class="stat-row players-stats">
+            <div class="stat"><div class="n" id="pStatCount">0</div><div class="t">已登记玩家</div></div>
+            <div class="stat"><div class="n" id="pStatValue">0</div><div class="t">账号总价值合计</div></div>
+            <div class="stat"><div class="n" id="pStatDiamonds">0</div><div class="t">玩家钻石总数</div></div>
+            <div class="stat"><div class="n" id="pStatMail">0</div><div class="t">已发邮件总数</div></div>
+            <div class="stat"><div class="n" id="pStatMailDiamonds">0</div><div class="t">已发钻石总数</div></div>
+            <div class="stat"><div class="n" id="pStatBans">0</div><div class="t">当前封禁中账号</div></div>
+          </div>
+
+          <div class="panel">
+            <h2>登记 / 更新玩家</h2>
+            <p class="desc">把玩家从游戏里复制来的玩家卡粘贴到下面（以 HM-CARD: 开头），点按钮登记。同一个用户名再次登记会更新全部信息。</p>
+            <form id="cardForm" autocomplete="off">
+              <div class="field">
+                <label for="cardInput">玩家卡</label>
+                <textarea class="card-input" id="cardInput" rows="4" placeholder="HM-CARD:{&quot;t&quot;:&quot;hmcard&quot;,&quot;v&quot;:1,&quot;u&quot;:&quot;用户名&quot;,…}" spellcheck="false"></textarea>
+              </div>
+              <button type="submit" class="btn-gold">登记/更新玩家</button>
+              <p class="form-err" id="cardErr"></p>
+              <p class="form-ok" id="cardOk"></p>
+            </form>
+          </div>
+
+          <div class="panel">
+            <h2>手动添加玩家</h2>
+            <p class="desc">只知道用户名时先在这里登记，账号详情等玩家发来玩家卡后再补齐。</p>
+            <form id="manualForm" autocomplete="off">
+              <div class="grid2">
+                <div class="field">
+                  <label for="manualUser">用户名</label>
+                  <input type="text" id="manualUser" placeholder="玩家用户名" maxlength="32" />
+                </div>
+                <div class="field">
+                  <label for="manualNote">备注 <span class="opt">（可不填）</span></label>
+                  <input type="text" id="manualNote" placeholder="例如：群里的大户、朋友介绍" maxlength="100" />
+                </div>
+              </div>
+              <button type="submit" class="btn-ghost">手动添加</button>
+              <p class="form-err" id="manualErr"></p>
+              <p class="form-ok" id="manualOk"></p>
+            </form>
+          </div>
+
+          <div class="list-head"><h2>玩家列表</h2><span id="playerListInfo"></span></div>
+          <div id="playerList"></div>
+        </section>
+
+        <!-- ========== 页签2：账号封禁 ========== -->
+        <section id="tab-bans" hidden>
           <div class="panel">
             <h2>封禁账号</h2>
             <p class="desc">被封禁的账号在封禁期内无法登录游戏。同步到线上后生效。</p>
@@ -498,7 +584,30 @@
 
         /* ---------- 数据 ---------- */
         function emptyData() {
-          return { version: 1, updatedAt: isoNow(), bans: [], mail: [], announcement: null };
+          return { version: 1, updatedAt: isoNow(), bans: [], mail: [], announcement: null, players: [] };
+        }
+        function pNum(v) { v = Number(v); return isFinite(v) ? v : 0; }
+        function normalizePlayer(p) {
+          var vb = (p.vb && typeof p.vb === 'object') ? p.vb : {};
+          var sq = (p.squad && typeof p.squad === 'object') ? p.squad : {};
+          var top = Array.isArray(sq.top) ? sq.top.filter(function (x) { return typeof x === 'string' && x; }) : [];
+          return {
+            username: p.username,
+            club: typeof p.club === 'string' ? p.club : '',
+            value: pNum(p.value),
+            vb: {
+              valuation: pNum(vb.valuation), cash: pNum(vb.cash), squad: pNum(vb.squad),
+              diamonds: pNum(vb.diamonds), biz: pNum(vb.biz)
+            },
+            squad: { n: Math.floor(pNum(sq.n)), value: pNum(sq.value), top: top },
+            diamonds: Math.floor(pNum(p.diamonds)),
+            vouchers: Math.floor(pNum(p.vouchers)),
+            trialCards: Math.floor(pNum(p.trialCards)),
+            shards: Math.floor(pNum(p.shards)),
+            note: typeof p.note === 'string' ? p.note : '',
+            registeredAt: typeof p.registeredAt === 'string' ? p.registeredAt : isoNow(),
+            updatedAt: typeof p.updatedAt === 'string' ? p.updatedAt : isoNow()
+          };
         }
         function normalizeData(raw) {
           var d = emptyData();
@@ -533,6 +642,9 @@
                 expiresAt: m.expiresAt == null ? null : String(m.expiresAt)
               };
             });
+          }
+          if (Array.isArray(raw.players)) {
+            d.players = raw.players.filter(function (p) { return p && typeof p.username === 'string' && p.username; }).map(normalizePlayer);
           }
           if (raw.announcement && typeof raw.announcement === 'object' && typeof raw.announcement.title === 'string') {
             d.announcement = {
@@ -578,7 +690,7 @@
             fetch('./admin-data.json', { cache: 'no-store' })
               .then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); })
               .then(function (j) {
-                if (j && typeof j === 'object' && ('bans' in j || 'mail' in j || 'announcement' in j)) {
+                if (j && typeof j === 'object' && ('bans' in j || 'mail' in j || 'announcement' in j || 'players' in j)) {
                   done(normalizeData(j), '线上 admin-data.json');
                 } else { fallback(); }
               })
@@ -587,6 +699,141 @@
         }
 
         /* ---------- 渲染 ---------- */
+        function fmtNum(n) {
+          n = Number(n) || 0;
+          try { return n.toLocaleString('zh-CN'); } catch (e) { return String(n); }
+        }
+        function activeBanCount() {
+          var now = Date.now();
+          return data.bans.filter(function (b) {
+            if (b.until == null) return true;
+            var t = new Date(b.until).getTime();
+            return isNaN(t) || t > now;
+          }).length;
+        }
+        function findPlayer(username) {
+          for (var i = 0; i < data.players.length; i++) {
+            if (data.players[i].username === username) return i;
+          }
+          return -1;
+        }
+
+        function renderPlayers() {
+          $('playerCount').textContent = data.players.length;
+          var totalValue = 0, totalDiamonds = 0;
+          data.players.forEach(function (p) { totalValue += pNum(p.value); totalDiamonds += pNum(p.diamonds); });
+          var mailDiamonds = 0;
+          data.mail.forEach(function (m) { mailDiamonds += (m.items ? pNum(m.items.diamonds) : 0); });
+          $('pStatCount').textContent = fmtNum(data.players.length);
+          $('pStatValue').textContent = fmtNum(totalValue);
+          $('pStatDiamonds').textContent = fmtNum(totalDiamonds);
+          $('pStatMail').textContent = fmtNum(data.mail.length);
+          $('pStatMailDiamonds').textContent = fmtNum(mailDiamonds);
+          $('pStatBans').textContent = fmtNum(activeBanCount());
+          $('playerListInfo').textContent = data.players.length ? ('共 ' + data.players.length + ' 人 · 按最后更新时间排序') : '';
+
+          var box = $('playerList');
+          if (!data.players.length) {
+            box.innerHTML = '<div class="empty">还没有登记玩家。把玩家发来的玩家卡粘贴到上面登记，或用手动添加先记下用户名。</div>';
+            return;
+          }
+          var list = data.players.slice().sort(function (a, b) {
+            var ta = new Date(b.updatedAt).getTime() || 0;
+            var tb = new Date(a.updatedAt).getTime() || 0;
+            return ta - tb;
+          });
+          box.innerHTML = list.map(function (p) {
+            var u = esc(p.username);
+            var topTxt = (p.squad.top && p.squad.top.length) ? p.squad.top.map(esc).join('、') : '—';
+            var banned = data.bans.some(function (b) {
+              if (b.username !== p.username) return false;
+              if (b.until == null) return true;
+              var t = new Date(b.until).getTime();
+              return isNaN(t) || t > Date.now();
+            });
+            return '<div class="player-card">' +
+              '<div class="p-head"><span class="p-name">' + u + '</span>' +
+              '<span class="p-club">' + esc(p.club || '（俱乐部未填）') + '</span>' +
+              (banned ? '<span class="pill perm">封禁中</span>' : '') +
+              '<span class="p-value">账号总价值 <b>' + fmtNum(p.value) + '</b></span></div>' +
+              '<div class="vb-line"><span class="k">价值明细：</span>俱乐部估值 ' + fmtNum(p.vb.valuation) +
+              ' · 现金 ' + fmtNum(p.vb.cash) + ' · 阵容身价 ' + fmtNum(p.vb.squad) +
+              ' · 钻石折算 ' + fmtNum(p.vb.diamonds) + ' · 商业价值 ' + fmtNum(p.vb.biz) + '</div>' +
+              '<div class="kv-grid">' +
+              '<div class="kv"><span class="k">阵容人数</span><span class="v">' + fmtNum(p.squad.n) + ' 人</span></div>' +
+              '<div class="kv"><span class="k">阵容总身价</span><span class="v">' + fmtNum(p.squad.value) + '</span></div>' +
+              '<div class="kv"><span class="k">主力球员</span><span class="v">' + topTxt + '</span></div>' +
+              '<div class="kv"><span class="k">钻石</span><span class="v">' + fmtNum(p.diamonds) + '</span></div>' +
+              '<div class="kv"><span class="k">直签券</span><span class="v">' + fmtNum(p.vouchers) + ' 张</span></div>' +
+              '<div class="kv"><span class="k">试用卡</span><span class="v">' + fmtNum(p.trialCards) + ' 张</span></div>' +
+              '<div class="kv"><span class="k">碎片</span><span class="v">' + fmtNum(p.shards) + '</span></div>' +
+              '<div class="kv"><span class="k">登记时间</span><span class="v">' + esc(fmtTime(p.registeredAt)) + '</span></div>' +
+              '</div>' +
+              '<div class="vb-line"><span class="k">最后更新时间：</span>' + esc(fmtTime(p.updatedAt)) +
+              '<span class="stale-note">玩家越久没更新玩家卡，信息就越旧</span></div>' +
+              '<div class="note-row"><input type="text" placeholder="备注（可编辑）" maxlength="100" value="' + esc(p.note || '') + '" data-note-for="' + u + '" aria-label="备注" />' +
+              '<button type="button" class="btn-ghost" data-savenote="' + u + '">保存备注</button></div>' +
+              '<div class="p-actions">' +
+              '<button type="button" class="btn-ghost" data-mailto="' + u + '">发邮件</button>' +
+              '<button type="button" class="btn-ghost" data-banto="' + u + '">封禁</button>' +
+              '<button type="button" class="btn-danger" data-delplayer="' + u + '">删除</button>' +
+              '</div></div>';
+          }).join('');
+
+          var mailBtns = box.querySelectorAll('[data-mailto]');
+          for (var a = 0; a < mailBtns.length; a++) {
+            mailBtns[a].addEventListener('click', function () {
+              $('mailTo').value = this.getAttribute('data-mailto');
+              switchTab('mail');
+              $('mailTitle').focus();
+            });
+          }
+          var banBtns = box.querySelectorAll('[data-banto]');
+          for (var b = 0; b < banBtns.length; b++) {
+            banBtns[b].addEventListener('click', function () {
+              $('banUser').value = this.getAttribute('data-banto');
+              switchTab('bans');
+              $('banReason').focus();
+            });
+          }
+          var noteBtns = box.querySelectorAll('[data-savenote]');
+          for (var c = 0; c < noteBtns.length; c++) {
+            noteBtns[c].addEventListener('click', function () {
+              var name = this.getAttribute('data-savenote');
+              var idx = findPlayer(name);
+              if (idx < 0) return;
+              var input = box.querySelector('[data-note-for="' + name.replace(/"/g, '\\"') + '"]');
+              data.players[idx].note = input ? input.value.trim() : '';
+              touch();
+              toast('已保存 ' + name + ' 的备注');
+            });
+          }
+          var delBtns = box.querySelectorAll('[data-delplayer]');
+          for (var d = 0; d < delBtns.length; d++) {
+            delBtns[d].addEventListener('click', function () {
+              var name = this.getAttribute('data-delplayer');
+              if (this.getAttribute('data-armed') === '1') {
+                var idx = findPlayer(name);
+                if (idx >= 0) data.players.splice(idx, 1);
+                touch();
+                toast('已删除玩家：' + name);
+              } else {
+                this.setAttribute('data-armed', '1');
+                this.classList.add('armed');
+                this.textContent = '确认删除「' + name + '」？再点一次删除';
+                var btn = this;
+                setTimeout(function () {
+                  if (btn.isConnected) {
+                    btn.removeAttribute('data-armed');
+                    btn.classList.remove('armed');
+                    btn.textContent = '删除';
+                  }
+                }, 4000);
+              }
+            });
+          }
+        }
+
         function renderBans() {
           $('banCount').textContent = data.bans.length;
           $('banListInfo').textContent = data.bans.length ? ('共 ' + data.bans.length + ' 个') : '';
@@ -691,22 +938,93 @@
           $('statUpdated').textContent = fmtTime(data.updatedAt);
         }
 
-        function renderAll() { renderBans(); renderMail(); renderAnnounce(); renderSync(); }
+        function renderAll() { renderPlayers(); renderBans(); renderMail(); renderAnnounce(); renderSync(); }
 
         /* ---------- 页签切换 ---------- */
+        var TAB_NAMES = ['players', 'bans', 'mail', 'announce', 'sync'];
+        function switchTab(name) {
+          var tabs = document.querySelectorAll('.tab');
+          for (var j = 0; j < tabs.length; j++) {
+            tabs[j].classList.toggle('active', tabs[j].getAttribute('data-tab') === name);
+          }
+          TAB_NAMES.forEach(function (n) {
+            $('tab-' + n).hidden = (n !== name);
+          });
+          if (name === 'sync') renderSync();
+          window.scrollTo(0, 0);
+        }
         var tabs = document.querySelectorAll('.tab');
         for (var ti = 0; ti < tabs.length; ti++) {
           tabs[ti].addEventListener('click', function () {
-            var name = this.getAttribute('data-tab');
-            for (var j = 0; j < tabs.length; j++) {
-              tabs[j].classList.toggle('active', tabs[j] === this);
-            }
-            ['bans', 'mail', 'announce', 'sync'].forEach(function (n) {
-              $('tab-' + n).hidden = (n !== name);
-            });
-            if (name === 'sync') renderSync();
+            switchTab(this.getAttribute('data-tab'));
           });
         }
+
+        /* ---------- 玩家登记 ---------- */
+        $('cardForm').addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          var raw = $('cardInput').value.trim();
+          var err = $('cardErr'), ok = $('cardOk');
+          err.textContent = ''; ok.textContent = '';
+          var fail = function () { err.textContent = '玩家卡格式不对，请重新复制'; };
+          if (!raw) { fail(); return; }
+          var jsonTxt = raw;
+          var prefix = 'HM-CARD:';
+          if (jsonTxt.indexOf(prefix) === 0) jsonTxt = jsonTxt.slice(prefix.length).trim();
+          var card = null;
+          try { card = JSON.parse(jsonTxt); } catch (e) { fail(); return; }
+          if (!card || typeof card !== 'object' || card.t !== 'hmcard' ||
+              typeof card.u !== 'string' || !card.u.trim()) { fail(); return; }
+          var username = card.u.trim();
+          var cardTime = (typeof card.at === 'string' && !isNaN(new Date(card.at).getTime())) ? card.at : isoNow();
+          var idx = findPlayer(username);
+          var base = {
+            username: username,
+            club: typeof card.club === 'string' ? card.club : '',
+            value: card.value,
+            vb: card.vb,
+            squad: card.squad,
+            diamonds: card.diamonds,
+            vouchers: card.vouchers,
+            trialCards: card.trialCards,
+            shards: card.shards,
+            note: idx >= 0 ? data.players[idx].note : '',
+            registeredAt: idx >= 0 ? data.players[idx].registeredAt : cardTime,
+            updatedAt: cardTime
+          };
+          var rec = normalizePlayer(base);
+          if (idx >= 0) data.players[idx] = rec; else data.players.push(rec);
+          touch();
+          $('cardInput').value = '';
+          ok.textContent = (idx >= 0 ? '已更新玩家：' : '已登记玩家：') + username;
+          toast((idx >= 0 ? '已更新玩家：' : '已登记玩家：') + username);
+        });
+
+        $('manualForm').addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          var user = $('manualUser').value.trim();
+          var note = $('manualNote').value.trim();
+          var err = $('manualErr'), ok = $('manualOk');
+          err.textContent = ''; ok.textContent = '';
+          if (!user) { err.textContent = '请填写用户名。'; return; }
+          var idx = findPlayer(user);
+          if (idx >= 0) {
+            if (note) data.players[idx].note = note;
+            touch();
+            ok.textContent = '该玩家已登记，已更新备注。账号详情等玩家发来玩家卡后会自动补齐。';
+            toast('玩家已存在，已更新备注：' + user);
+          } else {
+            data.players.push(normalizePlayer({
+              username: user, club: '', value: 0,
+              vb: {}, squad: {}, diamonds: 0, vouchers: 0, trialCards: 0, shards: 0,
+              note: note, registeredAt: isoNow(), updatedAt: isoNow()
+            }));
+            touch();
+            ok.textContent = '已手动添加玩家：' + user + '（账号详情等玩家发来玩家卡后再补）';
+            toast('已手动添加玩家：' + user);
+          }
+          $('manualUser').value = ''; $('manualNote').value = '';
+        });
 
         /* ---------- 封禁 ---------- */
         $('banForm').addEventListener('submit', function (ev) {

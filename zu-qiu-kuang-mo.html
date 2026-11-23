@@ -319,6 +319,25 @@
       .vrow.tot{ border-bottom:none; border-top:2px solid var(--line); margin-top:4px; padding-top:10px; font-size:15px; }
       .vrow.tot span{ color:var(--ink); font-weight:800; }
       .vrow.tot b{ color:var(--orange-d); font-size:17px; }
+      /* ---------- 我的玩家卡（深蓝 + 金色） ---------- */
+      .pcard{ background:linear-gradient(150deg,#1d3d5f 0%,#10263d 55%,#0a1a2c 100%); border:1.5px solid #d4af37; border-radius:14px; padding:16px 18px 14px; color:#eef3f8; box-shadow:0 10px 26px rgba(6,17,30,.35), inset 0 0 0 1px rgba(212,175,55,.16); }
+      .pcard .pc-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; border-bottom:1px solid rgba(212,175,55,.45); padding-bottom:10px; }
+      .pcard .pc-title{ font-size:11.5px; letter-spacing:.24em; color:#e8cf8a; font-weight:800; }
+      .pcard .pc-user{ font-size:21px; font-weight:900; color:#fff; margin-top:3px; line-height:1.25; word-break:break-all; }
+      .pcard .pc-club{ color:#a9bfd1; font-size:13px; margin-top:2px; }
+      .pcard .pc-badge{ flex:0 0 auto; border:1.5px solid #d4af37; color:#ffd76a; border-radius:999px; font-size:11.5px; font-weight:800; padding:4px 10px; letter-spacing:.08em; }
+      .pcard .pc-total{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-top:12px; }
+      .pcard .pc-total span{ color:#a9bfd1; font-size:13px; }
+      .pcard .pc-total b{ color:#ffd76a; font-size:25px; font-weight:900; white-space:nowrap; }
+      .pcard .pc-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 20px; margin-top:8px; }
+      .pcard .pc-row{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:13px; padding:6px 0; border-bottom:1px dashed rgba(169,191,209,.25); }
+      .pcard .pc-row span{ color:#a9bfd1; }
+      .pcard .pc-row b{ color:#fff; font-weight:700; white-space:nowrap; }
+      .pcard .pc-sec{ margin-top:12px; font-size:13px; color:#c8d8e4; line-height:1.7; }
+      .pcard .pc-sec .pc-lab{ color:#a9bfd1; }
+      .pcard .pc-sec b{ color:#ffd76a; font-weight:800; }
+      .pcard .pc-at{ margin-top:10px; font-size:11.5px; color:#7e97ad; }
+      @media (max-width:520px){ .pcard .pc-grid{ grid-template-columns:1fr; } .pcard .pc-total b{ font-size:21px; } }
       .ev-choices{ display:flex; flex-direction:column; gap:9px; margin-top:12px; }
       .ev-choices button{ text-align:left; }
       .end-grade{ font-size:54px; font-weight:900; color:var(--orange); line-height:1; }
@@ -955,6 +974,47 @@ function doLogout(){
   showLoginScreen('login');
   toast('已退出登录');
 }
+/* ---------------- 我的玩家卡 ----------------
+   把账号信息生成一张卡（深蓝 + 金色），复制成一行 HM-CARD:{...} 紧凑文本，
+   发给游戏老板粘贴到管理后台登记。数据全部实时从当前账号算，和账号中心里
+   的账号总价值、价值明细、装备数字完全一致；游客没有用户名，生成不了。 */
+function isoLocalNow(){
+  var d=new Date(), p=function(n){ return (n<10?'0':'')+n; };
+  var off=-d.getTimezoneOffset(), sign=off>=0? '+' : '-', a=Math.abs(off);
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds())+sign+p(Math.floor(a/60))+':'+p(a%60);
+}
+function playerCardData(){
+  var parts=accountValueParts();
+  var top=G.squad.slice().sort(function(a,b){ return ((b.ab||0)-(a.ab||0)) || ((b.value||0)-(a.value||0)); }).slice(0,3);
+  var at=isoLocalNow();
+  var obj={t:'hmcard', v:1, u:CUR_USER, club:G.club||'', value:Math.round(parts.total),
+    vb:{valuation:Math.round(parts.club), cash:Math.round(parts.cash), squad:Math.round(parts.squad), diamonds:Math.round(parts.dia), biz:Math.round(parts.biz)},
+    squad:{n:G.squad.length, value:Math.round(parts.squad), top:top.map(function(p){ return p.name; })},
+    diamonds:G.diamonds||0, vouchers:(G.pay2&&G.pay2.vouchers)||0, trialCards:(G.pay2&&G.pay2.trialCards)||0, shards:(G.pack&&G.pack.shards)||0, at:at};
+  return {obj:obj, parts:parts, top:top, at:at, text:'HM-CARD:'+JSON.stringify(obj)};
+}
+function copyPlayerCard(){
+  if(!CUR_USER){ toast('注册账号后才能生成玩家卡'); return; }
+  var stash=window._hmCard;
+  var txt=(stash && stash.u===CUR_USER && stash.text)? stash.text : playerCardData().text;
+  function ok(){ toast('玩家卡已复制，发给老板就能登记'); }
+  function fallback(){
+    var done=false;
+    try{
+      var ta=document.createElement('textarea');
+      ta.value=txt; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      done=document.execCommand('copy');
+      document.body.removeChild(ta);
+    }catch(e){}
+    if(done){ ok(); return; }
+    var el=document.getElementById('acct-code');
+    if(el){ el.value=txt; el.focus(); el.select(); }
+    toast('自动复制没成功，玩家卡文本已放进下方「账号备份码」的框里，长按复制那一行发给老板');
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(ok, fallback); }
+  else fallback();
+}
 /* ---------------- 账号中心 ---------------- */
 function pageAccount(){
   ensureBiz();
@@ -991,6 +1051,32 @@ function pageAccount(){
   +'<div class="item"><div class="grow"><div class="nm">💎 钻石 '+(G.diamonds||0)+'</div><div class="meta">VIP'+(G.vip||0)+' · 累计充值 ¥'+(G.spent||0)+'</div></div><button class="btn sm" onclick="go(\'pay\')">充值中心</button></div>'
   +'<div class="item"><div class="grow"><div class="nm">🎟️ 直签券 × '+((G.pay2&&G.pay2.vouchers)||0)+' · 🧪 球星试用卡 × '+((G.pay2&&G.pay2.trialCards)||0)+'</div><div class="meta">其他道具：抽卡碎片 × '+((G.pack&&G.pack.shards)||0)+' · 巅峰卡 × '+(((G.pack&&G.pack.peaks)||[]).length)+' 张</div></div><button class="btn sm" onclick="go(\'packs\')">球星抽卡</button></div>'
   +'</div>';
+  if(CUR_USER){
+    var pc=playerCardData();
+    window._hmCard={u:CUR_USER, text:pc.text};
+    var pcTop=pc.top.length? pc.top.map(function(p){ return esc(p.name)+'（能力 '+(p.ab||0)+'）'; }).join('、') : '暂无球员';
+    html+='<div class="card"><h3>🪪 我的玩家卡<span class="hint">发给游戏老板登记用</span></h3>'
+    +'<div class="pcard">'
+    +'<div class="pc-head"><div><div class="pc-title">豪门缔造者 · 玩家卡</div><div class="pc-user">'+esc(CUR_USER)+'</div><div class="pc-club">🏟️ '+esc(G.club||'')+'</div></div><span class="pc-badge">正式账号</span></div>'
+    +'<div class="pc-total"><span>账号总价值</span><b class="num">'+fmt(pc.parts.total)+'</b></div>'
+    +'<div class="pc-grid">'
+    +'<div class="pc-row"><span>俱乐部估值</span><b class="num">'+fmt(pc.parts.club)+'</b></div>'
+    +'<div class="pc-row"><span>现金</span><b class="num">'+fmt(pc.parts.cash)+'</b></div>'
+    +'<div class="pc-row"><span>阵容总身价</span><b class="num">'+fmt(pc.parts.squad)+'</b></div>'
+    +'<div class="pc-row"><span>钻石折算</span><b class="num">'+fmt(pc.parts.dia)+'</b></div>'
+    +'<div class="pc-row"><span>品牌业务价值</span><b class="num">'+fmt(pc.parts.biz)+'</b></div>'
+    +'<div class="pc-row"><span>钻石</span><b class="num">💎 '+(G.diamonds||0)+'</b></div>'
+    +'</div>'
+    +'<div class="pc-sec"><span class="pc-lab">阵容：</span>'+G.squad.length+' 人 · 总身价 <b class="num">'+fmt(pc.parts.squad)+'</b><br><span class="pc-lab">能力最高的 3 名球员：</span>'+pcTop+'</div>'
+    +'<div class="pc-sec"><span class="pc-lab">道具：</span>🎟️ 直签券 × '+((G.pay2&&G.pay2.vouchers)||0)+' · 🧪 试用卡 × '+((G.pay2&&G.pay2.trialCards)||0)+' · 🧩 碎片 × '+((G.pack&&G.pack.shards)||0)+'</div>'
+    +'<div class="pc-at">生成时间：'+pc.at+'</div>'
+    +'</div>'
+    +'<div style="margin-top:12px;"><button class="btn pri" onclick="copyPlayerCard()">📋 复制玩家卡</button></div>'
+    +'<p class="mini" style="margin-top:8px;">点「复制玩家卡」，把复制到的那一行文本发给游戏老板，他粘贴到管理后台就能登记你的账号。</p></div>';
+  } else {
+    window._hmCard=null;
+    html+='<div class="card"><h3>🪪 我的玩家卡</h3><p class="desc">注册账号后才能生成玩家卡。游客没有用户名，老板没法登记——先在上方把当前进度注册成账号，就能生成你的玩家卡，发给老板登记。</p></div>';
+  }
   html+='<div class="card"><h3>⚙️ 账号操作</h3>';
   if(CUR_USER){
     html+='<label class="fl">修改密码 · 原密码</label><input type="password" id="acct-old-pw" placeholder="输入原密码">'
