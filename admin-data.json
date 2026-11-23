@@ -1,8 +1,27 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-23T18:19:00+08:00",
+  "updatedAt": "2026-11-23T18:36:59+08:00",
   "bans": [],
-  "mail": [],
+  "mail": [
+    {
+      "id": "m-1795430219053-147480",
+      "to": "测试六号",
+      "title": "后台同步测试",
+      "body": "这是一封测试同步的邮件",
+      "tag": "通知",
+      "items": {
+        "diamonds": 0,
+        "cash": 0,
+        "vouchers": 0,
+        "trialCards": 0,
+        "shards": 0,
+        "playerId": null,
+        "customTitle": null
+      },
+      "sentAt": "2026-11-23T18:36:59+08:00",
+      "expiresAt": null
+    }
+  ],
   "announcement": null,
   "players": []
 }
