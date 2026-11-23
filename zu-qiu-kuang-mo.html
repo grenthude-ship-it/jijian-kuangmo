@@ -390,6 +390,13 @@
       .pcar-dot.on{ background:#ffd968; box-shadow:0 0 8px rgba(212,175,55,.6); }
       .pcar-cap{ text-align:center; font-size:12px; color:#a9bfd1; margin-top:7px; line-height:1.5; }
       @media (prefers-reduced-motion: reduce){ .pcar-track{ transition:none; } }
+      .pwall-entry{ display:flex; align-items:center; gap:12px; width:100%; margin-top:10px; padding:15px 16px; min-height:64px;
+        background:linear-gradient(120deg, rgba(212,175,55,.22), rgba(6,14,24,.88) 55%); border:1.5px solid rgba(212,175,55,.75);
+        border-radius:14px; color:#f4e9c8; font-size:17px; font-weight:900; letter-spacing:.04em; text-align:left; cursor:pointer; }
+      .pwall-entry .pw-i{ font-size:26px; line-height:1; }
+      .pwall-entry small{ display:block; margin-top:2px; font-size:12px; font-weight:600; color:#a9bfd1; letter-spacing:0; }
+      .pwall-entry .pw-go{ margin-left:auto; font-size:22px; font-weight:900; color:#ffd968; }
+      .pwall-entry:active{ background:linear-gradient(120deg, rgba(212,175,55,.38), rgba(6,14,24,.9) 55%); }
       .lobby-actions{ display:grid; grid-template-columns:5fr 7fr; gap:10px; }
       .myteam{ position:relative; border-radius:12px; overflow:hidden; border:1px solid rgba(140,190,255,.55); padding:0; min-height:92px; background:#0a1420; text-align:left; }
       .myteam img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
@@ -3076,7 +3083,8 @@ function pageStars(){
      赛事=每日任务/运营活动/荣耀殿堂/体彩竞猜/荣誉中心/趣味乐园（联盟由底部页签进入）
      商城=充值中心/球星抽卡/福利中心/每周签到
      更多=不常用功能收进 showLobbyCat('more') 弹窗：人脉/媒体/海外/品牌/跨界/灰账/自动模拟/
-          任务中心/联盟排行/致敬传奇/海报墙（装成 App 用大厅下方的安装卡，不再重复）
+          任务中心/联盟排行/致敬传奇（装成 App 用大厅下方的安装卡，不再重复）
+     海报墙不在这里：它是海报精选轮播正下方的大入口（.pwall-entry），直接点开。
    生涯由底部页签进入，不再在大厅重复摆入口。
    底部五栏（bottomTabsHTML 由 render() 全局渲染，所有页面常驻，点任意页签直接切换）：
    首页=大厅 球队=俱乐部页 阵容=阵容页（球队强度/一线队名单/主教练）
@@ -3261,7 +3269,8 @@ function viewLobbyPoster(id){
 /* ---------------- 大厅「更多功能」弹窗（不常用的玩法收在这里，点一行「打开」直达） ----------------
    大厅功能区已按 俱乐部 / 球队 / 赛事 / 商城 四组直接摆瓷砖；这里只收不常用的：
    人脉关系 / 媒体中心 / 海外俱乐部 / 自有品牌 / 品牌合作 / 跨行业经营 / 灰色账本 /
-   全自动模拟 / 训练·更衣室（阵容页内）/ 任务中心 / 联盟排行 / 致敬传奇 / 海报墙。
+   全自动模拟 / 训练·更衣室（阵容页内）/ 任务中心 / 联盟排行 / 致敬传奇。
+   海报墙不在此弹窗：它在大厅海报精选轮播正下方有独立大入口。
    一个玩法只出现一次：装成 App 用大厅下方安装卡，生涯与联盟用底部页签，不在这里重复。 */
 function showLobbyCat(key){
   var claim=claimableAchCount();
@@ -3278,12 +3287,11 @@ function showLobbyCat(key){
       ['go','squad','🏋️','训练 · 更衣室 · 球员关系','在阵容页下方：训练强度与理疗、球员谈话、首发承诺、续约都在那'],
       ['fn','tasks','📋','任务中心','董事会赛季目标 + 长期目标'+(claim?' · '+claim+' 个成就奖励可领':'')],
       ['fn','ranking','📊','联盟排行','当前联赛积分榜 · 我的王朝评级'],
-      ['fn','tribute','🐐','致敬传奇','游戏创作者 × C罗国家队谢幕海报，全屏看'],
-      ['fn','posterwall','🖼️','海报墙','三张海报 · 查看 / 删除 / 恢复']
+      ['fn','tribute','🐐','致敬传奇','游戏创作者 × C罗国家队谢幕海报，全屏看']
     ]}
   };
   var c=cats[key]; if(!c) return;
-  var fnMap={ tasks:'showTasks()', ranking:'showRanking()', tribute:'showTribute()', posterwall:'showPosterWall()' };
+  var fnMap={ tasks:'showTasks()', ranking:'showRanking()', tribute:'showTribute()' };
   var rows=c.rows.map(function(r){
     var oc= r[0]==='go' ? 'closeModal();go(\''+r[1]+'\')' : fnMap[r[1]];
     return '<div class="item"><span style="font-size:22px;line-height:1.2;">'+r[2]+'</span><div class="grow"><div class="nm">'+r[3]+'</div><div class="meta">'+r[4]+'</div></div><button class="btn pri sm" onclick="'+oc+'">打开</button></div>';
@@ -3327,7 +3335,7 @@ function lobbyHTML(){
   + ltile("go('packs')",'🃏','球星抽卡','五档卡包 · 限定巅峰C罗 99')
   + ltile('showWelfare()','🎁','福利中心','签到 · 成就奖励 · VIP 福利', welfareN? ''+welfareN:'')
   + ltile('lobbySignIn()','📅','每周签到','7 天循环 · 第 7 天大奖', signed?'':'可领');
-  var moreTileHTML='<button class="ltile wide" onclick="showLobbyCat(\'more\')"><span class="ti">⋯</span>更多功能<small>人脉关系 · 媒体中心 · 海外俱乐部 · 自有品牌 · 品牌合作 · 跨行业 · 灰色账本 · 自动模拟 · 海报墙</small>'+(G.heat>=60?'<span class="bdg">热度 '+G.heat+'</span>':'')+'</button>';
+  var moreTileHTML='<button class="ltile wide" onclick="showLobbyCat(\'more\')"><span class="ti">⋯</span>更多功能<small>人脉关系 · 媒体中心 · 海外俱乐部 · 自有品牌 · 品牌合作 · 跨行业 · 灰色账本 · 自动模拟</small>'+(G.heat>=60?'<span class="bdg">热度 '+G.heat+'</span>':'')+'</button>';
   var nfx=nextFixture();
   var startBtn= G.ended
     ? '<button class="startmatch" onclick="revive()"><span class="big">注资续命 ›</span><span class="en">REVIVE CLUB</span><small>俱乐部已停摆，注资后继续经营</small></button>'
@@ -3345,6 +3353,7 @@ function lobbyHTML(){
   +'<button class="lobby-profile" onclick="go(\'club\')" title="点开俱乐部页：设施、银行、王朝评级与成就"><span class="pshield">🛡️</span><span><span class="pname">经理人 · '+esc(G.club)+'</span><span class="plv">Lv.'+lv+' <span class="lvlbar"><i style="width:'+pct+'%"></i></span></span><span class="psub">'+d.short+' 第 '+myRank()+' 名 · '+G.mon+'月'+G.day+'日 · 声望 '+G.rep+' · 球迷 '+fmtFans(G.fans)+' · 满意度 '+(G.fanSat==null?62:G.fanSat)+'</span></span></button>'
   +'</div>'
   + posterCarouselHTML()
+  +'<button class="pwall-entry" onclick="showPosterWall()"><span class="pw-i">🖼️</span><span>海报墙 · 三张海报<small>C罗致敬海报 · 梅西反向海报 · 创作者海报 — 查看大图 / 删除 / 恢复</small></span><span class="pw-go">›</span></button>'
   +'<div class="lobby-actions">'
   +'<button class="myteam" onclick="go(\'squad\')"><img src="photo-30.jpg" alt="夜晚灯光下的足球场航拍真实照片"><span class="mt-t">我的球队 · 阵容<small>'+esc(G.club)+' · '+d.short+' · 阵容 '+G.squad.length+' 人 · 教练与更衣室都在这</small></span><span class="mt-go">›</span></button>'
   + startBtn
