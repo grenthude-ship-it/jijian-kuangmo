@@ -604,6 +604,12 @@
         white-space:nowrap; max-width:76px; overflow:hidden; text-overflow:ellipsis; }
       .pmark .pl b{ color:#ffd76a; font-weight:800; }
       .pmark:active .pc{ transform:scale(1.12); }
+      .pmark.empty{ cursor:pointer; }
+      .pmark.empty .pc{ background:rgba(10,22,34,.55); color:#ffe9a8; border:2px dashed rgba(255,215,106,.9); font-size:19px; box-shadow:none; }
+      .pmark.empty .pl{ background:rgba(160,40,30,.88); }
+      .slot-pick-row{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:var(--card,#fff); border:1px solid var(--line,#dfe6ec); border-radius:10px; padding:9px 12px; margin-bottom:7px; cursor:pointer; }
+      .slot-pick-row:hover{ border-color:#d4af37; }
+      .slot-pick-row.cur{ border-color:#d4af37; background:#fdf6dd; }
       .form-btns{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
       /* ---------- 荣誉中心 / 颁奖 ---------- */
       .hon-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; }
@@ -776,6 +782,9 @@ function sanitizeSaveData(d){
     }
     return true;
   });
+  /* 大名单 / 手动首发迁移：没有这两个字段的老存档在这里补上——大名单 = 原阵容全部球员
+     （老阵容本来就 ≤22 人），首发 = 原来自动排的那 11 人原样保留，之后永远手动维护。 */
+  if(typeof migrateLineupData==='function') migrateLineupData(d);
   return d;
 }
 function loadAutoSave(){
@@ -1068,7 +1077,7 @@ function copyPlayerCard(){
 function pageAccount(){
   ensureBiz();
   var parts=accountValueParts();
-  var starters=Math.min(11, G.squad.length);
+  var starters=lineupFilledCount();
   var topNames=G.squad.slice().sort(function(a,b){ return (b.value||0)-(a.value||0); }).slice(0,3).map(function(p){ return esc(p.name)+'（'+fmt(p.value)+'）'; }).join('、');
   var html='';
   if(window._acctImportPending){
@@ -1493,13 +1502,13 @@ function claimMail(id){
     var s=(typeof starById==='function')? starById(it.playerId) : null;
     if(s){
       if(starInSquad(s)){ G.cash+=s.fee; got.push('⭐ '+s.name+' 已在你的球队里，折成现金 '+fmt(s.fee)); }
-      else if(G.squad.length>=22){ G.cash+=s.fee; got.push('⭐ 阵容已满（22 人），'+s.name+' 折成现金 '+fmt(s.fee)); }
+      else if(G.squad.length>=40){ G.cash+=s.fee; got.push('⭐ 阵容已满（40 人），'+s.name+' 折成现金 '+fmt(s.fee)); }
       else{
         var p=mkPlayer(s.name, s.pos, s.ab, s.age, s.league!=='中超');
         p.pot=Math.min(99, s.ab + (s.age<=23? 5 : 1));
         p.cost=0; p.signNote='后台邮件赠送'; p.star=s.id; p.img=s.img;
         if(s.linkGroup) p.linkGroup=s.linkGroup;
-        G.squad.push(p);
+        squadPush(p);
         got.push('⭐ 球星 '+s.name+'（能力 '+s.ab+'）已加入阵容');
       }
     }
@@ -1517,8 +1526,8 @@ function claimMail(id){
     if(G.squad.some(function(x){ return x.star===cpId || x.customId===cpId; })){
       got.push('👑 私人定制球星 '+cpName+' 已在你的阵容里（不重复加入）');
     }
-    else if(G.squad.length>=22){
-      G.cash+=cpPrice; got.push('👑 阵容已满（22 人），私人定制球星 '+cpName+' 折成现金 '+fmt(cpPrice));
+    else if(G.squad.length>=40){
+      G.cash+=cpPrice; got.push('👑 阵容已满（40 人），私人定制球星 '+cpName+' 折成现金 '+fmt(cpPrice));
     }
     else{
       var cpp=mkPlayer(cpName, cpPos, cpAb, 25, false);
@@ -1531,7 +1540,7 @@ function claimMail(id){
         var cst=(typeof starById==='function')? starById(String(cp.img)) : null;
         cpp.img= cst? cst.img : String(cp.img); /* img 可以是图鉴球星的 id，也可以直接是照片路径 */
       }
-      G.squad.push(cpp);
+      squadPush(cpp);
       got.push('👑 私人定制球星 '+cpName+'（'+cpPos+' · 能力 '+cpAb+'）已加入阵容');
     }
   }
@@ -1754,6 +1763,11 @@ function newGame(clubName, origin, diff){
     train:{intensity:'标准', physio:1}, scout:{reports:{}, used:0, mission:null}, director:{mode:'manual'}, board:{patience:70, cityRep:35, frozen:0, budgetSeason:-1, grantSeason:-1, facGrant:false, citySeason:-1}, mediaUsed:false
   };
   buildTable(); refreshMarket(true); refreshOffers();
+  // 开局大名单与首发：初始阵容全员进大名单；首发 11 个格子全部留空（每个位置都是 null），
+  // 必须由玩家在球场页逐个点击选人后才成立，游戏任何时候都不自动排首发；
+  // 首发不满 11 人时比赛本来就会被拦下，正好配合空首发开局。
+  G.matchday=G.squad.map(function(p){ return p.name; });
+  G.lineup=formationSlots(G.formation).map(function(){ return null; });
   // 青训开局：梯队里先有 4 名小将，候选名单刷出 3 人
   for(var yi=0; yi<4; yi++){ G.youth.push(genYouthPlayer('梯队在训')); }
   refreshYouthCandidates();
@@ -1777,8 +1791,19 @@ function valuation(){ return Math.round(G.cash - G.debt + squadValue() + facValu
 function fatPenalty(p){ var f=p.fat||0; return f>=75?4 : f>=50?2 : f>=30?1 : 0; }
 function effAb(p){ return p.ab - fatPenalty(p); }
 function teamStr(){
-  var sorted=G.squad.slice().sort(function(a,b){ return effAb(b)-effAb(a); });
-  var top=sorted.slice(0,11); if(!top.length) return 40;
+  /* 球队强度按玩家手动定的首发算，不再按能力值自动挑 11 人。
+     首发没排满时（比赛会被拦下），缺的位置只为「估算强度」临时按大名单里最强的人补算——
+     真正上场的永远只有手动首发，估算补位不改变任何人的首发身份。 */
+  var top=[], seen={};
+  if(G && G.squad && G.lineup instanceof Array){
+    pickLineup().forEach(function(s){ top.push(s.p); seen[s.p.name]=1; });
+  }
+  if(top.length<11){
+    var pool=G.squad.filter(function(p){ return !seen[p.name]; })
+      .sort(function(a,b){ return ((inMatchday(b.name)?1:0)-(inMatchday(a.name)?1:0)) || effAb(b)-effAb(a); });
+    for(var i=0;i<pool.length && top.length<11;i++) top.push(pool[i]);
+  }
+  if(!top.length) return 40;
   var avg=top.reduce(function(s,p){ return s+effAb(p); },0)/top.length;
   var s=avg + G.coach.ab*0.7 + (G.morale-60)*0.06 + G.fac.training*0.8;
   if(G.staff.some(function(x){ return x.role==='数据分析师'; })) s+=2;
@@ -1898,7 +1923,7 @@ function processYouth(){
   var keep=[];
   G.youth.forEach(function(p){
     if(p.age>=19){
-      if(p.ab>=58 && G.squad.length<22){ var np=promoteYouthSilent(p); youthLog('🎓 '+p.name+' 满 19 岁，能力 '+p.ab+' 达标，自动提拔进一线队。'); if(np) G.youthPromoted=(G.youthPromoted||0)+1; }
+      if(p.ab>=58 && G.squad.length<40){ var np=promoteYouthSilent(p); youthLog('🎓 '+p.name+' 满 19 岁，能力 '+p.ab+' 达标，自动提拔进一线队。'); if(np) G.youthPromoted=(G.youthPromoted||0)+1; }
       else if(p.ab>=50){ var pr=youthSellPrice(p); G.cash+=pr; G.youthSold=(G.youthSold||0)+1; G.youthSoldIncome=(G.youthSoldIncome||0)+pr; youthLog('💸 '+p.name+' 满 19 岁未获提拔，以 '+fmt(pr)+' 转会去其他球队梯队，青训回了一口血。'); }
       else youthLog('👋 '+p.name+' 满 19 岁，能力 '+p.ab+' 未达职业门槛，离队另谋出路。青训就是这样，大浪淘沙。');
     } else keep.push(p);
@@ -1911,7 +1936,7 @@ function promoteYouthSilent(p){
   var wage=Math.round(Math.max(0.4,Math.pow(Math.max(p.ab-40,2),2)*0.016)*10)/10;
   var val=Math.round(Math.max(5,Math.pow(Math.max(p.ab-38,2),2)*0.16));
   var np={name:p.name,pos:p.pos,ab:p.ab,age:p.age,wage:wage,value:val,foreign:false,inj:0,cost:0,signNote:'青训提拔',pot:p.pot};
-  G.squad.push(np); return np;
+  squadPush(np); return np;
 }
 function youthIntake(){
   if(!G.youth) G.youth=[];
@@ -2109,7 +2134,7 @@ var EVENTS=[
     {tx:'花 20万公关压热度', fx:function(){ G.cash-=20; G.heat=clamp(G.heat+3,0,100); return '热度压下去了，但更衣室觉得你偏袒。'; }},
     {tx:'装不知道', fx:function(){ G.rep=clamp(G.rep-5,0,100); G.morale=clamp(G.morale+3,0,100); return '球员念你的好，媒体却骂你纵容。'; }}]},
   {t:'青训营冒出一个 16 岁小将', d:'林育才说这孩子是十年一遇的料子，但豪门球探已经闻着味来了。', cs:[
-    {tx:'签下并提拔进一线队历练', fx:function(){ var p=genPlayer('young'); p.ab=ri(52,58); p.pot=ri(80,90); p.cost=0; p.signNote='青训提拔'; G.squad.push(p); return p.name+'加入一线队，潜力 '+p.pot+'，全队都盯着他看。'; }},
+    {tx:'签下并提拔进一线队历练', fx:function(){ var p=genPlayer('young'); p.ab=ri(52,58); p.pot=ri(80,90); p.cost=0; p.signNote='青训提拔'; squadPush(p); return p.name+'加入一线队，潜力 '+p.pot+'，全队都盯着他看。'; }},
     {tx:'先放梯队慢慢练', fx:function(){ G.rel.youth=clamp(G.rel.youth+6,0,100); return '林育才点头：这孩子跑不了。'; }}]},
   {t:'赞助商想加码', d:'钱明远的公司新品上市，想买你球衣胸前广告的独家升级包。', cs:[
     {tx:'签升级包：+180万，关系绑定更深', fx:function(){ G.cash+=180; G.rel.sponsor=clamp(G.rel.sponsor+8,0,100); return '胸前广告升级，钱明远笑得很开心。'; }},
@@ -2143,7 +2168,7 @@ function processVentures(){
   if(hasVent('media')){ if(Math.random()<0.4) G.rep=clamp(G.rep+1,0,100); G.rel.media=clamp(G.rel.media+1,0,100); }
   if(hasVent('school') && Math.random()<0.3) G.rep=clamp(G.rep+1,0,100);
   if(hasVent('brand') && Math.random()<0.25) G.rep=clamp(G.rep+1,0,100);
-  if(hasVent('overseas') && G.month%6===0 && G.squad.length<22){ var f=pick(FOREIGN); var p=mkPlayer(f[0],pick(POS),ri(55,64),ri(17,20),true); p.pot=ri(74,90); p.cost=0; p.signNote='卫星队输送'; G.squad.push(p); notes.push('🌍 海外卫星俱乐部输送小将 '+p.name+'（'+f[1]+'，潜力 '+p.pot+'）免费加盟一线队。'); }
+  if(hasVent('overseas') && G.month%6===0 && G.squad.length<40){ var f=pick(FOREIGN); var p=mkPlayer(f[0],pick(POS),ri(55,64),ri(17,20),true); p.pot=ri(74,90); p.cost=0; p.signNote='卫星队输送'; squadPush(p); notes.push('🌍 海外卫星俱乐部输送小将 '+p.name+'（'+f[1]+'，潜力 '+p.pot+'）免费加盟一线队。'); }
   if(ventCount()>0) log('🏢 集团板块本月：收入 '+fmt(inc)+' · 支出 '+fmt(up)+' · 净'+(net>=0?'+':'')+fmt(net)+'。', net>=0?'good':'bad');
   notes.forEach(function(n){ log(n,'good'); });
 }
@@ -2336,7 +2361,15 @@ function advanceDays(n, manual){
     } else {
       var fx=null;
       if(G.fixtures) for(var j=0;j<G.fixtures.length;j++){ if(!G.fixtures[j].played && G.fixtures[j].day===G.day){ fx=G.fixtures[j]; break; } }
-      if(fx) playFixture(fx);
+      if(fx){
+        if(!lineupReady()){
+          /* 首发不满 11 人：比赛不许开踢，也绝不自动补人——停在这里等玩家去球场把首发点满。 */
+          log('⛔ 比赛日到了，但你的首发只排了 '+lineupFilledCount()+'/11 人，这场没法踢。去阵容页点球场上的空格子，从大名单里把首发补满，再继续推进。','bad');
+          toast('首发还没排满（'+lineupFilledCount()+'/11），先去阵容页补满首发才能比赛');
+          break;
+        }
+        playFixture(fx);
+      }
       if(isWindow() && Math.random()<0.3){ refreshMarket(); log('📰 转会窗动态：市场名单刷新了一批人。窗口期签约费有折扣'+(isDeadline()?'，现在是压哨期，折扣最狠，手快有手慢无':'')+'，去转会市场看看。',''); }
     }
   }
@@ -2361,6 +2394,7 @@ function simToNextMatch(){
   ensureFixtures();
   var fx=nextFixture();
   if(!fx){ endMonth(false); return; }
+  if(!lineupReady()){ toast('首发还没排满（'+lineupFilledCount()+'/11），先把首发补满才能比赛'); go('squad'); return; }
   advanceDays(Math.max(0, fx.day-G.day), true);
   render();
   flushReports();
@@ -2393,8 +2427,8 @@ function buyPlayer(i){
   if(G.director && G.director.mode==='none'){ toast('当前是「零引援」建队策略：只靠原阵容和青训。去转会页把策略改掉才能买人。'); return; }
   if(G.board && G.board.frozen>0){ toast('董事会冻结了本月预算，先把成绩打回来，下个月再买。'); return; }
   if(G.cash<p.price){ toast('现金不够，还差 '+fmt(p.price-G.cash)); return; }
-  if(G.squad.length>=22){ toast('一线队名额已满（22人），先卖掉球员'); return; }
-  G.cash-=p.price; p.cost=p.price; p.signNote=''; G.squad.push(p); G.market.splice(i,1);
+  if(G.squad.length>=40){ toast('一线队名额已满（40人），先卖掉球员'); return; }
+  G.cash-=p.price; p.cost=p.price; p.signNote=''; squadPush(p); G.market.splice(i,1);
   if(typeof nmOnSign==='function') nmOnSign(p);
   if(typeof taskBump==='function') taskBump('sign');
   log('✍️ 签下'+p.pos+' '+p.name+'（能力 '+p.ab+'），签约费（转会费）'+fmt(p.price)+'，当前身价 '+fmt(p.value)+'，月薪 '+p.wage+'万。这笔签约价会一直记在他的档案里，卖出时能看到赚了还是亏了。','good');
@@ -2470,7 +2504,7 @@ function grayAct(kind){
     G.grayWinBoost=1; G.heat=clamp(G.heat+16,0,100);
     log('🕶️ 默契球安排上了：本月比赛强度暗中 +7。纪检热度 +16 → '+G.heat+'。','bad');
   } else if(kind==='poach'){
-    var p=genPlayer('young'); p.ab=ri(50,58); p.pot=ri(78,90); p.cost=0; p.signNote='违规挖角（免签）'; G.squad.push(p); G.heat=clamp(G.heat+12,0,100);
+    var p=genPlayer('young'); p.ab=ri(50,58); p.pot=ri(78,90); p.cost=0; p.signNote='违规挖角（免签）'; squadPush(p); G.heat=clamp(G.heat+12,0,100);
     log('🕶️ 违规挖角：从别家青训营带走小将 '+p.name+'（潜力 '+p.pot+'）。纪检热度 +12 → '+G.heat+'。','bad');
   }
   render();
@@ -2582,7 +2616,7 @@ var OPS=[
   {id:'openday', icon:'🎪', nm:'球迷开放日', ds:'开放训练 + 签名合影，死忠带新球迷入坑。', cost:20, fx:function(){ G.fans+=2800; G.rel.fans=clamp(G.rel.fans+5,0,100); G.rep=clamp(G.rep+1,0,100); return '球迷 +2,800，球迷会关系 +5，声望 +1。'; }},
   {id:'friendly', icon:'✈️', nm:'商业友谊赛', ds:'去外地踢一场表演赛，出场费按声望谈，顺带练兵。', cost:40, fx:function(){ var fee=Math.round(ri(70,130)*(0.6+G.rep/80)); G.cash+=fee; G.morale=clamp(G.morale+3,0,100); return '出场费 +'+fmt(fee)+'，士气 +3。'; }},
   {id:'merch', icon:'👕', nm:'周边大促', ds:'球衣、围巾、限量款线上开售，球迷越多卖得越狠。', cost:10, fx:function(){ var inc=Math.round(G.fans*0.004)+ri(10,40); G.cash+=inc; return '周边卖爆了：+'+fmt(inc)+'（球迷基数越大赚得越多）。'; }},
-  {id:'trial', icon:'🔍', nm:'青训公开选拔', ds:'全城海选小球员，林育才坐镇挑苗子，挖到就是赚到。', cost:35, fx:function(){ if(G.squad.length<22 && Math.random()<0.55){ var p=genPlayer('young'); p.cost=0; p.signNote='青训选拔'; G.squad.push(p); return '挖到宝了！'+p.name+'（'+p.pos+'，潜力 '+p.pot+'）免签入队，签约价 0——纯赚。'; } G.rel.youth=clamp(G.rel.youth+7,0,100); return '没挑到成品，但青训口碑传开了：林育才关系 +7。'; }}
+  {id:'trial', icon:'🔍', nm:'青训公开选拔', ds:'全城海选小球员，林育才坐镇挑苗子，挖到就是赚到。', cost:35, fx:function(){ if(G.squad.length<40 && Math.random()<0.55){ var p=genPlayer('young'); p.cost=0; p.signNote='青训选拔'; squadPush(p); return '挖到宝了！'+p.name+'（'+p.pos+'，潜力 '+p.pot+'）免签入队，签约价 0——纯赚。'; } G.rel.youth=clamp(G.rel.youth+7,0,100); return '没挑到成品，但青训口碑传开了：林育才关系 +7。'; }}
 ];
 function opsAct(id){
   if(!G.opsUsed) G.opsUsed={};
@@ -2613,11 +2647,17 @@ function trainPlayer(name){
   }
   render();
 }
-/* ---- 轮换与康复：轮休的球员不上场（阵型图自动补位）、体能恢复更快；康复治疗花钱买恢复时间 ---- */
+/* ---- 轮换与康复：轮休的球员不上场（在首发里就移出首发、位置留空等玩家手动补）、体能恢复更快；康复治疗花钱买恢复时间 ---- */
 function toggleRest(name){
   var p=null; G.squad.forEach(function(q){ if(q.name===name) p=q; }); if(!p) return;
   p.rest=!p.rest;
-  log(p.rest? '🔄 '+p.name+' 安排轮休：接下来的比赛不上场，专心恢复体能。' : '🔄 '+p.name+' 结束轮休，回到出场名单。','');
+  if(p.rest && G.lineup instanceof Array && G.lineup.indexOf(name)>=0){
+    /* 轮休的人不上场：把他移出首发，位置留空等玩家手动补——不自动找人顶替 */
+    G.lineup=G.lineup.map(function(n){ return n===name? null : n; });
+    log('🔄 '+p.name+' 安排轮休：已把他移出首发（位置空出来了，去球场上点格子手动补人），接下来的比赛不上场，专心恢复体能。','');
+  } else {
+    log(p.rest? '🔄 '+p.name+' 安排轮休：接下来的比赛不上场，专心恢复体能。' : '🔄 '+p.name+' 结束轮休，回到出场名单（首发要你去球场上手动点他才算数）。','');
+  }
   toast(p.rest? p.name+' 轮休中' : p.name+' 回到名单');
   render(); showPlayer(name);
 }
@@ -2651,7 +2691,7 @@ function promoteYouth(name){
   var p=youthByName(name); if(!p) return;
   if(p.age<16){ toast(p.name+' 才 '+p.age+' 岁，16 岁才能签职业合同提拔'); return; }
   if(p.ab<50){ toast(p.name+' 能力 '+p.ab+' 还不够一线队门槛（≥50），再练练'); return; }
-  if(G.squad.length>=22){ toast('一线队满员（22 人），先卖掉或解约一名球员'); return; }
+  if(G.squad.length>=40){ toast('一线队满员（40 人），先卖掉或解约一名球员'); return; }
   G.youth=G.youth.filter(function(q){ return q!==p; });
   var np=promoteYouthSilent(p);
   G.youthPromoted=(G.youthPromoted||0)+1;
@@ -2733,7 +2773,7 @@ function buyShop(kind){
   else if(kind==='rep'){ cost=60; if(G.diamonds<cost){ toast('钻石不够'); return; } G.diamonds-=cost; G.rep=clamp(G.rep+6,0,100); log('💎 花 60 钻做了一轮商业包装，声望 +6 → '+G.rep+'。','good'); }
   else if(kind==='fans'){ cost=60; if(G.diamonds<cost){ toast('钻石不够'); return; } G.diamonds-=cost; G.fans+=15000; log('💎 花 60 钻搞球迷嘉年华，球迷 +15,000 人。','good'); }
   else if(kind==='heat'){ cost=80; if(G.diamonds<cost){ toast('钻石不够'); return; } G.diamonds-=cost; G.heat=clamp(G.heat-25,0,100); log('💎 花 80 钻请危机公关团队灭火，纪检热度 -25 → '+G.heat+'。','good'); }
-  else if(kind==='star'){ cost=300; if(G.diamonds<cost){ toast('钻石不够'); return; } if(G.squad.length>=22){ toast('阵容已满'); return; } G.diamonds-=cost; var p=genPlayer('star'); p.wage=Math.round(p.wage*10)/10; p.cost=0; p.signNote='钻石引援'; G.squad.push(p); log('💎 王牌引援卡生效：'+p.pos+' '+p.name+'（能力 '+p.ab+'）空降球队！签约方式：钻石引援（无转会费）。','good'); }
+  else if(kind==='star'){ cost=300; if(G.diamonds<cost){ toast('钻石不够'); return; } if(G.squad.length>=40){ toast('阵容已满'); return; } G.diamonds-=cost; var p=genPlayer('star'); p.wage=Math.round(p.wage*10)/10; p.cost=0; p.signNote='钻石引援'; squadPush(p); log('💎 王牌引援卡生效：'+p.pos+' '+p.name+'（能力 '+p.ab+'）空降球队！签约方式：钻石引援（无转会费）。','good'); }
   render();
 }
 /* ---- 充值新玩法：首充大礼包 / 月卡·季卡 / 累计充值奖励 / 限时庆祝礼包 / 钻石招募球星 ----
@@ -2751,7 +2791,7 @@ function grantStar(s, note){
   p.pot=Math.min(99, s.ab + (s.age<=23?5:1));
   p.cost=0; p.signNote=note; p.star=s.id; p.img=s.img;
   if(s.linkGroup) p.linkGroup=s.linkGroup;
-  G.squad.push(p);
+  squadPush(p);
   var fanAdd= s.league==='中超'? 6000 : 20000;
   G.fans+=fanAdd; G.rep=clamp(G.rep+(s.league==='中超'?2:4),0,100);
   return p;
@@ -2760,7 +2800,7 @@ function signStarVoucher(id){
   var s=starById(id); if(!s) return;
   if(!(G.pay2.vouchers>0)){ toast('没有球星直签券——去充值中心攒累计充值奖励'); return; }
   if(starInSquad(s)){ toast(s.name+' 已经在你的球队里了'); return; }
-  if(G.squad.length>=22){ toast('一线队名额已满（22人），先卖掉或解约一名球员'); return; }
+  if(G.squad.length>=40){ toast('一线队名额已满（40人），先卖掉或解约一名球员'); return; }
   G.pay2.vouchers--;
   grantStar(s,'球星直签券 · '+s.club);
   log('🎟️ 用球星直签券签下 '+s.name+'（'+s.club+' · '+s.league+' · '+s.pos+'），免转会费！能力 '+s.ab+'，已进入一线队，球迷和声望都涨了。','good');
@@ -2779,10 +2819,10 @@ function claimFirstPack(){
 function useTrialCard(){
   var P=G.pay2;
   if(P.trialCards<=0){ toast('没有球星体验卡'); return; }
-  if(G.squad.length>=22){ toast('一线队名额已满（22人），先卖掉或解约一名球员'); return; }
+  if(G.squad.length>=40){ toast('一线队名额已满（40人），先卖掉或解约一名球员'); return; }
   P.trialCards--;
   var p=genPlayer('star'); p.wage=Math.round(p.wage*10)/10; p.cost=0; p.signNote='球星体验卡租借'; p.loanLeft=3;
-  G.squad.push(p);
+  squadPush(p);
   log('🎫 球星体验卡生效：'+p.pos+' '+p.name+'（能力 '+p.ab+'）租借加盟 3 个月，免转会费、工资照常发。租借到期他会离队。','good');
   toast(p.name+' 租借加盟（3 个月）'); render();
 }
@@ -2908,7 +2948,7 @@ function gachaOne(){
     var cp=pool.filter(function(s){ return s.league==='中超'; });
     var s= (wp.length && (forceStar || Math.random()<0.55))? pick(wp) : (cp.length? pick(cp) : pick(pool));
     P.pity=0;
-    if(G.squad.length>=22){ G.cash+=200; return {kind:'starfull', s:s, txt:'抽中 '+s.name+'，但阵容已满，转租其他球队补偿现金 +'+fmt(200)}; }
+    if(G.squad.length>=40){ G.cash+=200; return {kind:'starfull', s:s, txt:'抽中 '+s.name+'，但阵容已满，转租其他球队补偿现金 +'+fmt(200)}; }
     grantStar(s,'钻石招募 · '+s.club);
     return {kind:'star', s:s, txt:'图鉴球星 '+s.name+' 加盟'};
   }
@@ -2922,9 +2962,9 @@ function gachaOne(){
     if(k==='fans'){ G.fans+=8000; return {kind:'fans', txt:'球迷嘉年华：球迷 +8,000 人'}; }
     G.heat=clamp(G.heat-10,0,100); return {kind:'heat', txt:'危机公关：纪检热度 -10 → '+G.heat};
   }
-  if(G.squad.length>=22){ G.cash+=150; return {kind:'cash', txt:'阵容已满，王牌球员转租补偿现金 +'+fmt(150)}; }
+  if(G.squad.length>=40){ G.cash+=150; return {kind:'cash', txt:'阵容已满，王牌球员转租补偿现金 +'+fmt(150)}; }
   var p=genPlayer('star'); p.wage=Math.round(p.wage*10)/10; p.cost=0; p.signNote='钻石招募';
-  G.squad.push(p);
+  squadPush(p);
   return {kind:'player', txt:p.pos+' '+p.name+'（能力 '+p.ab+'）加盟'};
 }
 function showGachaResults(results, n){
@@ -2999,6 +3039,8 @@ function payExtraHTML(){
 /* ---- 自动模拟 ---- */
 function autoStep(){
   if(!autoOn || !G || G.ended){ stopAuto(); return; }
+  ensureFixtures();
+  if(nextFixture() && !lineupReady()){ stopAuto(); toast('自动模拟已停下：首发还没排满（'+lineupFilledCount()+'/11），去阵容页把首发补满再继续'); render(); return; }
   // 简单经营策略：缺人补强、现金多升级、关系低维护
   var sorted=G.squad.slice().sort(function(a,b){ return a.ab-b.ab; });
   var weakest=sorted.length? sorted[0].ab : 0;
@@ -3025,7 +3067,7 @@ function autoStep(){
   endMonth(true);
   render();
 }
-function buyPlayerSilent(i){ var p=G.market[i]; G.cash-=p.price; p.cost=p.price; p.signNote=''; G.squad.push(p); G.market.splice(i,1); log('🤖 自动经营：签下 '+p.name+'（能力 '+p.ab+'），签约费 '+fmt(p.price)+'。',''); }
+function buyPlayerSilent(i){ var p=G.market[i]; G.cash-=p.price; p.cost=p.price; p.signNote=''; squadPush(p); G.market.splice(i,1); log('🤖 自动经营：签下 '+p.name+'（能力 '+p.ab+'），签约费 '+fmt(p.price)+'。',''); }
 function relActSilent(id){ if(G.relUsed[id]) return; G.cash-=15; G.relUsed[id]=true; G.rel[id]=clamp(G.rel[id]+7,0,100); }
 function buyVentureSilent(d){ if(!G.ventures) G.ventures={}; G.cash-=d.cost; G.ventures[d.id]=1; log('🤖 自动经营：成立'+d.name+'，投入 '+fmt(d.cost)+'，集团板块 +1。',''); }
 function startAuto(){ if(!G||G.ended) return; autoOn=true; autoTimer=setInterval(autoStep, 650); render(); }
@@ -3092,6 +3134,7 @@ function render(){
   if(G.fac.data==null) G.fac.data=0;
   ensureBiz();
   G.squad.forEach(function(p){ if(p.fat==null) p.fat=0; if(p.rest==null) p.rest=false; if(p.trust==null) p.trust=55; if(p.mood==null) p.mood=60; if(p.played==null) p.played=0; if(p.promise===undefined) p.promise=null; });
+  migrateLineupData(G); // 大名单/首发补字段 + 清掉已离队球员（位置留空等玩家补，绝不自动填人）
   ensureFixtures();
   var d=DIVS[G.div];
   var side=''
@@ -3312,7 +3355,7 @@ function pageMarket(){
   var winBanner= isWindow()
     ? '<div class="ok-strip" style="margin-bottom:10px;">🪟 转会窗（'+(G.mon===1?'冬窗':'夏窗')+'）开启中 · 还剩 '+windowDaysLeft()+' 天'+(isDeadline()?' · <b>压哨期！全场挂牌价已打八折，窗口关门前最后的机会</b>':' · 窗口期挂牌价九二折，每天有新面孔上架')+'</div>'
     : '<div class="item" style="margin-bottom:10px;"><div class="grow"><div class="nm">🪟 转会窗未开启</div><div class="meta">冬窗 1 月 / 夏窗 7 月开启：人数更多、必有好货、价格打折，最后 3 天压哨八折。距离下个窗口还有 '+daysToWindow()+' 天。窗口外市场照常营业，就是不打折、不上新。</div></div></div>';
-  return winBanner+'<div class="card"><h3><span class="no">转会</span>球员市场<span class="hint">每月刷新 · 现金 '+fmt(G.cash)+' · 阵容 '+G.squad.length+'/22</span></h3><p class="desc">买人看能力与潜力：能力决定现在的战绩，潜力决定年轻球员能涨多高。外援和明星球员贵，但能直接把球队抬一个档次。每名球员的<b>签约价会被记进档案</b>：以后卖他的时候，报价旁边会直接标出当初多少钱签的、这笔买卖赚了还是亏了（阵容页也能查每个人的签约价）。</p>'+buy+'</div>'
+  return winBanner+'<div class="card"><h3><span class="no">转会</span>球员市场<span class="hint">每月刷新 · 现金 '+fmt(G.cash)+' · 阵容 '+G.squad.length+'/40</span></h3><p class="desc">买人看能力与潜力：能力决定现在的战绩，潜力决定年轻球员能涨多高。外援和明星球员贵，但能直接把球队抬一个档次。每名球员的<b>签约价会被记进档案</b>：以后卖他的时候，报价旁边会直接标出当初多少钱签的、这笔买卖赚了还是亏了（阵容页也能查每个人的签约价）。</p>'+buy+'</div>'
   +'<div class="card"><h3><span class="no">卖出</span>收到的报价<span class="hint">每笔报价都标了当初签约价和卖出盈亏</span></h3>'+sell+'</div>'+directorCardHTML()+(typeof blindMarketHTML==='function'? blindMarketHTML():'');
 }
 function pageOps(){
@@ -3343,39 +3386,112 @@ function pageOps(){
 /* ---------------- 阵容球场：阵型图（球场上印着每名首发的位置、名字与踢的位置） ---------------- */
 var FORMATIONS={'4-3-3':{DF:4,MF:3,FW:3},'4-4-2':{DF:4,MF:4,FW:2},'4-2-3-1':{DF:4,MF:5,FW:1},'3-5-2':{DF:3,MF:5,FW:2},'5-3-2':{DF:5,MF:3,FW:2},'3-4-3':{DF:3,MF:4,FW:3}};
 var POS_ORDER={'门将':0,'后卫':1,'中场':2,'前锋':3};
-function setFormation(f){ if(typeof nmDecide==='function' && G.formation!==f) nmDecide('用人','阵型从 '+(G.formation||'4-3-3')+' 改为 '+f, 1); G.formation=f; log('🧭 阵型切换为 '+f+'，球场上的首发站位已按新阵型排好。',''); render(); }
+/* ---------------- 手动首发 + 比赛大名单 ----------------
+   规则（玩家手动说了算，游戏任何时候都不自动改首发）：
+   · 一线队最多 40 人；比赛大名单（G.matchday，球员名数组）最多 22 人，只有大名单里的人能上场。
+   · 首发（G.lineup，与当前阵型 11 个位置一一对应的球员名数组，空位为 null）完全由玩家在球场上点选；
+     签人 / 训练 / 伤愈 / 换阵型 / 读档都不自动增删首发。新签球员只进总阵容：大名单没满 22 人时
+     自动进大名单（只是替补，绝不进首发），满了就留在大名单外等玩家自己换。
+   · 换阵型：按位置组尽量保留原首发（门将→门将、后卫→后卫……），对不上位置的格子留空，玩家手动补。
+   · 把球员移出大名单时，他在首发里的位置同时清空，不找人顶替。
+   · 比赛只用手动首发这 11 人；首发不满 11 人时比赛打不了，先提示玩家补满。 */
+var SQUAD_CAP=40, MATCHDAY_CAP=22;
+function formationSlots(f){
+  var F=FORMATIONS[f||'4-3-3']||FORMATIONS['4-3-3'];
+  var arr=['门将'], i;
+  for(i=0;i<F.DF;i++) arr.push('后卫');
+  for(i=0;i<F.MF;i++) arr.push('中场');
+  for(i=0;i<F.FW;i++) arr.push('前锋');
+  return arr;
+}
+function squadByName(name){ var r=null; if(G && G.squad) G.squad.forEach(function(p){ if(p.name===name) r=p; }); return r; }
+function inMatchday(name){ return !!(G && G.matchday instanceof Array && G.matchday.indexOf(name)>=0); }
+function autoPickLineupNames(d){
+  /* 只在「老存档第一次补首发」和「新开局」时用一次：按旧的自动排法（各位置能力最高、伤停轮休靠后）
+     算出一套 11 人当初始首发，之后永远由玩家手动维护，这套算法再也不会被调用来改首发。 */
+  var F=FORMATIONS[d.formation||'4-3-3']||FORMATIONS['4-3-3'];
+  var need={'门将':1,'后卫':F.DF,'中场':F.MF,'前锋':F.FW};
+  var groups={'门将':[],'后卫':[],'中场':[],'前锋':[]};
+  (d.squad||[]).forEach(function(p){
+    if(((typeof isCreatorPlayer==='function' && isCreatorPlayer(p)) || p.star==='creator') && typeof CREATOR_SLOTS!=='undefined'){ CREATOR_SLOTS.forEach(function(cp){ groups[cp].push(p); }); }
+    else (groups[p.pos]||groups['中场']).push(p);
+  });
+  Object.keys(groups).forEach(function(k){ groups[k].sort(function(a,b){ return ((a.inj>0)-(b.inj>0)) || ((a.rest?1:0)-(b.rest?1:0)) || effAb(b)-effAb(a); }); });
+  var used={}, bySlot={'门将':[],'后卫':[],'中场':[],'前锋':[]};
+  ['门将','后卫','中场','前锋'].forEach(function(pos){
+    for(var gi=0; gi<groups[pos].length && bySlot[pos].length<need[pos]; gi++){
+      var gp=groups[pos][gi];
+      if(used[gp.name]) continue;
+      used[gp.name]=1; bySlot[pos].push(gp.name);
+    }
+  });
+  ['门将','后卫','中场','前锋'].forEach(function(pos){
+    while(bySlot[pos].length<need[pos]){
+      var rest=(d.squad||[]).filter(function(p){ return !used[p.name]; }).sort(function(a,b){ return ((a.rest?1:0)-(b.rest?1:0)) || effAb(b)-effAb(a); });
+      if(!rest.length) break;
+      used[rest[0].name]=1; bySlot[pos].push(rest[0].name);
+    }
+  });
+  var out=bySlot['门将'].concat(bySlot['后卫'], bySlot['中场'], bySlot['前锋']);
+  while(out.length<11) out.push(null);
+  return out.slice(0,11);
+}
+function migrateLineupData(d){
+  /* 存档迁移 + 日常清理（幂等，可反复调用）：
+     · 没有大名单字段的老存档：原阵容全部进大名单（老阵容本来就 ≤22 人）。
+     · 没有首发字段的老存档：把原来自动排的那 11 人原样定为首发，之后不再自动改。
+     · 已离队（卖出/解约/租借到期离队）的球员从大名单和首发里清掉，首发位置留空等玩家补。 */
+  if(!d || !(d.squad instanceof Array)) return;
+  var inSquad={}; d.squad.forEach(function(p){ if(p && p.name) inSquad[p.name]=1; });
+  if(!(d.matchday instanceof Array)){
+    d.matchday=d.squad.slice(0,MATCHDAY_CAP).map(function(p){ return p.name; });
+  } else {
+    var seenM={}, md=[];
+    d.matchday.forEach(function(n){ if(inSquad[n] && !seenM[n] && md.length<MATCHDAY_CAP){ seenM[n]=1; md.push(n); } });
+    d.matchday=md;
+  }
+  var slotNames=formationSlots(d.formation||'4-3-3');
+  if(!(d.lineup instanceof Array) || d.lineup.length!==slotNames.length) d.lineup=autoPickLineupNames(d);
+  var mdSet={}, seenL={};
+  d.matchday.forEach(function(n){ mdSet[n]=1; });
+  d.lineup=d.lineup.map(function(n){ if(n && inSquad[n] && mdSet[n] && !seenL[n]){ seenL[n]=1; return n; } return null; });
+}
+function lineupFilledCount(){ if(!G || !(G.lineup instanceof Array)) return 0; return G.lineup.filter(function(n){ return !!n; }).length; }
+function lineupReady(){ return lineupFilledCount()>=11; }
+function squadPush(p){
+  /* 所有「球员加入一线队」的入口都走这里：只进总阵容；大名单没满 22 人时顺带进大名单（替补），
+     绝不自动进首发——首发永远是玩家自己在球场上点的那 11 人。 */
+  G.squad.push(p);
+  if(!(G.matchday instanceof Array)) migrateLineupData(G);
+  if(G.matchday.length<MATCHDAY_CAP && G.matchday.indexOf(p.name)<0) G.matchday.push(p.name);
+}
+function setFormation(f){
+  if(!G || G.formation===f) { if(G){ G.formation=f; render(); } return; }
+  if(typeof nmDecide==='function') nmDecide('用人','阵型从 '+(G.formation||'4-3-3')+' 改为 '+f, 1);
+  migrateLineupData(G);
+  var oldSlots=formationSlots(G.formation), newSlots=formationSlots(f);
+  var old=G.lineup||[], nl=newSlots.map(function(){ return null; }), kept=0, dropped=[];
+  old.forEach(function(nm,i){
+    if(!nm) return;
+    for(var j=0;j<newSlots.length;j++){ if(newSlots[j]===oldSlots[i] && !nl[j]){ nl[j]=nm; kept++; return; } }
+    dropped.push(nm);
+  });
+  G.formation=f; G.lineup=nl;
+  log('🧭 阵型切换为 '+f+'：'+kept+' 名首发按位置保留'+(dropped.length? '，'+dropped.join('、')+' 的位置在新阵型里对不上，已下场回到替补席，空位去球场上点格子手动补人':'')+'。首发永远由你手动定，游戏不会自动填人。','');
+  render();
+}
 function jerseyNumbers(){
   var sorted=G.squad.slice().sort(function(a,b){ return (POS_ORDER[a.pos]-POS_ORDER[b.pos]) || b.ab-a.ab; });
   var map={}; sorted.forEach(function(p,i){ map[p.name]=i+1; });
   return map;
 }
-function pickLineup(){
-  var F=FORMATIONS[G.formation||'4-3-3']||FORMATIONS['4-3-3'];
-  var need={'门将':1,'后卫':F.DF,'中场':F.MF,'前锋':F.FW};
-  var groups={'门将':[],'后卫':[],'中场':[],'前锋':[]};
-  G.squad.forEach(function(p){
-    /* 创作者邓元元三栖：同时进门将 / 中场 / 前锋三个候选组，三个位置都认他；下方填位按 used 去重，只占一个首发位 */
-    if(((typeof isCreatorPlayer==='function' && isCreatorPlayer(p)) || p.star==='creator') && typeof CREATOR_SLOTS!=='undefined'){ CREATOR_SLOTS.forEach(function(cp){ groups[cp].push(p); }); }
-    else (groups[p.pos]||groups['中场']).push(p);
-  });
-  Object.keys(groups).forEach(function(k){ groups[k].sort(function(a,b){ return ((a.inj>0)-(b.inj>0)) || ((a.rest?1:0)-(b.rest?1:0)) || effAb(b)-effAb(a); }); });
-  var used={}, slots=[];
-  ['门将','后卫','中场','前锋'].forEach(function(pos){
-    var picked=0;
-    for(var gi=0; gi<groups[pos].length && picked<need[pos]; gi++){
-      var gp=groups[pos][gi];
-      if(used[gp.name]) continue;
-      used[gp.name]=1; slots.push({p:gp, slot:pos}); picked++;
-    }
-  });
-  // 某个位置人数不够时，从其余位置能力最高的人里补位（图上会标出他实际踢的位置）
-  ['门将','后卫','中场','前锋'].forEach(function(pos){
-    var have=slots.filter(function(s){ return s.slot===pos; }).length;
-    while(have<need[pos]){
-      var rest=G.squad.filter(function(p){ return !used[p.name]; }).sort(function(a,b){ return ((a.rest?1:0)-(b.rest?1:0)) || effAb(b)-effAb(a); });
-      if(!rest.length) break;
-      used[rest[0].name]=1; slots.push({p:rest[0], slot:pos}); have++;
-    }
+function lineupSlotsAll(){
+  /* 当前阵型的全部 11 个位置格子（含空位）：p 为 null 就是还没人——等玩家手动点选，绝不自动填。 */
+  migrateLineupData(G);
+  var slotNames=formationSlots(G.formation);
+  var slots=slotNames.map(function(slot,i){
+    var nm=G.lineup[i];
+    return { p: nm? squadByName(nm) : null, slot:slot, idx:i };
   });
   // 排坐标：球场竖版，上方是进攻方向。前锋 y=15，门将 y=88
   function rowY(slot, count, idxInRow){
@@ -3398,29 +3514,105 @@ function pickLineup(){
   });
   return slots;
 }
+function pickLineup(){
+  /* 比赛引擎唯一的首发来源：玩家手动定的 11 人（空位直接略过，比赛前会先拦下让玩家补满）。 */
+  return lineupSlotsAll().filter(function(s){ return !!s.p; });
+}
+function setLineupSlot(idx, name){
+  migrateLineupData(G);
+  var p=squadByName(name); if(!p) return;
+  if(!inMatchday(name)){ toast(name+' 还不在大名单里，先去阵容页把他加进大名单'); return; }
+  var prev=G.lineup[idx];
+  var other=G.lineup.indexOf(name);
+  if(other>=0 && other!==idx) G.lineup[other]=null; // 他原来占着别的首发位：挪过来，老位置留空
+  G.lineup[idx]=name;
+  if(typeof nmDecide==='function' && prev!==name) nmDecide('用人','手动排首发：'+name+' 上「'+formationSlots(G.formation)[idx]+'」位'+(prev? '，换下 '+prev : ''), 0);
+  log('👕 你亲手把 '+name+'（'+p.pos+' · 能力 '+p.ab+'）放进了首发「'+formationSlots(G.formation)[idx]+'」位'+(prev && prev!==name? '，'+prev+' 回到替补席':'')+'。首发 '+lineupFilledCount()+'/11。','');
+  closeModal(); render();
+}
+function clearLineupSlot(idx){
+  migrateLineupData(G);
+  var prev=G.lineup[idx]; if(!prev) { closeModal(); return; }
+  G.lineup[idx]=null;
+  log('👕 你把 '+prev+' 从首发换下，这个位置先空着——点格子再选别人。首发 '+lineupFilledCount()+'/11。','');
+  closeModal(); render();
+}
+function openSlotPicker(idx){
+  migrateLineupData(G);
+  var slot=formationSlots(G.formation)[idx];
+  var cur=G.lineup[idx];
+  var pool=G.squad.filter(function(p){ return inMatchday(p.name); });
+  pool.sort(function(a,b){
+    var fa=fitsSlot(a,slot)?0:1, fb=fitsSlot(b,slot)?0:1;
+    return (fa-fb) || (b.ab-a.ab);
+  });
+  var rows=pool.map(function(p){
+    var at=G.lineup.indexOf(p.name);
+    var st= p.name===cur? '<span class="pill" style="background:#fdf3d3;color:#8a6508;">当前人选</span>'
+      : (at>=0? '<span class="pill">首发中 · '+formationSlots(G.formation)[at]+'位（点选挪过来）</span>' : '<span class="pill up">替补</span>');
+    return '<div class="slot-pick-row'+(p.name===cur?' cur':'')+'">'
+      +'<div class="grow" style="flex:1;min-width:0;cursor:pointer;" onclick="setLineupSlot('+idx+',\''+esc(p.name)+'\')"><div class="nm" style="font-weight:700;">'+esc(p.name)+' <b style="color:#b8860b;">'+p.ab+'</b>'+(p.inj>0?' <span class="pill dn">伤停 '+p.inj+' 天</span>':'')+(p.rest?' <span class="pill">轮休中</span>':'')+'</div><div class="meta">'+((typeof squadPosText==='function')? squadPosText(p):p.pos)+(fitsSlot(p,slot)?' · 本行位置':' · 客串')+' · '+p.age+' 岁</div></div>'
+      + st
+      +'<button class="btn sm" onclick="showPlayer(\''+esc(p.name)+'\')">球员卡</button></div>';
+  }).join('');
+  $modal.innerHTML='<div class="overlay"><div class="modal">'
+  +'<div class="hero"><div class="big" style="font-size:21px;">👕 选人上场 · '+slot+'位</div><div class="sub">只能从比赛大名单里选人（大名单 '+G.matchday.length+'/22）· 点球员名字就把他放进这个位置</div></div>'
+  +'<div class="body">'
+  +(cur? '<button class="btn" style="width:100%;margin-bottom:10px;" onclick="clearLineupSlot('+idx+')">⬇ 先把 '+esc(cur)+' 换下（这个位置空着）</button>' : '')
+  +(rows || '<p class="desc">大名单是空的。先去阵容页把球员加进大名单，才能排首发。</p>')
+  +'<p class="mini" style="margin-top:6px;">想用的人不在名单里？去阵容页（一线队名单）把他加进大名单——大名单最多 22 人，满了要先移出一个。</p>'
+  +'</div><div class="foot"><button class="btn" onclick="closeModal()">取消</button></div></div></div>';
+}
+function matchdayAdd(name){
+  migrateLineupData(G);
+  if(!squadByName(name)) return;
+  if(inMatchday(name)){ toast(name+' 已经在大名单里了'); return; }
+  if(G.matchday.length>=MATCHDAY_CAP){ toast('大名单满了（22 人），先移出一个才能再加'); return; }
+  G.matchday.push(name);
+  log('📋 '+name+' 加入比赛大名单（'+G.matchday.length+'/22），可以上场了——但首发还得你去球场上手动点。','');
+  toast(name+' 已进大名单'); render();
+}
+function matchdayRemove(name){
+  migrateLineupData(G);
+  if(!inMatchday(name)) return;
+  G.matchday=G.matchday.filter(function(n){ return n!==name; });
+  var wasStarter=G.lineup.indexOf(name)>=0;
+  if(wasStarter) G.lineup=G.lineup.map(function(n){ return n===name? null : n; });
+  log('📋 '+name+' 移出比赛大名单'+(wasStarter? '，他在首发里的位置也一起空出来了——去球场上点空格子补人，游戏不会自动找人顶替':'')+'。大名单 '+G.matchday.length+'/22。','');
+  toast(name+' 已移出大名单'+(wasStarter?'，首发位置已空出':'')); render();
+}
 function pitchHTML(){
   var nums=jerseyNumbers();
-  var slots=pickLineup();
+  var slots=lineupSlotsAll();
   var marks=slots.map(function(s){
+    if(!s.p){
+      return '<button class="pmark empty" style="left:'+s.x+'%;top:'+s.y+'%;" onclick="openSlotPicker('+s.idx+')" title="这个位置还空着，点一下从大名单里选人">'
+      +'<span class="pc">＋</span>'
+      +'<span class="pl">'+s.slot+' · 待选人</span></button>';
+    }
     var p=s.p;
     var inner= p.img? '<img src="'+p.img+'" alt="'+esc(p.name)+'的真实照片">' : nums[p.name];
-    return '<button class="pmark'+(p.star?' me':'')+'" style="left:'+s.x+'%;top:'+s.y+'%;" onclick="showPlayer(\''+esc(p.name)+'\')" title="'+esc(p.name)+' · '+((typeof squadPosText==='function')? squadPosText(p):p.pos)+' · 能力 '+p.ab+'，点开看球员卡">'
+    return '<button class="pmark'+(p.star?' me':'')+'" style="left:'+s.x+'%;top:'+s.y+'%;" onclick="openSlotPicker('+s.idx+')" title="'+esc(p.name)+' · '+((typeof squadPosText==='function')? squadPosText(p):p.pos)+' · 能力 '+p.ab+'，点一下换人">'
     +'<span class="pc">'+inner+'</span>'
     +'<span class="pl">'+esc(p.name)+' <b>'+p.ab+'</b></span>'
     +'<span class="pl" style="background:rgba(201,147,10,.85);">'+s.slot+(((typeof fitsSlot==='function')? !fitsSlot(p,s.slot) : p.pos!==s.slot)?'（客串）':'')+(p.inj>0?' · 伤停':'')+'</span></button>';
   }).join('');
-  var bench=G.squad.filter(function(p){ return !slots.some(function(s){ return s.p===p; }); })
+  var filled=lineupFilledCount();
+  var bench=G.squad.filter(function(p){ return inMatchday(p.name) && G.lineup.indexOf(p.name)<0; })
     .sort(function(a,b){ return b.ab-a.ab; })
     .map(function(p){ return '<button class="chip" onclick="showPlayer(\''+esc(p.name)+'\')">'+nums[p.name]+' 号 '+esc(p.name)+' · '+((typeof squadPosText==='function')? squadPosText(p):p.pos)+' '+p.ab+'</button>'; }).join('');
+  var notIn=G.squad.filter(function(p){ return !inMatchday(p.name); }).length;
   var btns=Object.keys(FORMATIONS).map(function(f){ return '<button class="btn sm '+(G.formation===f?'pri':'')+'" onclick="setFormation(\''+f+'\')">'+f+'</button>'; }).join('');
-  return '<div class="card"><h3><span class="no">球场</span>首发阵容 · 阵型图<span class="hint">当前阵型 '+(G.formation||'4-3-3')+' · 点任意球员看他的球员卡</span></h3>'
+  return '<div class="card"><h3><span class="no">球场</span>首发阵容 · 阵型图<span class="hint">当前阵型 '+(G.formation||'4-3-3')+' · 首发 '+filled+'/11 · 大名单 '+(G.matchday||[]).length+'/22 · 点任意格子选人 / 换人</span></h3>'
   +'<div class="form-btns"><span class="mini" style="align-self:center;">切换阵型：</span>'+btns+'</div>'
   +'<div class="pitch-wrap"><div class="pitch">'
   +'<div class="ln half"></div><div class="ln circ"></div><div class="ln box-t"></div><div class="ln box-b"></div><div class="ln box6-t"></div><div class="ln box6-b"></div>'
   + marks
   +'</div></div>'
-  +'<p class="mini" style="margin-top:8px;">球场上印着每名首发球员的<b>站位、名字、能力值和他踢的位置</b>（金色小签）。首发按各位置能力最高自动排定：签下球星、特训涨能力、有人伤停，站位都会跟着变。进攻方向朝上。</p>'
-  +(bench? '<div style="margin-top:6px;"><span class="mini">替补席（点名字看球员卡）：</span><div class="team-chips" style="margin-top:5px;">'+bench+'</div></div>':'')
+  +(filled<11? '<p class="mini" style="margin-top:8px;color:#c0392b;font-weight:700;">⚠️ 首发还差 '+(11-filled)+' 人：点球场上的红色空格子，从大名单里把人选满——不满 11 人比赛开不了，游戏不会替你自动补人。</p>' : '<p class="mini" style="margin-top:8px;color:#1e7d46;font-weight:700;">✅ 首发 11 人已排满，可以比赛了。想换人就点格子。</p>')
+  +'<p class="mini" style="margin-top:6px;">首发 11 人<b>完全由你手动指定</b>：点任意格子，从<b>比赛大名单</b>里选人放进去；格子里有人时点他可以换下再选别人。签新人、训练涨能力、伤病恢复、切换阵型都不会自动改动你的首发。换阵型时能对上位置的首发会保留，对不上的位置留空等你补。进攻方向朝上。</p>'
+  +(bench? '<div style="margin-top:6px;"><span class="mini">替补席（大名单里没首发的，点名字看球员卡）：</span><div class="team-chips" style="margin-top:5px;">'+bench+'</div></div>':'')
+  +(notIn? '<p class="mini" style="margin-top:6px;">还有 '+notIn+' 名球员没进大名单，不能上场——在下方一线队名单里点「加入大名单」管理（最多 22 人）。</p>':'')
   +'</div>';
 }
 function showPlayer(name){
@@ -3436,6 +3628,7 @@ function showPlayer(name){
   +(p.img? '<img src="'+p.img+'" alt="'+esc(p.name)+'的真实比赛照片" style="width:100%;border-radius:10px;display:block;margin-bottom:10px;">':'')
   +((typeof playerBadgesHTML==='function'&&playerBadgesHTML(p))? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+playerBadgesHTML(p)+'</div>':'')
   +'<div class="item"><div class="grow"><div class="nm">能力 '+p.ab+' · 潜力 '+(p.pot||p.ab)+'</div><div class="meta">'+p.age+' 岁 · 月薪 '+p.wage+'万 · 当前身价 '+fmt(p.value)+' · 签约价 '+fmtSign(p)+(p.inj>0?' · 🚑 伤停约 '+p.inj+' 天':'')+'</div></div></div>'
+  +'<div class="item"><div class="grow"><div class="nm">📋 名单状态：'+(G.lineup.indexOf(p.name)>=0? '⭐ 首发（'+formationSlots(G.formation)[G.lineup.indexOf(p.name)]+'位）' : (inMatchday(p.name)? '大名单 · 替补' : '未入选大名单（不能上场）'))+'</div><div class="meta">大名单 '+(G.matchday||[]).length+'/22 · 首发在阵容页的球场图里点格子手动排，这里只管进不进大名单</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+(inMatchday(p.name)? '<button class="btn sm" onclick="matchdayRemove(\''+esc(p.name)+'\');showPlayer(\''+esc(p.name)+'\')">移出大名单</button>' : '<button class="btn sm" onclick="matchdayAdd(\''+esc(p.name)+'\');showPlayer(\''+esc(p.name)+'\')">加入大名单</button>')+'</div></div>'
   +'<div class="item"><div class="grow"><div class="nm">🩺 状态：'+(p.inj>0?'伤停养伤中（约 '+p.inj+' 天复出）':(p.rest?'轮休中（不上场，体能恢复更快）':'健康，可出战'))+'</div><div class="meta">体能 '+(100-(p.fat||0))+'/100'+((p.fat||0)>=50?' · 疲劳偏高：出场能力打折、受伤风险上升，给他轮休一场能缓过来':'')+' · 伤病按天恢复，队医主管在队时恢复翻倍</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn sm" onclick="toggleRest(\''+esc(p.name)+'\')">'+(p.rest?'取消轮休':'安排轮休')+'</button>'+(p.inj>0?'<button class="btn sm" onclick="rehabPlayer(\''+esc(p.name)+'\')">💉 康复治疗 · 20万（伤停 -14 天）</button>':'')+'</div></div>'
   +'<div class="item"><div class="grow"><div class="nm">🤝 与你的关系：信任 '+(p.trust||55)+' · 心情 '+(p.mood||60)+'</div><div class="meta">本赛季出场 '+(p.played||0)+' 次'+(p.promise?' · 🤝 有承诺待兑现：下个月至少首发 '+p.promise.need+' 次，食言信任 -25':'')+(p.renewedUntil&&p.renewedUntil>G.month?' · 已续约，'+p.renewedUntil+' 月前不会被报价挖走':'')+' · 在阵容页「更衣室」里用谈话、承诺、续约经营这段关系</div></div></div>'
   +'<div class="item"><div class="grow"><div class="nm">⚽ 进球账</div><div class="meta">本赛季 '+( (G.seasonGoals&&G.seasonGoals[p.name])||0 )+' 球 · 累计为本队打进 '+((G.goalTable&&G.goalTable[p.name])||0)+' 球</div></div></div>'
@@ -3446,7 +3639,10 @@ function showPlayer(name){
 function pageSquad(){
   var sorted=G.squad.slice().sort(function(a,b){ return b.ab-a.ab; });
   var rows=sorted.map(function(p){
-    return '<tr><td>'+(p.img?'<img class="star-thumb" src="'+p.img+'" alt="'+esc(p.name)+'的真实照片">':'')+'<b>'+esc(p.name)+'</b>'+(p.star?' <span class="pill" style="background:#fdf3d3;color:#8a6508;">⭐ 球星</span>':'')+((typeof playerBadgesHTML==='function'&&playerBadgesHTML(p))?' '+playerBadgesHTML(p):'')+(p.peak?' <span class="pill" style="background:#12263f;color:#ffd968;">🌟 卡包限定</span>':'')+(p.foreign?' <span class="pill">外援</span>':'')+(p.inj>0?' <span class="pill dn">伤停 '+p.inj+' 天</span>':'')+(p.rest?' <span class="pill">轮休</span>':'')+((p.fat||0)>=50?' <span class="pill dn">疲劳 '+(p.fat||0)+'</span>':'')+'</td><td>'+((typeof squadPosHTML==='function')? squadPosHTML(p):posPill(p.pos))+'</td><td class="num">'+p.age+'</td><td>'+abBar(p)+'</td><td class="num">'+p.pot+'</td><td class="num">'+p.wage+'万</td><td class="num">'+fmt(p.value)+'</td><td class="num">'+fmtSign(p)+'</td><td style="white-space:nowrap;"><button class="btn sm" onclick="trainPlayer(\''+esc(p.name)+'\')">特训 30万</button> <button class="btn sm" onclick="releasePlayer(\''+esc(p.name)+'\')">解约</button></td></tr>';
+    var stPill= G.lineup.indexOf(p.name)>=0? ' <span class="pill" style="background:#12263f;color:#ffd968;font-weight:800;">⭐ 首发</span>'
+      : (inMatchday(p.name)? ' <span class="pill up">大名单</span>' : ' <span class="pill" style="background:#eceff2;color:#7a8794;">未入选</span>');
+    var mdBtn= inMatchday(p.name)? '<button class="btn sm" onclick="matchdayRemove(\''+esc(p.name)+'\')">移出大名单</button>' : '<button class="btn sm" onclick="matchdayAdd(\''+esc(p.name)+'\')">加入大名单</button>';
+    return '<tr><td>'+(p.img?'<img class="star-thumb" src="'+p.img+'" alt="'+esc(p.name)+'的真实照片">':'')+'<b>'+esc(p.name)+'</b>'+stPill+(p.star?' <span class="pill" style="background:#fdf3d3;color:#8a6508;">⭐ 球星</span>':'')+((typeof playerBadgesHTML==='function'&&playerBadgesHTML(p))?' '+playerBadgesHTML(p):'')+(p.peak?' <span class="pill" style="background:#12263f;color:#ffd968;">🌟 卡包限定</span>':'')+(p.foreign?' <span class="pill">外援</span>':'')+(p.inj>0?' <span class="pill dn">伤停 '+p.inj+' 天</span>':'')+(p.rest?' <span class="pill">轮休</span>':'')+((p.fat||0)>=50?' <span class="pill dn">疲劳 '+(p.fat||0)+'</span>':'')+'</td><td>'+((typeof squadPosHTML==='function')? squadPosHTML(p):posPill(p.pos))+'</td><td class="num">'+p.age+'</td><td>'+abBar(p)+'</td><td class="num">'+p.pot+'</td><td class="num">'+p.wage+'万</td><td class="num">'+fmt(p.value)+'</td><td class="num">'+fmtSign(p)+'</td><td style="white-space:nowrap;"><button class="btn sm" onclick="trainPlayer(\''+esc(p.name)+'\')">特训 30万</button> '+mdBtn+' <button class="btn sm" onclick="releasePlayer(\''+esc(p.name)+'\')">解约</button></td></tr>';
   }).join('');
   var coachCands=COACH_POOL.map(function(c,i){
     var cur= G.coach.name===c.name;
@@ -3462,7 +3658,8 @@ function pageSquad(){
   +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--green)"></span>主教练</div><div class="vl" style="font-size:19px;">'+esc(G.coach.name)+'</div><div class="sub">'+G.coach.spec+' · 能力 '+G.coach.ab+'</div></div>'
   +'<div class="kpi"><div class="lb"><span class="dot" style="background:var(--gold)"></span>球队士气</div><div class="vl num">'+G.morale+'</div><div class="sub">赢球涨、输球跌、换帅回血</div></div></div>'
   + pitchHTML()
-  +'<div class="card"><h3><span class="no">阵容</span>一线队<span class="hint">'+G.squad.length+' 人 · 身价合计 '+fmt(squadValue())+'</span></h3>'
+  +'<div class="card"><h3><span class="no">阵容</span>一线队<span class="hint">'+G.squad.length+'/40 人 · 大名单 '+(G.matchday||[]).length+'/22 · 首发 '+lineupFilledCount()+'/11 · 身价合计 '+fmt(squadValue())+'</span></h3>'
+  +'<p class="desc">一线队最多可以签 <b>40 人</b>，但每场能带的人只有 <b>大名单 22 人</b>：只有进了大名单的球员才能上场（首发和替补都从大名单里出），没进大名单的人在队里也踢不了比赛。用每行的「加入大名单 / 移出大名单」调整名单——满 22 人时先移出一个才能再加；把首发球员移出大名单，他在首发里的位置会同时空出来，要你去球场上手动补。<b>首发 11 人永远由你在上方球场图里点选，游戏不会自动按能力排首发。</b>新签的球员只进一线队：大名单没满时自动进大名单当替补，满了就留在名单外等你换。</p>'
   +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;"><span class="mini">训练重点：</span>'+focuses.map(function(f){ return '<button class="btn sm '+(G.focus===f?'pri':'')+'" onclick="setFocus(\''+f+'\')">'+f+'</button>'; }).join('')+'</div>'
   +'<div class="tbl-wrap"><table><tr><th>球员</th><th>位置</th><th>年龄</th><th>能力</th><th>潜力</th><th>月薪</th><th>当前身价</th><th>签约价</th><th>操作</th></tr>'+rows+'</table></div><p class="mini" style="margin-top:8px;">「签约价」= 当初签下他花的钱（免签/青训会注明来源）；卖出时拿报价减签约价就是这笔交易的盈亏。「特训」每月每人限 1 次：30万，有概率能力 +1（训练基地等级和教练风格会影响成功率）。</p></div>'
   +'<div class="grid2"><div class="card"><h3>主教练市场</h3>'+coachCands+'</div><div class="card"><h3>教练组与职员</h3>'+staffHTML+'</div></div>'+trainCardHTML()+dressingCardHTML();
@@ -3886,14 +4083,14 @@ function fitsSlot(p, slot){ if(!p) return false; if(p.pos===slot) return true; r
 function signStar(id){
   var s=starById(id); if(!s) return;
   if(starInSquad(s)){ toast(s.name+' 已经在你的球队里了'); return; }
-  if(G.squad.length>=22){ toast('一线队名额已满（22人），先卖掉或解约一名球员'); return; }
+  if(G.squad.length>=40){ toast('一线队名额已满（40人），先卖掉或解约一名球员'); return; }
   if(G.cash<s.fee){ toast('现金不够签 '+s.name+'，还差 '+fmt(s.fee-G.cash)+'——先冲上中超、多夺冠攒钱'); return; }
   G.cash-=s.fee;
   var p=mkPlayer(s.name, s.pos, s.ab, s.age, s.league!=='中超');
   p.pot=Math.min(99, s.ab + (s.age<=23?5:1));
   p.cost=s.fee; p.signNote='球星签约 · '+s.club; p.star=s.id; p.img=s.img;
   if(s.linkGroup) p.linkGroup=s.linkGroup;
-  G.squad.push(p);
+  squadPush(p);
   var fanAdd= s.league==='中超'? 6000 : 20000;
   G.fans+=fanAdd; G.rep=clamp(G.rep+(s.league==='中超'?2:4),0,100);
   log('⭐ 重磅签约！'+s.name+'（'+s.club+' · '+s.league+'）以 '+fmt(s.fee)+' 加盟 '+G.club+'！能力 '+s.ab+'，月薪 '+p.wage+'万。消息一出，球迷 +'+fanAdd.toLocaleString('zh-CN')+'，声望上涨。接下来就看他在场上进球了。','good');
@@ -3901,11 +4098,17 @@ function signStar(id){
   render();
 }
 function pickScorer(){
-  var pool=[];
+  /* 进球只记在真正上场的人头上：手动首发 11 人是主力得分手，大名单里的替补按替补登场的
+     概率小权重入池；没进大名单的人压根不在比赛名单里，不会进球。 */
+  var pool=[], starterSet={};
+  pickLineup().forEach(function(s){ starterSet[s.p.name]=1; });
   G.squad.forEach(function(p){
     if(p.inj>0 || p.rest) return; // 伤停和轮休的球员不上场，自然不会进球
+    var isStarter=!!starterSet[p.name];
+    if(!isStarter && !inMatchday(p.name)) return; // 不在大名单：这场跟他没关系
     var w= p.pos==='前锋'? p.ab*3 : p.pos==='中场'? p.ab*1.4 : p.pos==='后卫'? p.ab*0.35 : p.ab*0.04;
     if(p.star) w*=1.7;
+    if(!isStarter) w*=0.3; // 替补登场时间有限，进球权重打折
     pool.push({p:p, w:w});
   });
   if(!pool.length) return null;
@@ -4032,7 +4235,7 @@ function pageStars(){
     + arr.map(function(s){ return s.creator? '<div style="display:flex;">'+creatorCardHTML(s)+'</div>' : '<div id="star-'+s.id+'" style="display:flex;">'+starCardHTML(s)+'</div>'; }).join('') +'</div></div>';
   }).join('');
   return '<div class="card"><h3><span class="no">球星</span>球星图鉴<span class="hint">按位置分组 · 前锋 / 中场 / 后卫 / 门将 · 照片全部本人对应</span></h3>'
-  +'<p class="desc">照片都是每位球员本人的真实比赛照片，名字、球队、联赛、位置一一对应。图鉴已按<b>前锋 / 中场 / 后卫 / 门将</b>四个位置分组，每个位置都有世界球星和中超名将。这些球星<b>可以真签进你的球队</b>：付转会费签下后，他进入一线队名单，能力直接拉高球队强度，比赛进球记在他名下，首页赛果会写清谁进的球。世界球星身价高、月薪也高，是冲超夺冠后攒钱追的终极目标；中超名将便宜得多，中甲阶段就能下手。有<b>球星直签券</b>时（累计充值奖励发放），任意球星可免转会费直接签下；也可以去充值中心用<b>钻石招募</b>抽图鉴球星。当前现金 '+fmt(G.cash)+' · 已签下球星 '+signedN+' 位 · 阵容 '+G.squad.length+'/22。</p></div>'
+  +'<p class="desc">照片都是每位球员本人的真实比赛照片，名字、球队、联赛、位置一一对应。图鉴已按<b>前锋 / 中场 / 后卫 / 门将</b>四个位置分组，每个位置都有世界球星和中超名将。这些球星<b>可以真签进你的球队</b>：付转会费签下后，他进入一线队（大名单没满 22 人时自动进大名单），你在阵容页把他排进首发，他就能上场拉高球队强度、进球记在他名下，首页赛果会写清谁进的球。世界球星身价高、月薪也高，是冲超夺冠后攒钱追的终极目标；中超名将便宜得多，中甲阶段就能下手。有<b>球星直签券</b>时（累计充值奖励发放），任意球星可免转会费直接签下；也可以去充值中心用<b>钻石招募</b>抽图鉴球星。当前现金 '+fmt(G.cash)+' · 已签下球星 '+signedN+' 位 · 阵容 '+G.squad.length+'/40。</p></div>'
   + creatorHTML
   + legendHTML
   + peakHTML
@@ -4580,7 +4783,7 @@ function pageIntel(){
   +'<div class="card"><h3><span class="no">情报</span>数据球探与情报<span class="hint">在信息差里赌潜力与适配</span></h3>'
   +'<p class="desc">转会市场上的「潜力」是经纪人报的数，真假只有球探知道。派球探（8万/份，每月 3 份）拿到<b>残缺报告</b>：真实潜力只给区间，报告越完整区间越窄——首席球探和数据分析中心等级决定完整度。适配度按你当前阵型的位置缺口、和首发的差距、年龄、工资综合算。赌的就是这个信息差：区间下限都比标称高，是捡漏；上限还不如标称，是坑。</p>'
   + missionHTML + '</div>'
-  +'<div class="card"><h3><span class="no">对比</span>市场情报对比<span class="hint">现金 '+fmt(G.cash)+' · 阵容 '+G.squad.length+'/22</span></h3>'+rows+'</div>';
+  +'<div class="card"><h3><span class="no">对比</span>市场情报对比<span class="hint">现金 '+fmt(G.cash)+' · 阵容 '+G.squad.length+'/40</span></h3>'+rows+'</div>';
 }
 
 /* ---- 2. 转会策略与足球总监 ---- */
@@ -4600,13 +4803,13 @@ function setDirectorMode(m){
 function directorAct(){
   if(!G.director || G.director.mode==='manual' || G.director.mode==='none') return;
   if(G.board && G.board.frozen>0) return;
-  if(G.squad.length<22){
+  if(G.squad.length<40){
     if(G.director.mode==='star'){
       var best=null; G.market.forEach(function(p){ if(!best || p.ab>best.ab) best=p; });
       if(best && G.cash>best.price+300){
         G.cash-=best.price; best.cost=best.price; best.signNote='';
         var idx=G.market.indexOf(best); if(idx>=0) G.market.splice(idx,1);
-        G.squad.push(best);
+        squadPush(best);
         if(!hasScout() && Math.random()<0.2){ best.ab=Math.max(40,best.ab-2); best.value=Math.round(Math.max(5,Math.pow(Math.max(best.ab-38,2),2)*0.16*(best.age>30?0.75:1))); log('🧭 足球总监签下 '+best.name+'（签约费 '+fmt(best.cost)+'），但没有首席球探把关，看走眼了：实际能力只有 '+best.ab+'。','bad'); }
         else log('🧭 足球总监按「巨星路线」自动签下 '+best.name+'（能力 '+best.ab+'），签约费 '+fmt(best.cost)+'。','good');
       }
@@ -4615,7 +4818,7 @@ function directorAct(){
       if(cand && G.cash>cand.price+200){
         G.cash-=cand.price; cand.cost=cand.price; cand.signNote='';
         var idx2=G.market.indexOf(cand); if(idx2>=0) G.market.splice(idx2,1);
-        G.squad.push(cand);
+        squadPush(cand);
         log('🧭 足球总监按「低买高卖」自动签下小将 '+cand.name+'（'+cand.age+' 岁，潜力 '+cand.pot+'），签约费 '+fmt(cand.cost)+'。练出来就是利润。','good');
       }
     }
@@ -5181,10 +5384,10 @@ function sellOverseas(id){
 function recallOvYouth(cid, idx){
   ensureBiz(); var c=G.biz.overseas[cid]; if(!c) return;
   var p=c.youth[idx]; if(!p) return;
-  if(G.squad.length>=22){ toast('一线队满员（22 人），先卖掉或解约一名球员'); return; }
+  if(G.squad.length>=40){ toast('一线队满员（40 人），先卖掉或解约一名球员'); return; }
   c.youth.splice(idx,1);
   p.cost=0; p.signNote=ovDef(cid).city+'青训输送';
-  G.squad.push(p);
+  squadPush(p);
   log('🌍 青训输送：'+ovDef(cid).club+' 的小将 '+p.name+'（'+p.pos+'，能力 '+p.ab+'，潜力 '+p.pot+'）免费加盟一线队，签约价 0。海外建队开始反哺主队了。','good');
   toast(p.name+' 加盟一线队！'); render();
 }
@@ -5707,7 +5910,7 @@ function buildMatchDetail(o){
     evs.push({min:im, type:'injury', side:'me', key:true, text:x.name+' 在拼抢中受伤倒地，队医进场处理后确认无法坚持（预计缺阵约 '+x.days+' 天）。'});
     return {name:x.name, days:x.days, min:im};
   });
-  var bench=G.squad.filter(function(p){ return lineupNames.indexOf(p.name)<0 && p.inj===0; }).map(function(p){ return p.name; });
+  var bench=G.squad.filter(function(p){ return lineupNames.indexOf(p.name)<0 && p.inj===0 && inMatchday(p.name); }).map(function(p){ return p.name; });
   var nSub=ri(1,3);
   for(ci2=0; ci2<nSub; ci2++){
     var sm=ri(55,86);
@@ -5759,6 +5962,7 @@ function watchLive(){
   ensureFixtures();
   var fx=nextFixture();
   if(!fx){ toast('本月比赛已踢完，去结束本月结算吧'); return; }
+  if(!lineupReady()){ toast('首发还没排满（'+lineupFilledCount()+'/11），先把首发补满才能比赛'); go('squad'); return; }
   var guard=0;
   while(G.day<fx.day && guard++<40){ G.day++; dailyRecovery(); } // 推进到比赛日（下一场之前没有别的比赛）
   playFixture(fx); // 正式引擎结算：积分、进球、射手榜、伤病、门票全部在这一步落账
@@ -6573,7 +6777,7 @@ function peakInSquad(pk){ return G.squad.some(function(p){ return p.peak===pk.id
 function grantPeak(pk){
   var p=mkPlayer(pk.name, pk.pos, pk.ab, pk.age, true);
   p.pot=99; p.cost=0; p.signNote='球星抽卡 · 卡包限定'; p.peak=pk.id; p.img=pk.img;
-  G.squad.push(p);
+  squadPush(p);
   G.fans+=30000; G.rep=clamp(G.rep+5,0,100);
   return p;
 }
@@ -6582,7 +6786,7 @@ function resolvePackTier(tier){
   if(tier===5){
     var pk2=pick(PEAK_STARS);
     if(peakInSquad(pk2)){ G.pack.shards+=T.dup; return {tier:5, peak:pk2, dup:true, txt:'重复！卡包限定 '+pk2.name+' 已经在队里，自动转为球员碎片 +'+T.dup}; }
-    if(G.squad.length>=22){ G.cash+=T.cash; return {tier:5, peak:pk2, full:true, txt:'抽中卡包限定 '+pk2.name+'（能力 '+pk2.ab+'），但阵容已满（22人），转为现金补偿 +'+fmt(T.cash)}; }
+    if(G.squad.length>=40){ G.cash+=T.cash; return {tier:5, peak:pk2, full:true, txt:'抽中卡包限定 '+pk2.name+'（能力 '+pk2.ab+'），但阵容已满（40人），转为现金补偿 +'+fmt(T.cash)}; }
     grantPeak(pk2);
     if(G.pack.peaks.indexOf(pk2.id)<0) G.pack.peaks.push(pk2.id);
     return {tier:5, peak:pk2, txt:'卡包限定 '+pk2.name+'（'+pk2.pos+' · 能力 '+pk2.ab+'）直接入队！'};
@@ -6593,7 +6797,7 @@ function resolvePackTier(tier){
     if(pool.length && Math.random()<chance){
       var s=pick(pool);
       if(starInSquad(s)){ G.pack.shards+=T.dup; return {tier:tier, star:s, dup:true, txt:'重复！图鉴球星 '+s.name+' 已经在队里，自动转为球员碎片 +'+T.dup}; }
-      if(G.squad.length>=22){ G.cash+=T.cash; return {tier:tier, star:s, full:true, txt:'抽中图鉴球星 '+s.name+'，但阵容已满（22人），转为现金补偿 +'+fmt(T.cash)}; }
+      if(G.squad.length>=40){ G.cash+=T.cash; return {tier:tier, star:s, full:true, txt:'抽中图鉴球星 '+s.name+'，但阵容已满（40人），转为现金补偿 +'+fmt(T.cash)}; }
       grantStar(s,'球星抽卡 · '+s.club);
       return {tier:tier, star:s, txt:'图鉴球星 '+s.name+'（'+s.pos+' · 能力 '+s.ab+'）直接入队！'};
     }
@@ -6604,10 +6808,10 @@ function resolvePackTier(tier){
   var guard=0;
   while(G.squad.some(function(p){ return p.name===name; }) && guard++<10) name=randName();
   if(G.squad.some(function(p){ return p.name===name; })){ G.pack.shards+=T.dup; return {tier:tier, dup:true, txt:'抽到重复球员 '+name+'，自动转为球员碎片 +'+T.dup}; }
-  if(G.squad.length>=22){ G.cash+=T.cash; return {tier:tier, full:true, txt:T.nm+'卡球员（能力 '+ab+'），但阵容已满，转为现金补偿 +'+fmt(T.cash)}; }
+  if(G.squad.length>=40){ G.cash+=T.cash; return {tier:tier, full:true, txt:T.nm+'卡球员（能力 '+ab+'），但阵容已满，转为现金补偿 +'+fmt(T.cash)}; }
   var p=mkPlayer(name, pick(POS), ab, ri(17,33), foreign);
   p.pot=Math.min(99, ab+ri(0,6)); p.cost=0; p.signNote='球星抽卡 · '+T.nm+'卡';
-  G.squad.push(p);
+  squadPush(p);
   return {tier:tier, txt:T.nm+'卡 · '+p.pos+' '+name+'（能力 '+ab+'）入队'};
 }
 function drawPack(id, n){
@@ -6677,7 +6881,7 @@ function pagePacks(){
     +'</div></div>';
   }).join('')+'</div>';
   return '<div class="card"><h3><span class="no">抽卡</span>球星抽卡<span class="hint">钻石余额 💎 '+G.diamonds+' · 累计已抽 '+G.pack.draws+' 包 · 球员碎片 '+G.pack.shards+' 个</span></h3>'
-  +'<p class="desc">商城新玩法：用<b>游戏内钻石</b>开卡包（不涉及真实货币，钻石在充值中心获取）。五档卡包价格不同，六种卡的等级与能力区间也不同——<b>等级越高、能力越强，抽中概率越低</b>，全部概率见下方概率表。抽到的球员<b>直接进一线队</b>；巨星卡（86–92）和传奇卡（93–97）有机会直接开出<b>图鉴里的真球星</b>（含 C罗、梅西等传奇巨星）；最稀有的是<b>限定卡（93–99）</b>——出的是<b>图鉴里没有的「卡包限定·巅峰」球员</b>，比图鉴传奇更强，只能抽卡获得。抽到<b>重复球员</b>自动转为球员碎片（1 碎片 = 2 钻，随时兑换），阵容满 22 人时转为现金补偿。十连抽保底至少一张精英卡。</p>'
+  +'<p class="desc">商城新玩法：用<b>游戏内钻石</b>开卡包（不涉及真实货币，钻石在充值中心获取）。五档卡包价格不同，六种卡的等级与能力区间也不同——<b>等级越高、能力越强，抽中概率越低</b>，全部概率见下方概率表。抽到的球员<b>直接进一线队</b>；巨星卡（86–92）和传奇卡（93–97）有机会直接开出<b>图鉴里的真球星</b>（含 C罗、梅西等传奇巨星）；最稀有的是<b>限定卡（93–99）</b>——出的是<b>图鉴里没有的「卡包限定·巅峰」球员</b>，比图鉴传奇更强，只能抽卡获得。抽到<b>重复球员</b>自动转为球员碎片（1 碎片 = 2 钻，随时兑换），阵容满 40 人时转为现金补偿。十连抽保底至少一张精英卡。</p>'
   +(G.pack.shards>0? '<div class="acts"><button class="btn sm" onclick="exchangeShards()">♻️ 把 '+G.pack.shards+' 碎片兑换成 💎 '+(G.pack.shards*2)+' 钻</button></div>':'')
   +'<div class="acts"><button class="btn sm" onclick="go(\'pay\')">💎 钻石不够？去充值中心</button><button class="btn sm" onclick="go(\'stars\')">⭐ 去图鉴看传奇巨星</button></div></div>'
   +'<div class="pack-grid">'+cards+'</div>'
@@ -7285,8 +7489,8 @@ function nmLoanOut(si, pname){
 }
 function nmLoanBack(si, li){
   var nm=ensureNM(), s=nm.net.sats[si]; if(!s || !s.loans[li]) return;
-  if(G.squad.length>=22){ toast('一线队满员（22 人），先卖掉球员再召回'); return; }
-  var l=s.loans.splice(li,1)[0]; G.squad.push(l.p);
+  if(G.squad.length>=40){ toast('一线队满员（40 人），先卖掉球员再召回'); return; }
+  var l=s.loans.splice(li,1)[0]; squadPush(l.p);
   log('↩️ '+l.p.name+' 从卫星队「'+s.name+'」提前召回，当前能力 '+l.p.ab+'。','');
   toast(l.p.name+' 已召回'); render();
 }
@@ -7356,7 +7560,7 @@ function nmAgentDeal(i){
 }
 function nmAgentToMain(i){
   var nm=ensureNM(), A=nm.agent, c=A.clients[i]; if(!c) return;
-  if(G.squad.length>=22){ toast('主队一线队满员（22 人），先卖掉球员'); return; }
+  if(G.squad.length>=40){ toast('主队一线队满员（40 人），先卖掉球员'); return; }
   var fee=c.value;
   if(G.cash<fee){ toast('主队现金不够付转会费 '+fmt(fee)); return; }
   var comm=Math.round(fee*c.comm/100);
@@ -7364,7 +7568,7 @@ function nmAgentToMain(i){
   G.cash-=(fee+comm); A.cash+=comm; A.earned+=comm; A.deals++;
   A.clients.splice(i,1);
   var p={name:c.name, pos:c.pos, age:c.age, ab:c.ab, pot:c.pot, wage:c.wage, value:c.value, cost:fee, fat:0, rest:false, trust:60, mood:65, played:0, signNote:''};
-  G.squad.push(p);
+  squadPush(p);
   log('🕴️➡️🏟️ 左手倒右手：你把旗下球员 '+c.name+' 运作到自己的主队 '+esc(G.club)+'，转会费 '+fmt(fee)+'，经纪公司佣金 '+fmt(comm)+' 照付不误。球员进了你的队，钱进了你的公司。','good');
   nmDecide('转会','经纪公司运作旗下球员 '+c.name+' 加盟主队，转会费 '+fmt(fee), Math.round((c.ab-58)*0.5));
   toast(c.name+' 加盟主队，佣金 +'+fmt(comm)); render();
@@ -8220,7 +8424,7 @@ function nmMonthly(){
     var back=[];
     s.loans.forEach(function(l){
       if(Math.random()<0.4 && l.p.ab<l.p.pot) l.p.ab++;
-      if(G.month>=l.back && G.squad.length<22){ G.squad.push(l.p); log('↩️ 租借到期：'+l.p.name+' 从卫星队「'+s.name+'」回归主队，能力 '+l.p.ab+'。','good'); }
+      if(G.month>=l.back && G.squad.length<40){ squadPush(l.p); log('↩️ 租借到期：'+l.p.name+' 从卫星队「'+s.name+'」回归主队，能力 '+l.p.ab+'。','good'); }
       else if(G.month>=l.back){ l.back=G.month+1; back.push(l); }
       else back.push(l);
     });
