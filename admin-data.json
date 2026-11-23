@@ -1,12 +1,8 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-23T18:02:00+08:00",
+  "updatedAt": "2026-11-23T18:10:00+08:00",
   "bans": [],
-  "mail": [
-    {"id": "m-test-custom", "to": "测试三号", "title": "后台测试定制球星", "body": "这是一名私人定制球星，能力 105", "tag": "私人定制", "items": {"diamonds": 0, "cash": 0, "vouchers": 0, "trialCards": 0, "shards": 0, "playerId": null, "customPlayer": {"name": "测试定制星", "pos": "前锋", "ab": 105, "price": 5250, "img": null, "tags": ["队长", "射手王"], "note": "测试定制"}}, "sentAt": "2026-11-23T18:02:00+08:00", "expiresAt": null},
-    {"id": "m-test-title", "to": "测试三号", "title": "后台测试称号", "body": "授予你测试称号", "tag": "奖励", "items": {"diamonds": 50, "cash": 0, "vouchers": 0, "trialCards": 0, "shards": 0, "playerId": null, "customTitle": "测试球王"}, "sentAt": "2026-11-23T18:02:00+08:00", "expiresAt": null},
-    {"id": "m-test-broadcast", "to": "*", "title": "后台测试全服邮件", "body": "这是一封发给全部玩家的测试邮件", "tag": "活动", "items": {"diamonds": 30, "cash": 0, "vouchers": 0, "trialCards": 0, "shards": 0, "playerId": null}, "sentAt": "2026-11-23T18:02:00+08:00", "expiresAt": null}
-  ],
+  "mail": [],
   "announcement": null,
   "players": []
 }
