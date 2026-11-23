@@ -1073,6 +1073,27 @@
         function payloadKey() {
           return JSON.stringify({ bans: data.bans, mail: data.mail, announcement: data.announcement, players: data.players });
         }
+        // 任意一份数据对象的一致性指纹（给线上数据用，和 payloadKey 同口径）
+        function payloadKeyOf(d) {
+          d = d || {};
+          return JSON.stringify({
+            bans: Array.isArray(d.bans) ? d.bans : [],
+            mail: Array.isArray(d.mail) ? d.mail : [],
+            announcement: d.announcement || null,
+            players: Array.isArray(d.players) ? d.players : []
+          });
+        }
+        // 同步基准的条目清单：记住上次成功同步时有哪些邮件/封禁/玩家，
+        // 启动合并时靠它区分「本地删掉的」和「线上新增的」，删掉的不被线上旧数据复活
+        function baselineIdsOf(d) {
+          d = d || data;
+          return {
+            mailIds: (d.mail || []).map(function (m) { return m.id; }),
+            banUsers: (d.bans || []).map(function (b) { return b.username; }),
+            playerUsers: (d.players || []).map(function (p) { return p.username; }),
+            annKey: JSON.stringify(d.announcement || null)
+          };
+        }
         function decodeOnlineFile(j) {
           try {
             if (!j || !j.content) return null;
@@ -1136,14 +1157,15 @@
           function done(ok, msg) {
             syncInFlight = false;
             if (ok) {
-              saveSyncInfo({ time: isoNow(), ok: true, msg: msg, payloadKey: payloadKey() });
+              var bi = baselineIdsOf(data);
+              saveSyncInfo({ time: isoNow(), ok: true, msg: msg, payloadKey: payloadKey(), mailIds: bi.mailIds, banUsers: bi.banUsers, playerUsers: bi.playerUsers, annKey: bi.annKey });
               setSyncUI('ok', msg);
               toast('已同步到游戏');
               addBackup('同步成功自动备份', null, true);
               logOp('同步到游戏成功');
             } else {
               var prev = loadSyncInfo();
-              saveSyncInfo({ time: prev ? prev.time : null, ok: false, msg: msg, payloadKey: prev ? prev.payloadKey : null });
+              saveSyncInfo({ time: prev ? prev.time : null, ok: false, msg: msg, payloadKey: prev ? prev.payloadKey : null, mailIds: prev ? prev.mailIds : null, banUsers: prev ? prev.banUsers : null, playerUsers: prev ? prev.playerUsers : null, annKey: prev ? prev.annKey : null });
               setSyncUI('err', msg);
               toast(msg);
               logOp('同步失败：' + msg);
@@ -1152,12 +1174,26 @@
             if (syncQueued) { syncQueued = false; setTimeout(function () { syncToGame(); }, 300); }
             return ok;
           }
+          // 同步判断一律走 GitHub API 取线上最新 sha 和内容；
+          // Pages 地址（./admin-data.json）有缓存、会拿到旧版本，绝不用它做同步判断，只用来平时读数据展示。
+          // GitHub 返回错误时把状态码和它返回的 message 原样带出来，不再吞掉只剩一句模板话。
+          function ghFail(r, kind) {
+            return r.text().then(function (t) {
+              var msg = '';
+              try { var j = JSON.parse(t); if (j && j.message) msg = String(j.message); } catch (e) { /* 忽略 */ }
+              if (!msg && t) msg = String(t).slice(0, 300);
+              var err = new Error(kind || '__gh__');
+              err.ghStatus = r.status;
+              err.ghMessage = msg;
+              throw err;
+            });
+          }
           function getCurrent() {
             return fetch(GH_API + '?ref=main', { headers: headers, cache: 'no-store' })
               .then(function (r) {
-                if (r.status === 401 || r.status === 403) throw new Error('__auth__');
+                if (r.status === 401 || r.status === 403) return ghFail(r, '__auth__');
                 if (r.status === 404) return null; // 文件不存在时按新建处理（PUT 不带 sha）
-                if (!r.ok) throw new Error('__http_' + r.status + '__');
+                if (!r.ok) return ghFail(r);
                 return r.json();
               });
           }
@@ -1167,23 +1203,38 @@
               content: utf8ToBase64(JSON.stringify(syncPayload(), null, 2)),
               branch: 'main'
             };
-            if (cur && cur.sha) body.sha = cur.sha; // 每次都用刚拉到的最新 sha，不用缓存的旧 sha
+            if (cur && cur.sha) body.sha = cur.sha; // 每次都用刚从 API 拉到的最新 sha，不用缓存的旧 sha
             return fetch(GH_API, {
               method: 'PUT',
               headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
               body: JSON.stringify(body)
             }).then(function (r) {
-              if (r.status === 401 || r.status === 403) throw new Error('__auth__');
-              if (r.status === 409 || r.status === 422) throw new Error('__conflict__');
-              if (!r.ok) throw new Error('__http_' + r.status + '__');
+              if (r.status === 401 || r.status === 403) return ghFail(r, '__auth__');
+              if (r.status === 409 || r.status === 422) return ghFail(r, '__conflict__');
+              if (!r.ok) return ghFail(r);
               return r.json();
             });
           }
           function trySync(isRetry) {
             return getCurrent().then(function (cur) {
+              // 「线上是否被改动」只认 API 刚返回的最新内容：
+              // 和本地已一致 → 不用重复提交；和上次成功同步时的内容一致 → 没人动过，直接提交；
+              // 只有真的和上次同步时不一样（别人改过）才拦下来提示冲突，防止覆盖掉别人的改动。
+              var apiOnline = cur ? decodeOnlineFile(cur) : null;
+              if (apiOnline) {
+                var oKey = payloadKeyOf(normalizeData(apiOnline));
+                if (oKey === payloadKey()) return 'already';
+                var info0 = loadSyncInfo();
+                var lastKey = info0 && info0.payloadKey ? info0.payloadKey : null;
+                if (!isRetry && lastKey && oKey !== lastKey) {
+                  var extErr = new Error('__external__');
+                  extErr.onlineUpdatedAt = typeof apiOnline.updatedAt === 'string' ? apiOnline.updatedAt : '';
+                  throw extErr;
+                }
+              }
               // 同步安全锁：本地邮件/封禁是空的、线上不是空的，先问清楚再覆盖，防误删清空
               if (!opts.force && cur) {
-                var online = decodeOnlineFile(cur);
+                var online = apiOnline;
                 if (online) {
                   var oMail = Array.isArray(online.mail) ? online.mail.length : 0;
                   var oBan = Array.isArray(online.bans) ? online.bans.length : 0;
@@ -1191,7 +1242,7 @@
                     syncInFlight = false;
                     var ask = '本地是空的，线上还有 ' + oMail + ' 封邮件 / ' + oBan + ' 个封禁，确定要用本地空数据覆盖线上吗？覆盖后线上这些数据会被清掉。';
                     var prev = loadSyncInfo();
-                    saveSyncInfo({ time: prev ? prev.time : null, ok: false, msg: '同步已暂停，等确认是否覆盖线上', payloadKey: prev ? prev.payloadKey : null });
+                    saveSyncInfo({ time: prev ? prev.time : null, ok: false, msg: '同步已暂停，等确认是否覆盖线上', payloadKey: prev ? prev.payloadKey : null, mailIds: prev ? prev.mailIds : null, banUsers: prev ? prev.banUsers : null, playerUsers: prev ? prev.playerUsers : null, annKey: prev ? prev.annKey : null });
                     setSyncUI('err', '同步已暂停：本地是空的，线上还有 ' + oMail + ' 封邮件 / ' + oBan + ' 个封禁，等你确认');
                     renderOverview();
                     confirmDialog(ask, '确认覆盖同步').then(function (yes) {
@@ -1211,13 +1262,15 @@
           }
           return trySync(false).then(function (res) {
             if (res === 'paused') return false;
+            if (res === 'already') return done(true, '本地与线上已经一致，已确认同步');
             return done(true, '已同步到游戏，约 1 分钟后玩家就能在邮箱里看到');
           }).catch(function (e) {
             var m = e && e.message ? e.message : '';
-            if (m === '__auth__') return done(false, '同步失败：令牌不对或没有权限，请检查令牌');
-            if (m === '__conflict__') return done(false, '同步失败：线上数据刚被改动，已自动重试过一次，请再点一次「同步到游戏」');
-            if (m.indexOf('__http_404__') === 0) return done(false, '同步失败：找不到游戏仓库或文件，请检查令牌的仓库权限');
-            if (m.indexOf('__http_') === 0) return done(false, '同步失败：GitHub 返回错误（' + m.replace(/__/g, '').replace('http_', 'HTTP ') + '），请稍后再试');
+            var ghTxt = e && e.ghStatus ? ('GitHub 返回 HTTP ' + e.ghStatus + (e.ghMessage ? '：' + e.ghMessage : '')) : '';
+            if (m === '__external__') return done(false, '同步失败：线上数据和你上次同步时不一样，可能刚被其他地方改动过（线上最后修改：' + (e.onlineUpdatedAt ? fmtTime(e.onlineUpdatedAt) : '未知') + '）。为防止覆盖，本地数据没有推上去；请先点「拉取线上数据」看一下，再决定要不要同步');
+            if (m === '__auth__') return done(false, '同步失败：令牌不对或没有权限，请检查令牌' + (ghTxt ? '（' + ghTxt + '）' : ''));
+            if (m === '__conflict__') return done(false, '同步失败：提交被拒绝，已重新拉取最新版本自动重试过一次还是不行。' + (ghTxt || '请稍后再点一次「同步到游戏」'));
+            if (m === '__gh__') return done(false, '同步失败：' + (ghTxt || 'GitHub 返回错误') + '，请稍后再试');
             return done(false, '同步失败：网络连不上 GitHub，请检查网络后重试');
           });
         }
@@ -1241,7 +1294,8 @@
                 addBackup('拉取线上前自动备份', null, false);
                 data = normalizeData(online);
                 saveLocal();
-                saveSyncInfo({ time: isoNow(), ok: true, msg: '刚拉取线上数据，本地与线上一致', payloadKey: payloadKey() });
+                var pbi = baselineIdsOf(data);
+                saveSyncInfo({ time: isoNow(), ok: true, msg: '刚拉取线上数据，本地与线上一致', payloadKey: payloadKey(), mailIds: pbi.mailIds, banUsers: pbi.banUsers, playerUsers: pbi.playerUsers, annKey: pbi.annKey });
                 renderAll();
                 logOp('拉取线上数据覆盖本地（拉取前已自动备份）');
                 toast('已拉取线上数据，本地已更新');
@@ -1270,7 +1324,58 @@
           } catch (e) { /* 忽略损坏数据 */ }
           return null;
         }
-        // 打开页面时先读线上 admin-data.json，读不到再读本机上次保存的
+        // 启动合并：本地有未同步改动时，绝不能用线上数据直接覆盖本地（刷新会丢未同步的邮件就是这么丢的）。
+        // 规则：本地没未同步改动且线上不比本地旧 → 用线上；本地有未同步改动 → 以本地为底，
+        // 只把线上真正新增的（上次同步时还没有的）补进来，本地删掉的不复活、本地改的以本地为准。
+        function mergeOnlineWithLocal(onlineRaw, local) {
+          var online = normalizeData(onlineRaw);
+          if (!local) return { d: online, keptLocal: false };
+          var info = loadSyncInfo();
+          var lastKey = info && info.payloadKey ? info.payloadKey : null;
+          var localKey = payloadKeyOf(local);
+          var onlineKey = payloadKeyOf(online);
+          var localT = new Date(local.updatedAt).getTime() || 0;
+          var onlineT = new Date(online.updatedAt).getTime() || 0;
+          var localUnsynced = lastKey ? (localKey !== lastKey) : (localKey !== onlineKey || localT > onlineT);
+          if (!localUnsynced) {
+            // 本地没有未同步改动：线上确实不比本地旧才用线上更新本地，否则保留本地
+            return { d: onlineT >= localT ? online : local, keptLocal: onlineT < localT };
+          }
+          // 本地有未同步改动：以本地为底合并线上新增
+          var merged = local;
+          var hasBaseline = info && Array.isArray(info.mailIds) && Array.isArray(info.banUsers) && Array.isArray(info.playerUsers);
+          function idSet(arr) { var s = {}; (arr || []).forEach(function (x) { s[x] = true; }); return s; }
+          var baseMail = hasBaseline ? idSet(info.mailIds) : null;
+          var baseBan = hasBaseline ? idSet(info.banUsers) : null;
+          var basePlayer = hasBaseline ? idSet(info.playerUsers) : null;
+          var localMailIds = idSet(local.mail.map(function (m) { return m.id; }));
+          var localBanUsers = idSet(local.bans.map(function (b) { return b.username; }));
+          var localPlayerUsers = idSet(local.players.map(function (p) { return p.username; }));
+          online.mail.forEach(function (m) {
+            if (localMailIds[m.id]) return; // 本地已有（含本地改过的）：以本地为准
+            if (baseMail && baseMail[m.id]) return; // 上次同步时就有、本地没有 = 本地删掉的，不复活
+            merged.mail.push(m);
+          });
+          online.bans.forEach(function (b) {
+            if (localBanUsers[b.username]) return;
+            if (baseBan && baseBan[b.username]) return;
+            merged.bans.push(b);
+          });
+          online.players.forEach(function (p) {
+            if (localPlayerUsers[p.username]) return;
+            if (basePlayer && basePlayer[p.username]) return;
+            merged.players.push(p);
+          });
+          // 公告：本地没动过公告（和上次同步时一样）时，才用线上的新公告
+          if (hasBaseline && typeof info.annKey === 'string' &&
+              JSON.stringify(local.announcement || null) === info.annKey &&
+              JSON.stringify(online.announcement || null) !== info.annKey) {
+            merged.announcement = online.announcement;
+          }
+          if (onlineT > localT) merged.updatedAt = online.updatedAt;
+          return { d: merged, keptLocal: true };
+        }
+        // 打开页面时读线上 admin-data.json（Pages 只用来读数据展示），和本机数据按上面的规则合并，读不到线上再用本机
         function loadData() {
           var done = function (d, src) {
             data = d; dataSource = src;
@@ -1287,7 +1392,21 @@
               .then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); })
               .then(function (j) {
                 if (j && typeof j === 'object' && ('bans' in j || 'mail' in j || 'announcement' in j || 'players' in j)) {
-                  done(normalizeData(j), '线上 admin-data.json');
+                  var local = loadLocal();
+                  if (!local) { done(normalizeData(j), '线上 admin-data.json'); return; }
+                  var res = mergeOnlineWithLocal(j, local);
+                  data = res.d;
+                  saveLocal(); // 合并结果立刻存回本机，刷新也不会再丢
+                  if (res.keptLocal) {
+                    dataSource = '本机未同步数据（已保留）';
+                    $('srcBadge').innerHTML = '数据来源：<b>本机未同步数据（已保留，线上新增的已合并进来）</b>';
+                    renderAll();
+                    logOp('打开后台时保留了未同步的本地改动，没有被线上数据覆盖');
+                  } else {
+                    dataSource = '线上 admin-data.json';
+                    $('srcBadge').innerHTML = '数据来源：<b>线上 admin-data.json</b>';
+                    renderAll();
+                  }
                 } else { fallback(); }
               })
               .catch(fallback);
