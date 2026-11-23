@@ -344,7 +344,7 @@
         background:#0a1622 url('photo-25.jpg') center 32%/cover no-repeat; box-shadow:0 10px 34px rgba(3,8,14,.45); }
       .lobby::before{ content:''; position:absolute; inset:0;
         background:linear-gradient(180deg, rgba(5,11,20,.62) 0%, rgba(5,11,20,.34) 34%, rgba(5,11,20,.55) 68%, rgba(4,9,16,.92) 100%); }
-      .lobby-in{ position:relative; z-index:1; padding:14px 14px 12px; display:flex; flex-direction:column; gap:12px; }
+      .lobby-in{ position:relative; z-index:1; padding:16px 14px 16px; display:flex; flex-direction:column; gap:15px; }
       .lobby-top{ display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap; }
       .lobby-top .game-logo{ width:138px; filter:drop-shadow(0 4px 14px rgba(0,0,0,.6)); }
       .resbar{ margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
@@ -354,8 +354,8 @@
         background:linear-gradient(145deg,#ffe9a8,#dfa92f); color:#2a1e02; font-size:17px; font-weight:900; line-height:1;
         display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.45); }
       .lobby-row2{ display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
-      .lobby-profile{ display:flex; align-items:center; gap:10px; text-align:left; background:rgba(6,14,24,.8);
-        border:1px solid rgba(255,255,255,.16); border-radius:12px; padding:8px 12px; color:#fff; max-width:100%; }
+      .lobby-profile{ flex:1; display:flex; align-items:center; gap:10px; text-align:left; background:rgba(6,14,24,.8);
+        border:1px solid rgba(255,255,255,.16); border-radius:12px; padding:10px 12px; color:#fff; max-width:100%; }
       .lobby-profile .pshield{ font-size:30px; line-height:1; filter:drop-shadow(0 2px 6px rgba(212,175,55,.5)); }
       .lobby-profile .pname{ font-weight:800; font-size:14px; display:block; white-space:nowrap; }
       .lobby-profile .plv{ display:flex; align-items:center; gap:7px; font-size:12px; color:#e8cf8a; font-weight:700; margin-top:2px; }
@@ -407,13 +407,14 @@
       .startmatch:disabled{ opacity:.55; }
       .lobby-sec{ font-size:13px; font-weight:800; color:#e8cf8a; letter-spacing:.08em; display:flex; align-items:center; gap:8px; }
       .lobby-sec::after{ content:''; flex:1; height:1px; background:linear-gradient(90deg, rgba(212,175,55,.55), rgba(212,175,55,0)); }
-      .lobby-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+      .lobby-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
       .ltile{ background:rgba(6,14,24,.84); border:1px solid rgba(255,255,255,.15); border-radius:12px; color:#e8eef4;
-        padding:11px 6px 9px; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:12.5px; font-weight:700;
+        padding:12px 6px 10px; min-height:92px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:12.5px; font-weight:700;
         text-align:center; position:relative; }
+      .ltile.wide{ grid-column:1/-1; min-height:76px; }
       .ltile .ti{ font-size:21px; line-height:1.15; }
-      .ltile small{ color:#93a7ba; font-weight:500; font-size:10.5px; line-height:1.4; }
-      .ltile .bdg{ position:absolute; top:6px; right:6px; background:var(--orange); color:#fff; font-size:10.5px; font-weight:800;
+      .ltile small{ color:#93a7ba; font-weight:500; font-size:10.5px; line-height:1.45; }
+      .ltile .bdg{ position:absolute; top:6px; right:6px; background:#f0c44f; color:#23180a; font-size:10.5px; font-weight:800;
         border-radius:9px; padding:1px 6px; }
       .lobby-banner{ position:relative; border-radius:12px; overflow:hidden; border:1px solid rgba(120,220,150,.4); padding:0; height:96px; background:#0a1420; text-align:left; width:100%; }
       .lobby-banner img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center; display:block; }
@@ -2779,7 +2780,7 @@ function pagePay(){
   +'<button class="btn grn" onclick="claimDiamonds()">我已付款，领取钻石</button></div></div></div>'
   + payExtraHTML()
   +'<div class="card"><h3>💎 钻石商城</h3><div class="shop-grid">'+shopHTML+'</div></div>'
-  +'<div class="card" style="border:2px solid #d4af37;"><h3>🃏 球星抽卡<span class="hint">商城新玩法 · 五档卡包 · 概率全公开</span></h3><p class="desc">新秀包 60 钻 → 传奇包 1200 钻，五档卡包、六个卡等级（普通 / 优秀 / 精英 / 巨星 / 传奇 / 限定）：等级越高能力越强、抽中概率越低。传奇卡有机会直接开出<b>图鉴里的真传奇</b>；最稀有的<b>限定卡</b>出的是图鉴里没有的<b>卡包限定·巅峰</b>球员——巅峰C罗、巅峰梅西（99）只能在这里抽到。</p><button class="btn pri" onclick="go(\'packs\')">去抽卡 ›</button></div>';
+  +'<div class="card" style="border:2px solid #d4af37;"><h3>🃏 球星抽卡<span class="hint">商城新玩法 · 五档卡包 · 概率全公开</span></h3><p class="desc">新秀包 60 钻 → 传奇包 1200 钻，五档卡包、六个卡等级（普通 / 优秀 / 精英 / 巨星 / 传奇 / 限定）：等级越高能力越强、抽中概率越低。传奇卡有机会直接开出<b>图鉴里的真传奇</b>；最稀有的<b>限定卡</b>出的是图鉴里没有的<b>卡包限定·巅峰</b>球员——巅峰C罗（99）、巅峰梅西（98）只能在这里抽到。</p><button class="btn pri" onclick="go(\'packs\')">去抽卡 ›</button></div>';
 }
 function pageAuto(){
   return '<div class="card"><h3><span class="no">自动</span>全自动模拟</h3>'
@@ -2847,8 +2848,8 @@ var STARS=[
   {id:'hanjiaqi', name:'韩佳奇', en:'Han Jiaqi', nat:'中国', club:'北京国安', league:'中超', pos:'门将', age:27, ab:74, fee:340, img:'photo-55.jpg', tag:'国安 1 号门将，反应奇快，年轻门将里的佼佼者。'},
   {id:'jiantao', name:'蹇韬', en:'Jian Tao', nat:'中国', club:'成都蓉城', league:'中超', pos:'门将', age:25, ab:74, fee:330, img:'photo-56.jpg', tag:'蓉城 16 号门将，拿过中超月度最佳门将，扑救稳健。'},
   /* ---- 传奇巨星（legend:true）：照片均为本人真实比赛动作照，与下方图鉴一一对应 ---- */
-  {id:'messi', name:'梅西', en:'Lionel Messi', nat:'阿根廷', club:'迈阿密国际', league:'美职联', pos:'前锋', age:39, ab:96, fee:3200, img:'photo-57.jpg', legend:true, tag:'八座金球奖的历史第一人，迈阿密国际 10 号，左脚依旧是这个星球上最危险的武器。'},
-  {id:'ronaldo', name:'C罗', en:'Cristiano Ronaldo', nat:'葡萄牙', club:'利雅得胜利', league:'沙特联', pos:'前锋', age:41, ab:94, fee:3000, img:'photo-58.jpg', legend:true, tag:'克里斯蒂亚诺·罗纳尔多，利雅得胜利 7 号，41 岁还在刷新进球纪录，自律的代名词。'},
+  {id:'messi', name:'梅西', en:'Lionel Messi', nat:'阿根廷', club:'迈阿密国际', league:'美职联', pos:'前锋', age:39, ab:95, fee:3200, img:'photo-57.jpg', legend:true, tag:'八座金球奖的历史第一人，迈阿密国际 10 号，左脚依旧是这个星球上最危险的武器。'},
+  {id:'ronaldo', name:'C罗', en:'Cristiano Ronaldo', nat:'葡萄牙', club:'利雅得胜利', league:'沙特联', pos:'前锋', age:41, ab:97, fee:3000, img:'photo-58.jpg', legend:true, tag:'克里斯蒂亚诺·罗纳尔多，利雅得胜利 7 号，41 岁还在刷新进球纪录，自律的代名词。'},
   {id:'lewandowski', name:'莱万多夫斯基', en:'Robert Lewandowski', nat:'波兰', club:'巴塞罗那', league:'西甲', pos:'前锋', age:38, ab:92, fee:2000, img:'photo-59.jpg', legend:true, tag:'巴萨 9 号中锋，禁区内的终结机器，越老越妖的代表。'},
   {id:'debruyne', name:'德布劳内', en:'Kevin De Bruyne', nat:'比利时', club:'那不勒斯', league:'意甲', pos:'中场', age:35, ab:91, fee:1900, img:'photo-60.jpg', legend:true, tag:'那不勒斯中场大脑，一脚直塞能撕开任何防线，传球视野历史级。'},
   {id:'neymar', name:'内马尔', en:'Neymar Jr', nat:'巴西', club:'桑托斯', league:'巴甲', pos:'前锋', age:34, ab:90, fee:1800, img:'photo-61.jpg', legend:true, tag:'回到梦开始的桑托斯，巴西队史射手王，脚下花活与创造力无人能及。'},
@@ -3008,7 +3009,7 @@ function peakLockCardHTML(s){
 }
 function peakLockedTip(){
   $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:21px;">🔒 卡包限定 · 仅抽卡获得</div><div class="sub">这批巅峰球员不在图鉴签约名单里</div></div>'
-  +'<div class="body"><p class="desc" style="margin:0;">巅峰C罗（99）、巅峰梅西（99）这些「卡包限定」球员，<b>现金买不到、直签券签不到、转会市场也没有</b>，唯一的获得方式是去<b>球星抽卡</b>开卡包抽「限定卡」（能力 93–99）。限定概率：传奇包 5%（最高）、黄金包 3%、白银包 1%、青铜包 0.3%、新秀包 0.1%，抽中直接入队。</p></div>'
+  +'<div class="body"><p class="desc" style="margin:0;">巅峰C罗（99）、巅峰梅西（98）这些「卡包限定」球员，<b>现金买不到、直签券签不到、转会市场也没有</b>，唯一的获得方式是去<b>球星抽卡</b>开卡包抽「限定卡」（能力 93–99）。限定概率：传奇包 5%（最高）、黄金包 3%、白银包 1%、青铜包 0.3%、新秀包 0.1%，抽中直接入队。</p></div>'
   +'<div class="foot"><button class="btn" onclick="closeModal()">再想想</button><button class="btn pri" onclick="closeModal();go(\'packs\')">去球星抽卡 ›</button></div></div></div>';
 }
 function pageStars(){
@@ -3037,13 +3038,13 @@ function pageStars(){
     var st=starById(n.sid);
     return '<div class="news-it">'+(st?'<img src="'+st.img+'" alt="'+st.name+'的真实照片">':'')+'<div><b>'+esc(n.t)+'</b><div class="mini">'+n.m+'</div></div></div>';
   }).join('') : '<p class="desc">暂无播报。踢完一个月（开始比赛），这里会播报姆巴佩、哈兰德、武磊们在各自联赛的进球动态。</p>';
-  var legends=STARS.filter(function(s){ return s.legend; });
-  var legendHTML='<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>👑 传奇巨星<span class="hint">C罗 · 梅西领衔 · 能力 88–97 · 照片均为本人真实比赛动作照</span></h3>'
+  var legends=STARS.filter(function(s){ return s.legend; }).sort(function(a,b){ return b.ab-a.ab; });
+  var legendHTML='<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>👑 传奇巨星<span class="hint">C罗（97）领衔 · 梅西（95） · 能力 88–97 · 照片均为本人真实比赛动作照</span></h3>'
   +'<p class="desc">这一组是世界足坛的传奇名字：<b>C罗（克里斯蒂亚诺·罗纳尔多）、梅西、内马尔、莫德里奇、德布劳内、莱万多夫斯基、孙兴慜、拉莫斯、克罗斯、本泽马</b>（萨拉赫已在下方前锋组里）。他们年纪都不小了，但能力依旧顶级、身价依旧吓人。签约方式和图鉴其他球星一样：<b>现金直签</b>、<b>球星直签券</b>，或去<b>球星抽卡</b>碰运气——传奇包有机会直接抽中他们。已签下 '+legends.filter(function(s){ return starInSquad(s); }).length+'/'+legends.length+' 位传奇。</p>'
   +'<div class="star-grid">'+legends.map(function(s){ return '<div id="legend-'+s.id+'" style="display:flex;">'+starCardHTML(s)+'</div>'; }).join('')+'</div></div>';
   var peakGot=(G.pack && G.pack.peaks)? G.pack.peaks.length : 0;
   var peakHTML='<div class="card" style="border:2px solid #12263f;background:linear-gradient(180deg,#eef3f8,#ffffff);"><h3>🔒 卡包限定 · 巅峰<span class="hint">图鉴里没有 · 能力 93–99 · 仅抽卡获得 · 已抽到 '+peakGot+'/'+PEAK_STARS.length+' 人</span></h3>'
-  +'<p class="desc">这一组是全游戏最强的一档：上面 10 位传奇的<b>巅峰版本</b>（巅峰C罗、巅峰梅西都是 <b>99</b>），再加图鉴里根本没有的<b>维尔茨、帕尔默、巴尔韦德</b>。他们是<b>锁定预览</b>：<b>不能用现金签约、直签券也签不到、转会市场买不到</b>，唯一的获得方式是去<b>球星抽卡</b>开卡包——传奇包抽到限定球员的概率最高（5%）。</p>'
+  +'<p class="desc">这一组是全游戏最强的一档：上面 10 位传奇的<b>巅峰版本</b>（巅峰C罗 <b>99</b> 全游戏最高、巅峰梅西 <b>98</b>），再加图鉴里根本没有的<b>维尔茨、帕尔默、巴尔韦德</b>。他们是<b>锁定预览</b>：<b>不能用现金签约、直签券也签不到、转会市场买不到</b>，唯一的获得方式是去<b>球星抽卡</b>开卡包——传奇包抽到限定球员的概率最高（5%）。</p>'
   +'<div class="star-grid">'+PEAK_STARS.map(function(s){ return '<div style="display:flex;">'+peakLockCardHTML(s)+'</div>'; }).join('')+'</div></div>';
   var POSG=[['前锋','⚡ 前锋'],['中场','🎯 中场'],['后卫','🛡️ 后卫'],['门将','🧤 门将']];
   var posHTML=POSG.map(function(pg){
@@ -3064,19 +3065,19 @@ function pageStars(){
 </script>
 <script>
 "use strict";
-/* ---------------- 游戏大厅（精简布局：核心入口直达 + 玩法按分类收起，每个按钮都有真实功能） ----------------
-   顶部资源栏：金币=俱乐部现金（点开俱乐部页看银行账目，+ 去充值中心）
-               钻石=钻石余额（点开充值中心，+ 同样去充值中心）
-               体力=球队士气（点开阵容页，+ 去运营活动提升士气）
-   快捷行：福利=福利中心弹窗（签到/成就/VIP） 签到=每周签到板（7 天循环，与入口弹窗同一套） 海报墙=三张海报查看/删除/恢复
+/* ---------------- 游戏大厅（整洁分区布局：一个功能只留一个入口，不重复摆） ----------------
+   顶部：游戏标志 + 资源栏（金币=俱乐部现金 / 钻石 / 士气）+ 俱乐部信息卡（点开俱乐部页）。
    海报滚动区：未删除的海报整行独立展示，左右滑动/箭头/圆点切换、自动轮播，点海报放大看；
                画面上不压任何按钮、角标或浮层，箭头和圆点都在画面下方的控制条里。
-   核心入口：我的球队（阵容页）+ 开始比赛/下一场 + 生涯/联盟/签到/充值/海报墙。
-   玩法分类（点开分类弹窗，再点里面的玩法进入，showLobbyCat）：
-     俱乐部类=集团扩张/董事会与设施（俱乐部页）/灰色账本/全自动模拟
-     球队球员类=转会市场/数据球探/青训体系/球星图鉴/训练·更衣室·球员关系（阵容页内）
-     赛事活动类=运营活动/荣誉中心/任务中心/联盟排行
-     更多=人脉关系/媒体中心/致敬传奇/装成 App
+   中部：我的球队（阵容页）+ 大号「下一场 / 开始比赛」+ 观看直播。
+   功能区按类别分组、每组一个小标题、组内瓷砖统一尺寸：
+     俱乐部=集团扩张/企业上市/商务谈判/董事会与设施
+     球队=转会市场/球星图鉴/青训体系/数据球探（阵容由「我的球队」卡与底部页签进入）
+     赛事=每日任务/运营活动/荣耀殿堂/体彩竞猜/荣誉中心/趣味乐园（联盟由底部页签进入）
+     商城=充值中心/球星抽卡/福利中心/每周签到
+     更多=不常用功能收进 showLobbyCat('more') 弹窗：人脉/媒体/海外/品牌/跨界/灰账/自动模拟/
+          任务中心/联盟排行/致敬传奇/海报墙（装成 App 用大厅下方的安装卡，不再重复）
+   生涯由底部页签进入，不再在大厅重复摆入口。
    底部五栏（bottomTabsHTML 由 render() 全局渲染，所有页面常驻，点任意页签直接切换）：
    首页=大厅 球队=俱乐部页 阵容=阵容页（球队强度/一线队名单/主教练）
    生涯=独立生涯页（王朝评级/成就墙/长期目标/历届冠军/我的荣誉） 联盟=联盟联赛页 */
@@ -3257,62 +3258,38 @@ function viewLobbyPoster(id){
   +'<div class="tribute-cap">'+p.cap+'</div>'
   +'</div></div>';
 }
-/* ---------------- 大厅玩法分类（点分类 → 弹窗里列出该类的全部玩法 → 点「打开」直达） ----------------
-   大厅删掉的重复入口（活动/商城快捷键、左右侧栏、球员招募/战术中心/荣誉生涯照片卡、
-   球星图鉴/荣誉中心/青训营三条横幅、15 个功能瓷砖）去向都在这里或核心入口里，一个没丢：
-   转会/球探/青训/球星图鉴→球队球员类；运营/荣誉/任务/排行→赛事活动类；
-   集团/灰色账本/自动模拟→俱乐部类；人脉/媒体/致敬传奇/装成App→更多；
-   俱乐部（董事会与设施）→俱乐部类；训练/更衣室/球员关系在阵容页内→球队球员类里有直达行。 */
+/* ---------------- 大厅「更多功能」弹窗（不常用的玩法收在这里，点一行「打开」直达） ----------------
+   大厅功能区已按 俱乐部 / 球队 / 赛事 / 商城 四组直接摆瓷砖；这里只收不常用的：
+   人脉关系 / 媒体中心 / 海外俱乐部 / 自有品牌 / 品牌合作 / 跨行业经营 / 灰色账本 /
+   全自动模拟 / 训练·更衣室（阵容页内）/ 任务中心 / 联盟排行 / 致敬传奇 / 海报墙。
+   一个玩法只出现一次：装成 App 用大厅下方安装卡，生涯与联盟用底部页签，不在这里重复。 */
 function showLobbyCat(key){
   var claim=claimableAchCount();
-  var youthReady=(G.youth||[]).filter(function(p){ return p.age>=16 && p.ab>=50; }).length;
-  var opsLeft=OPS.filter(function(o){ return !(G.opsUsed && G.opsUsed[o.id]); }).length;
   var cats={
-    club:{ t:'🏛️ 俱乐部类', rows:[
-      ['go','empire','🏢','集团扩张','电竞 · 篮球 · 自有品牌 · 海外卫星队，板块每月结算 · 当前 '+ventCount()+' 个板块'],
+    more:{ t:'⋯ 更多功能', rows:[
+      ['go','rel','🤝','人脉关系','六位关键人物打点：赞助商、足协、青训总监、媒体…'],
+      ['go','media','🎙️','媒体中心','发布会四种表态 · 公开表扬与批评球员'],
       ['go','overseas','🌍','海外俱乐部','成就解锁：葡/西/英/巴/日/荷建队 · 独立经营 · 青训输送主队'],
       ['go','brand','👕','自有品牌','成就解锁：起名选标志 · 卖球衣周边 · 品牌价值随成绩涨'],
       ['go','deals','🤝','品牌合作','成就解锁：耐克/阿迪/安踏/李宁等真实品牌赞助合同'],
-      ['go','neg','📞','商务谈判中心','给八大品牌对接人打电话谈合同 · 谈判桌正式报价 · 谈成生成合作备忘'],
-      ['go','ipo','📈','企业上市','自有品牌/跨行业公司上市政策与流程 · 达标可申请 · 上市募资 · 股价分红'],
       ['go','cross','🏭','跨行业经营','成就解锁：餐饮/房地产/影视/电竞酒店等 · 投钱升级看盈亏'],
-      ['go','club','📋','董事会与设施','俱乐部页：设施升级 · 银行授信 · 董事会目标与耐心 · 王朝评级'],
       ['go','gray','🕶️','灰色账本','来钱快，但纪检热度会涨'+(G.heat>=60?' · 当前热度 '+G.heat+'，危险':' · 当前热度 '+G.heat)],
-      ['go','auto','🤖','全自动模拟','托管经营：自动买人、自动推进，无限玩下去']
-    ]},
-    team:{ t:'👥 球队球员类', rows:[
-      ['go','market','🔁','转会市场','买人卖人 · 每笔报价都标签约价盈亏 · 本月 '+G.market.length+' 名球员在售'],
-      ['go','intel','🔭','数据球探','球探报告完整度 · 适配度评分 · 考察任务带回独家候选'],
-      ['go','youth','🌱','青训体系','签苗子 · 定培养方案 · 提拔一线队'+(youthReady?' · '+youthReady+' 人已可提拔':'')],
-      ['go','stars','⭐','球星图鉴','世界球星 · 五大联赛 · 中超名将，真实照片一一对应，可真签进队'],
-      ['go','packs','🃏','球星抽卡','商城五档卡包（60–1200 钻）· 六个卡等级概率全公开 · 限定卡独占巅峰C罗梅西（99）等卡包限定球员'],
-      ['go','squad','🏋️','训练 · 更衣室 · 球员关系','在阵容页下方：训练强度与理疗、球员谈话、首发承诺、续约都在那']
-    ]},
-    event:{ t:'🎪 赛事活动类', rows:[
-      ['go','tasks','✅','每日任务','每天真实日期刷新 6 个任务 · 连续登录奖励 · 明日任务预告'],
-      ['go','fun','🎡','趣味乐园','幸运大转盘（每天免费 1 次）· 球迷来信回信 · 每日趣味随机事件'],
-      ['go','ops','🎪','运营活动','战术体系 · 赛前部署 · 每月活动 · 足协杯'+(opsLeft?' · 本月还剩 '+opsLeft+' 项可办':'')],
-      ['go','honors','🎖️','荣誉中心','俱乐部荣誉 · 球员荣誉 · 赛季颁奖倒计时 '+monthsToAwards()+' 个月'],
-      ['go','hall','🏛️','荣耀殿堂','本俱乐部名人堂（功勋球员 + 退役号码）+ 世界足坛名人堂，与荣誉中心互通'],
-      ['go','bet','🎟️','体彩竞猜','只用游戏内现金 · 胜平负 / 猜比分 / 总进球数 · 赔率按实力算 · 赛后自动结算'],
+      ['go','auto','🤖','全自动模拟','托管经营：自动买人、自动推进，无限玩下去'],
+      ['go','squad','🏋️','训练 · 更衣室 · 球员关系','在阵容页下方：训练强度与理疗、球员谈话、首发承诺、续约都在那'],
       ['fn','tasks','📋','任务中心','董事会赛季目标 + 长期目标'+(claim?' · '+claim+' 个成就奖励可领':'')],
-      ['fn','ranking','📊','联盟排行','当前联赛积分榜 · 我的王朝评级']
-    ]},
-    more:{ t:'⋯ 更多', rows:[
-      ['go','rel','🤝','人脉关系','六位关键人物打点：赞助商、足协、青训总监、媒体…'],
-      ['go','media','🎙️','媒体中心','发布会四种表态 · 公开表扬与批评球员'],
+      ['fn','ranking','📊','联盟排行','当前联赛积分榜 · 我的王朝评级'],
       ['fn','tribute','🐐','致敬传奇','游戏创作者 × C罗国家队谢幕海报，全屏看'],
-      ['fn','install','📲','装成 App','添加到手机主屏幕，点图标全屏开玩']
+      ['fn','posterwall','🖼️','海报墙','三张海报 · 查看 / 删除 / 恢复']
     ]}
   };
   var c=cats[key]; if(!c) return;
-  var fnMap={ tasks:'showTasks()', ranking:'showRanking()', tribute:'showTribute()', install:'doInstall()' };
+  var fnMap={ tasks:'showTasks()', ranking:'showRanking()', tribute:'showTribute()', posterwall:'showPosterWall()' };
   var rows=c.rows.map(function(r){
     var oc= r[0]==='go' ? 'closeModal();go(\''+r[1]+'\')' : fnMap[r[1]];
     return '<div class="item"><span style="font-size:22px;line-height:1.2;">'+r[2]+'</span><div class="grow"><div class="nm">'+r[3]+'</div><div class="meta">'+r[4]+'</div></div><button class="btn pri sm" onclick="'+oc+'">打开</button></div>';
   }).join('');
   $modal.innerHTML='<div class="overlay"><div class="modal">'
-  +'<div class="hero"><div class="big" style="font-size:23px;">'+c.t+'</div><div class="sub">这一类的玩法都在这里，点任意一行「打开」直接进去</div></div>'
+  +'<div class="hero"><div class="big" style="font-size:23px;">'+c.t+'</div><div class="sub">不常用的玩法都收在这里，点任意一行「打开」直接进去</div></div>'
   +'<div class="body">'+rows+'</div>'
   +'<div class="foot"><button class="btn" onclick="closeModal()">关闭</button></div></div></div>';
 }
@@ -3322,19 +3299,35 @@ function lobbyHTML(){
   var claim=claimableAchCount();
   var signed=!signCan();
   var welfareN=claim+(signed?0:1);
-  /* 大厅只留核心入口，其余玩法按分类收进 showLobbyCat 的分类弹窗（一个玩法只出现一次，不再重复摆） */
-  var coreTilesHTML=''
-  +'<button class="ltile" onclick="go(\'tasks\')"><span class="ti">✅</span>每日任务<small>每天刷新 6 个 · 连登有大奖 · 明日可预览</small>'+(dailyClaimable()?'<span class="bdg">'+dailyClaimable()+' 个可领</span>':'<span class="bdg">连登 '+((G.daily&&G.daily.streak)||0)+' 天</span>')+'</button>'
-  +'<button class="ltile" onclick="go(\'career\')"><span class="ti">🏆</span>生涯<small>王朝评级 · 成就墙 · 历届冠军</small>'+((G.titles||0)?'<span class="bdg">冠军 ×'+G.titles+'</span>':'')+'</button>'
-  +'<button class="ltile" onclick="go(\'league\')"><span class="ti">🛡️</span>联盟<small>积分榜 · 升降级 · 三级联赛</small></button>'
-  +'<button class="ltile" onclick="lobbySignIn()"><span class="ti">📅</span>签到<small>每周签到 · 7 天循环领钻石</small>'+(signed?'':'<span class="bdg">可领</span>')+'</button>'
-  +'<button class="ltile" onclick="go(\'pay\')"><span class="ti">💎</span>充值<small>钻石 · VIP · 首充礼包 · 月卡 · 招募球星</small>'+(payClaimableCount()>0?'<span class="bdg">可领 '+payClaimableCount()+'</span>':'')+'</button>'
-  +'<button class="ltile" onclick="showPosterWall()"><span class="ti">🖼️</span>海报墙<small>三张海报 · 查看 / 删除 / 恢复</small></button>';
-  var catTilesHTML=''
-  +'<button class="ltile" onclick="showLobbyCat(\'club\')"><span class="ti">🏛️</span>俱乐部类<small>集团扩张 · 董事会与设施 · 灰色账本 · 自动模拟</small></button>'
-  +'<button class="ltile" onclick="showLobbyCat(\'team\')"><span class="ti">👥</span>球队球员类<small>转会 · 球探 · 青训 · 球星图鉴 · 训练更衣室</small></button>'
-  +'<button class="ltile" onclick="showLobbyCat(\'event\')"><span class="ti">🎪</span>赛事活动类<small>运营活动 · 荣誉中心 · 任务 · 排行</small>'+(claim?'<span class="bdg">'+claim+' 个奖励可领</span>':'')+'</button>'
-  +'<button class="ltile" onclick="showLobbyCat(\'more\')"><span class="ti">⋯</span>更多<small>人脉关系 · 媒体中心 · 致敬传奇 · 装成 App</small>'+(G.heat>=60?'<span class="bdg">热度 '+G.heat+'</span>':'')+'</button>';
+  /* 功能区按 俱乐部 / 球队 / 赛事 / 商城 分组摆瓷砖（统一尺寸、统一字号），
+     不常用的收进「更多功能」弹窗；一个玩法只出现一次，不再重复摆 */
+  var youthReady=(G.youth||[]).filter(function(p){ return p.age>=16 && p.ab>=50; }).length;
+  function ltile(oc, icon, name, small, badge){
+    return '<button class="ltile" onclick="'+oc+'"><span class="ti">'+icon+'</span>'+name+'<small>'+small+'</small>'+(badge?'<span class="bdg">'+badge+'</span>':'')+'</button>';
+  }
+  var clubTilesHTML=''
+  + ltile("go('empire')",'🏢','集团扩张','电竞 · 篮球 · 海外 · 跨界板块')
+  + ltile("go('ipo')",'📈','企业上市','达标申请上市 · 募资 · 股价分红')
+  + ltile("go('neg')",'📞','商务谈判','给品牌对接人打电话谈合同')
+  + ltile("go('club')",'📋','董事会与设施','设施升级 · 银行授信 · 王朝评级');
+  var teamTilesHTML=''
+  + ltile("go('market')",'🔁','转会市场','买人卖人 · 报价标签约价盈亏')
+  + ltile("go('stars')",'⭐','球星图鉴','C罗 97 领衔 · 传奇巨星可签')
+  + ltile("go('youth')",'🌱','青训体系','签苗子 · 培养 · 提拔一线队', youthReady? youthReady+' 人可提拔':'')
+  + ltile("go('intel')",'🔭','数据球探','球探报告 · 适配度 · 独家候选');
+  var eventTilesHTML=''
+  + ltile("go('tasks')",'✅','每日任务','每天 6 个 · 连登奖励 · 明日预告', dailyClaimable()? dailyClaimable()+' 个可领':'')
+  + ltile("go('ops')",'🎪','运营活动','战术体系 · 赛前部署 · 足协杯')
+  + ltile("go('hall')",'🏛️','荣耀殿堂','名人堂 · 退役号码 · 世界传奇')
+  + ltile("go('bet')",'🎟️','体彩竞猜','只用游戏内现金 · 赛后结算')
+  + ltile("go('honors')",'🎖️','荣誉中心','俱乐部与球员荣誉 · 赛季颁奖')
+  + ltile("go('fun')",'🎡','趣味乐园','幸运转盘 · 球迷来信 · 随机事件');
+  var shopTilesHTML=''
+  + ltile("go('pay')",'💎','充值中心','钻石 · VIP · 首充礼包 · 月卡', payClaimableCount()>0? '可领 '+payClaimableCount():'')
+  + ltile("go('packs')",'🃏','球星抽卡','五档卡包 · 限定巅峰C罗 99')
+  + ltile('showWelfare()','🎁','福利中心','签到 · 成就奖励 · VIP 福利', welfareN? ''+welfareN:'')
+  + ltile('lobbySignIn()','📅','每周签到','7 天循环 · 第 7 天大奖', signed?'':'可领');
+  var moreTileHTML='<button class="ltile wide" onclick="showLobbyCat(\'more\')"><span class="ti">⋯</span>更多功能<small>人脉关系 · 媒体中心 · 海外俱乐部 · 自有品牌 · 品牌合作 · 跨行业 · 灰色账本 · 自动模拟 · 海报墙</small>'+(G.heat>=60?'<span class="bdg">热度 '+G.heat+'</span>':'')+'</button>';
   var nfx=nextFixture();
   var startBtn= G.ended
     ? '<button class="startmatch" onclick="revive()"><span class="big">注资续命 ›</span><span class="en">REVIVE CLUB</span><small>俱乐部已停摆，注资后继续经营</small></button>'
@@ -3350,22 +3343,23 @@ function lobbyHTML(){
   +'</div></div>'
   +'<div class="lobby-row2">'
   +'<button class="lobby-profile" onclick="go(\'club\')" title="点开俱乐部页：设施、银行、王朝评级与成就"><span class="pshield">🛡️</span><span><span class="pname">经理人 · '+esc(G.club)+'</span><span class="plv">Lv.'+lv+' <span class="lvlbar"><i style="width:'+pct+'%"></i></span></span><span class="psub">'+d.short+' 第 '+myRank()+' 名 · '+G.mon+'月'+G.day+'日 · 声望 '+G.rep+' · 球迷 '+fmtFans(G.fans)+' · 满意度 '+(G.fanSat==null?62:G.fanSat)+'</span></span></button>'
-  +'<div class="lobby-quick">'
-  +'<button class="qbtn" onclick="showWelfare()"><span class="qi">🎁</span>福利'+(welfareN?'<span class="dot">'+welfareN+'</span>':'')+'</button>'
-  +'<button class="qbtn" onclick="go(\'tasks\')"><span class="qi">✅</span>每日任务'+(dailyClaimable()?'<span class="dot">'+dailyClaimable()+'</span>':'')+'</button>'
-  +'<button class="qbtn" onclick="lobbySignIn()"><span class="qi">📅</span>签到'+(signed?'':'<span class="dot">1</span>')+'</button>'
-  +'<button class="qbtn" onclick="showPosterWall()"><span class="qi">🖼️</span>海报墙</button>'
-  +'</div></div>'
+  +'</div>'
   + posterCarouselHTML()
   +'<div class="lobby-actions">'
   +'<button class="myteam" onclick="go(\'squad\')"><img src="photo-30.jpg" alt="夜晚灯光下的足球场航拍真实照片"><span class="mt-t">我的球队 · 阵容<small>'+esc(G.club)+' · '+d.short+' · 阵容 '+G.squad.length+' 人 · 教练与更衣室都在这</small></span><span class="mt-go">›</span></button>'
   + startBtn
-  +((!G.ended && nfx)? '<button class="startmatch" style="background:linear-gradient(120deg,#8e2323,#5f1616);" onclick="watchLive()"><span class="big">📺 观看直播 ›</span><span class="en">WATCH LIVE</span><small>下一场按分钟直播：可暂停、快进、只看关键时刻，比分与结算一致</small></button>' : '')
+  +((!G.ended && nfx)? '<button class="startmatch" style="background:linear-gradient(120deg,#1e4d78,#0c2a47);color:#eaf3fb;" onclick="watchLive()"><span class="big">📺 观看直播 ›</span><span class="en" style="color:#9fc3e2;">WATCH LIVE</span><small style="color:#b9d2e8;">下一场按分钟直播：可暂停、快进、只看关键时刻，比分与结算一致</small></button>' : '')
   +'</div>'
-  +'<div class="lobby-sec">核心入口</div>'
-  +'<div class="lobby-grid">'+coreTilesHTML+'</div>'
-  +'<div class="lobby-sec">玩法分类 · 点开分类，再点里面的玩法</div>'
-  +'<div class="lobby-grid">'+catTilesHTML+'</div>'
+  +'<div class="lobby-sec">俱乐部</div>'
+  +'<div class="lobby-grid">'+clubTilesHTML+'</div>'
+  +'<div class="lobby-sec">球队</div>'
+  +'<div class="lobby-grid">'+teamTilesHTML+'</div>'
+  +'<div class="lobby-sec">赛事</div>'
+  +'<div class="lobby-grid">'+eventTilesHTML+'</div>'
+  +'<div class="lobby-sec">商城</div>'
+  +'<div class="lobby-grid">'+shopTilesHTML+'</div>'
+  +'<div class="lobby-sec">更多</div>'
+  +'<div class="lobby-grid">'+moreTileHTML+'</div>'
   +'</div>'
   +'</section>';
 }
@@ -5554,7 +5548,7 @@ var PACKS=[
   {id:'bronze', nm:'青铜包', price:150,  probs:[49.7,35,12,2.7,0.3,0.3], ds:'精英开始常见，巨星得看运气，传奇和限定基本是梦想。'},
   {id:'silver', nm:'白银包', price:300,  probs:[31,38,22,7,1,1],         ds:'精英概率明显提升，传奇、限定各有 1% 的盼头。'},
   {id:'gold',   nm:'黄金包', price:600,  probs:[12,30,35,17,3,3],        ds:'冲高卡的主力包：巨星 17%、传奇 3%、限定 3%。'},
-  {id:'legend', nm:'传奇包', price:1200, probs:[2,18,37,33,5,5],         ds:'传奇 5%、限定 5% 都是全场最高——限定池里是巅峰C罗、巅峰梅西。'}
+  {id:'legend', nm:'传奇包', price:1200, probs:[2,18,37,33,5,5],         ds:'传奇 5%、限定 5% 都是全场最高——限定池里是巅峰C罗（99）、巅峰梅西（98）。'}
 ];
 function packDef(id){ var f=null; PACKS.forEach(function(p){ if(p.id===id) f=p; }); return f; }
 function rollTier(probs){ var r=Math.random()*100, acc=0; for(var i=0;i<probs.length;i++){ acc+=probs[i]; if(r<acc) return i; } return 0; }
@@ -5564,7 +5558,7 @@ function rollTier(probs){ var r=Math.random()*100, acc=0; for(var i=0;i<probs.le
    后 3 位是图鉴里没有的其他顶级球星。抽中直接入队，收集记录存 G.pack.peaks。 */
 var PEAK_STARS=[
   {id:'pk-ronaldo', name:'巅峰C罗', en:'Cristiano Ronaldo · 巅峰期', nat:'葡萄牙', club:'皇家马德里', pos:'前锋', age:29, ab:99, img:'photo-58.jpg', tag:'2014 年的 C罗：欧冠单赛季 17 球封王，头顶脚踢无所不能，身体机能和射术同时拉满的历史级赛季。'},
-  {id:'pk-messi', name:'巅峰梅西', en:'Lionel Messi · 巅峰期', nat:'阿根廷', club:'巴塞罗那', pos:'前锋', age:25, ab:99, img:'photo-57.jpg', tag:'2012 年的梅西：自然年 91 球的世界纪录，五大联赛在他脚下踢得像训练赛。'},
+  {id:'pk-messi', name:'巅峰梅西', en:'Lionel Messi · 巅峰期', nat:'阿根廷', club:'巴塞罗那', pos:'前锋', age:25, ab:98, img:'photo-57.jpg', tag:'2012 年的梅西：自然年 91 球的世界纪录，五大联赛在他脚下踢得像训练赛。'},
   {id:'pk-neymar', name:'巅峰内马尔', en:'Neymar Jr · 巅峰期', nat:'巴西', club:'巴塞罗那', pos:'前锋', age:23, ab:97, img:'photo-61.jpg', tag:'2015 年的内马尔：MSN 组合的左翼，欧冠决赛进球，三冠王赛季的桑巴魔术师。'},
   {id:'pk-debruyne', name:'巅峰德布劳内', en:'Kevin De Bruyne · 巅峰期', nat:'比利时', club:'曼城', pos:'中场', age:29, ab:97, img:'photo-60.jpg', tag:'2020 年的德布劳内：单赛季 20 次助攻追平英超纪录，每一脚传球都像装了导航。'},
   {id:'pk-modric', name:'巅峰莫德里奇', en:'Luka Modrić · 巅峰期', nat:'克罗地亚', club:'皇家马德里', pos:'中场', age:33, ab:96, img:'photo-64.jpg', tag:'2018 年的莫德里奇：欧冠三连冠 + 世界杯亚军 + 金球奖，打破梅罗十年垄断的那个人。'},
@@ -5691,7 +5685,7 @@ function pagePacks(){
   +'<div class="acts"><button class="btn sm" onclick="go(\'pay\')">💎 钻石不够？去充值中心</button><button class="btn sm" onclick="go(\'stars\')">⭐ 去图鉴看传奇巨星</button></div></div>'
   +'<div class="pack-grid">'+cards+'</div>'
   +'<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>🌟 卡包限定池 · 巅峰<span class="hint">共 '+PEAK_STARS.length+' 人 · 能力 93–99 · 已抽到 '+G.pack.peaks.length+'/'+PEAK_STARS.length+' 人</span></h3>'
-  +'<p class="desc">这一池是全游戏最强的一档：10 位传奇巨星的<b>巅峰版本</b>（巅峰C罗、巅峰梅西都是 <b>99</b>），加上图鉴里根本没有的<b>维尔茨、帕尔默、巴尔韦德</b>。他们<b>不在图鉴签约名单里、转会市场买不到、直签券也签不到</b>——<b>仅抽卡获得</b>。限定卡概率：新秀包 0.1% / 青铜包 0.3% / 白银包 1% / 黄金包 3% / <b>传奇包 5%（最高）</b>，抽中直接入队。</p>'
+  +'<p class="desc">这一池是全游戏最强的一档：10 位传奇巨星的<b>巅峰版本</b>（巅峰C罗 <b>99</b> 全游戏最高、巅峰梅西 <b>98</b>），加上图鉴里根本没有的<b>维尔茨、帕尔默、巴尔韦德</b>。他们<b>不在图鉴签约名单里、转会市场买不到、直签券也签不到</b>——<b>仅抽卡获得</b>。限定卡概率：新秀包 0.1% / 青铜包 0.3% / 白银包 1% / 黄金包 3% / <b>传奇包 5%（最高）</b>，抽中直接入队。</p>'
   + peakPool +'</div>'
   +'<div class="card"><h3>📊 概率公示<span class="hint">五档卡包 × 六个等级，抽之前看清楚</span></h3>'+tbl
   +'<p class="mini" style="margin-top:8px;">读法：限定卡（93–99）是最稀有的一档——传奇包每包 5%，是新秀包（0.1%）的 50 倍；传奇卡（93–97）传奇包同样是 5%。巨星 / 传奇卡命中图鉴真球星的概率分别为 50% / 75%，其余为同能力区间的虚构强援；限定卡则必出上面限定池里的真球星。</p></div>'
@@ -5742,7 +5736,7 @@ function pageHall(){
   }).join('')+'</div>' : '<p class="desc">还没有人入选。把一名球员培养成球队传奇——进球攒到 50 个、出场攒到 80 场，或者带他拿个赛季大奖——等他将来转会或解约离队时，就会在这里留下名字和退役号码。现役球员里谁最接近入选，看下面「传奇候选」。</p>';
   var cands=G.squad.map(function(p){ return {p:p, r:inductCheck(p)}; }).filter(function(x){ return x.r.length; });
   var candHTML= cands.length? cands.map(function(x){ return '<div class="item"><span class="pill up">传奇候选</span><div class="grow"><div class="nm" style="font-weight:700;">'+esc(x.p.name)+' <span class="mini">'+x.p.pos+' · 能力 '+x.p.ab+' · 已出场 '+(x.p.played||0)+' 场 · 进球 '+((G.goalTable&&G.goalTable[x.p.name])||0)+'</span></div><div class="meta">已达成：'+esc(x.r.join('；'))+'——将来离队时自动入选名人堂</div></div></div>'; }).join('') : '<p class="desc">暂无候选。入选条件：进球 ≥ 50，或出场 ≥ 80 场，或拿过赛季个人奖项且出场 ≥ 30 场，或图鉴球星出场 ≥ 40 场。多让核心球员上场、进球，候选名单自然就有了。</p>';
-  var legends=STARS.filter(function(s){ return s.legend; });
+  var legends=STARS.filter(function(s){ return s.legend; }).sort(function(a,b){ return b.ab-a.ab; });
   var worldHTML='<div class="hon-grid">'+legends.map(function(s){
     return '<div class="hon-card"><div class="hn"><img class="star-thumb" src="'+s.img+'" alt="'+s.name+'的真实比赛照片"> '+s.name+' <span class="mini">'+s.club+' · '+s.league+' · 能力 '+s.ab+'</span></div><div class="hl">🏅 '+(STAR_HONORS[s.id]||'')+'<br>'+s.tag+'</div><div style="margin-top:6px;"><button class="btn sm" onclick="go(\'stars\')">去图鉴签下他</button></div></div>';
   }).join('')+'</div>';
