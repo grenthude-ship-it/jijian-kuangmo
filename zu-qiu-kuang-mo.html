@@ -301,7 +301,7 @@
       .creator-card{ position:relative; background:linear-gradient(180deg,#141a21,#0a0e13); border:2px solid #d4af37; border-radius:18px; padding:10px 10px 8px;
         box-shadow:0 26px 70px rgba(0,0,0,.65), 0 0 0 1px rgba(212,175,55,.25), 0 0 46px rgba(212,175,55,.16);
         max-width:min(430px,94vw); animation:creatorPop .3s ease-out; }
-      .creator-card img{ display:block; width:auto; height:auto; max-width:100%; max-height:min(76vh,760px); margin:0 auto; border-radius:10px; }
+      .creator-card img{ display:block; width:100%; height:auto; max-width:100%; max-height:min(76vh,760px); margin:0 auto; border-radius:10px; aspect-ratio:3/4; object-fit:contain; background:linear-gradient(180deg,#263449,#0c1119); }
       .creator-hint{ text-align:center; color:#e8cf8a; font-size:12.5px; letter-spacing:.14em; padding:8px 4px 4px; }
       .creator-del-note{ text-align:center; color:#c3cedb; font-size:11.5px; line-height:1.55; padding:2px 8px 0; }
       .creator-next{ display:block; margin:10px auto 5px; background:linear-gradient(180deg,#f3cd6b,#d4af37); color:#241a02; border:none; font-size:15px; font-weight:800; padding:10px 36px; border-radius:10px; cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,.4); }
@@ -473,6 +473,19 @@
       .news-it img{ width:40px; height:40px; border-radius:50%; object-fit:cover; object-position:top center; flex:0 0 40px; border:1.5px solid #d4af37; background:#0a1420; }
       .scorer-line{ font-size:12px; color:var(--ink2); margin-top:2px; }
       @media (max-width:640px){ .star-grid{ grid-template-columns:1fr 1fr; gap:9px; } .star-card>img{ height:118px; } }
+      /* ---------- 充值中心新玩法：首充礼包 / 月卡季卡 / 累充奖励 / 庆祝礼包 / 钻石招募 ---------- */
+      .deal{ border:2px solid #d4af37 !important; background:linear-gradient(180deg,#fffaf0,#ffffff); }
+      .prog{ height:10px; background:#edf1f4; border-radius:6px; overflow:hidden; margin:8px 0 4px; }
+      .prog i{ display:block; height:100%; background:linear-gradient(90deg,#b57f1d,#ffd968); border-radius:6px; }
+      .cum-row{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed var(--line); }
+      .cum-row:last-child{ border-bottom:none; }
+      .card-deal{ border:1px solid var(--line); border-radius:12px; padding:12px 14px; background:#fbfcfe; }
+      .card-deal.on{ border-color:#d4af37; background:#fffaf0; }
+      .gacha-res{ display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:10px; }
+      .gacha-it{ border:1px solid var(--line); border-radius:10px; padding:8px; text-align:center; font-size:12.5px; line-height:1.5; background:#fff; }
+      .gacha-it img{ width:100%; height:84px; object-fit:cover; object-position:top center; border-radius:7px; display:block; margin-bottom:5px; background:#0a1420; }
+      .gacha-it.star{ border:2px solid #d4af37; background:#fffaf0; font-weight:700; }
+      .gacha-it .gi{ font-size:26px; line-height:1.2; display:block; margin:8px 0 4px; }
       /* toast */
       #toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px); background:var(--navy1); color:#fff; padding:11px 20px; border-radius:24px; font-size:13.5px; font-weight:600; opacity:0; pointer-events:none; transition:.25s; z-index:99; max-width:92vw; text-align:center; }
       #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
@@ -618,8 +631,14 @@ function sanitizeSaveData(d){
     formation:'4-3-3', seasonGoals:{}, goalTable:{}, awards:[], playerHonors:{}, seasonHistory:[],
     train:{intensity:'标准', physio:1}, scout:{reports:{}, used:0, mission:null}, director:{mode:'manual'},
     board:{patience:70, cityRep:35, frozen:0, budgetSeason:-1, grantSeason:-1, facGrant:false, citySeason:-1},
-    mediaUsed:false };
+    mediaUsed:false,
+    pay2:{firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:-1} };
   for(var k in defs){ if(d[k]===undefined) d[k]=JSON.parse(JSON.stringify(defs[k])); }
+  if(!d.pay2 || typeof d.pay2!=='object') d.pay2=JSON.parse(JSON.stringify(defs.pay2));
+  var p2d={firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:-1};
+  for(var pk in p2d){ if(d.pay2[pk]===undefined) d.pay2[pk]=p2d[pk]; }
+  if(!d.pay2.cum || typeof d.pay2.cum!=='object') d.pay2.cum={};
+  if(d.pay2.titlesSeen==null || d.pay2.titlesSeen<0) d.pay2.titlesSeen=d.titles||0; // 老存档不补发夺冠礼包，从当前冠军数起算
   if(!d.fac || typeof d.fac!=='object') d.fac={stadium:1, academy:1, training:1, medical:0, data:0};
   var fd={stadium:1, academy:1, training:1, medical:0, data:0};
   for(var fk in fd){ if(d.fac[fk]===undefined) d.fac[fk]=fd[fk]; }
@@ -871,6 +890,7 @@ function newGame(clubName, origin, diff){
     relUsed:{}, grayUsed:{}, market:[], offers:[], table:[],
     hist:[o.cash], log:[], lastResults:[], lastFinance:null,
     diamonds:0, vip:0, spent:0, claimed:{}, ended:false, ending:null,
+    pay2:{firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:0},
     grayWinBoost:0, seasonRank:0, negMonths:0,
     ventures:{}, ventureNet:0, biz:defaultBiz(),
     tactic:'均衡攻守', titles:0, cupWins:0, seasonsPlayed:0, totalWins:0,
@@ -1464,6 +1484,7 @@ function advanceDays(n, manual){
 }
 function endMonth(auto){
   if(!G || G.ended) return;
+  expireLoans();
   advanceDays(31-G.day, !auto);
   render();
   if(batchDepth===0 && !autoOn) flushReports();
@@ -1847,6 +1868,264 @@ function buyShop(kind){
   else if(kind==='star'){ cost=300; if(G.diamonds<cost){ toast('钻石不够'); return; } if(G.squad.length>=22){ toast('阵容已满'); return; } G.diamonds-=cost; var p=genPlayer('star'); p.wage=Math.round(p.wage*10)/10; p.cost=0; p.signNote='钻石引援'; G.squad.push(p); log('💎 王牌引援卡生效：'+p.pos+' '+p.name+'（能力 '+p.ab+'）空降球队！签约方式：钻石引援（无转会费）。','good'); }
   render();
 }
+/* ---- 充值新玩法：首充大礼包 / 月卡·季卡 / 累计充值奖励 / 限时庆祝礼包 / 钻石招募球星 ----
+   全部走和普通充值一样的微信收款码信任流程：扫码付款 → 点「我已付款」→ 立刻到账。
+   状态都存在 G.pay2 里，随自动存档一起保存；老存档由 sanitizeSaveData / render 补默认。 */
+function absDay(){ return (G.month-1)*30 + (G.day||1); }
+function vipFromSpent(sp){ return sp>=648?6: sp>=328?5: sp>=128?4: sp>=68?3: sp>=30?2: sp>=6?1:0; }
+function bumpSpent(amt){
+  G.spent+=amt;
+  var nv=vipFromSpent(G.spent);
+  if(nv>G.vip){ G.vip=nv; log('👑 累计消费达到 ¥'+G.spent+'，VIP 升到 '+nv+' 级，赞助收入加成跟着涨。','good'); }
+}
+function grantStar(s, note){
+  var p=mkPlayer(s.name, s.pos, s.ab, s.age, s.league!=='中超');
+  p.pot=Math.min(99, s.ab + (s.age<=23?5:1));
+  p.cost=0; p.signNote=note; p.star=s.id; p.img=s.img;
+  G.squad.push(p);
+  var fanAdd= s.league==='中超'? 6000 : 20000;
+  G.fans+=fanAdd; G.rep=clamp(G.rep+(s.league==='中超'?2:4),0,100);
+  return p;
+}
+function signStarVoucher(id){
+  var s=starById(id); if(!s) return;
+  if(!(G.pay2.vouchers>0)){ toast('没有球星直签券——去充值中心攒累计充值奖励'); return; }
+  if(starInSquad(s)){ toast(s.name+' 已经在你的球队里了'); return; }
+  if(G.squad.length>=22){ toast('一线队名额已满（22人），先卖掉或解约一名球员'); return; }
+  G.pay2.vouchers--;
+  grantStar(s,'球星直签券 · '+s.club);
+  log('🎟️ 用球星直签券签下 '+s.name+'（'+s.club+' · '+s.league+' · '+s.pos+'），免转会费！能力 '+s.ab+'，已进入一线队，球迷和声望都涨了。','good');
+  toast('直签券签下 '+s.name+'！'); render();
+}
+/* 首充大礼包：任意充值一档后可领一次 */
+function claimFirstPack(){
+  var P=G.pay2;
+  if(P.firstPack){ toast('首充大礼包已经领过了'); return; }
+  if(G.spent<=0){ toast('先任意充值一档（最低 ¥1），回来就能领首充大礼包'); return; }
+  P.firstPack=true; P.trialCards+=1; P.badge='🎖️ 首充金主';
+  G.diamonds+=388;
+  log('🎁 首充大礼包领取成功：钻石 +388、球星体验卡 ×1、专属徽章「首充金主」（已挂在俱乐部名片上）。体验卡在充值中心使用，一名球星级球员租借加盟 3 个月。','good');
+  toast('首充大礼包到账：💎 +388 · 体验卡 ×1'); render();
+}
+function useTrialCard(){
+  var P=G.pay2;
+  if(P.trialCards<=0){ toast('没有球星体验卡'); return; }
+  if(G.squad.length>=22){ toast('一线队名额已满（22人），先卖掉或解约一名球员'); return; }
+  P.trialCards--;
+  var p=genPlayer('star'); p.wage=Math.round(p.wage*10)/10; p.cost=0; p.signNote='球星体验卡租借'; p.loanLeft=3;
+  G.squad.push(p);
+  log('🎫 球星体验卡生效：'+p.pos+' '+p.name+'（能力 '+p.ab+'）租借加盟 3 个月，免转会费、工资照常发。租借到期他会离队。','good');
+  toast(p.name+' 租借加盟（3 个月）'); render();
+}
+function expireLoans(){
+  if(!G || !G.squad) return;
+  var left=[];
+  G.squad.forEach(function(p){
+    if(p.loanLeft!=null){
+      p.loanLeft--;
+      if(p.loanLeft<=0){ log('🎫 租借到期：'+p.name+'（'+p.pos+' · 能力 '+p.ab+'）结束体验卡租借，离开了球队。',''); return; }
+    }
+    left.push(p);
+  });
+  G.squad=left;
+}
+/* 月卡 / 季卡：小额开通，每天领钻石（按游戏内天数，一天领一次） */
+var selCard='';
+function selectCard(k){ selCard=k; render(); }
+var CARDS={
+  month:{nm:'月卡', price:30, now:300, daily:60, days:30, ds:'开通立刻到账 300 钻，接下来 30 天（游戏内）每天再领 60 钻，合计最高 2100 钻——是直充 30 元档（300 钻）的 7 倍。'},
+  season:{nm:'季卡', price:88, now:1000, daily:100, days:90, ds:'开通立刻到账 1000 钻，接下来 90 天（游戏内）每天再领 100 钻，合计最高 10000 钻，长期玩最划算。'}
+};
+function claimCard(){
+  var c=CARDS[selCard]; if(!c) return;
+  var P=G.pay2, today=absDay();
+  if(selCard==='month'){ P.mUntil=(P.mUntil>=today? P.mUntil : today-1)+c.days; }
+  else { P.sUntil=(P.sUntil>=today? P.sUntil : today-1)+c.days; }
+  G.diamonds+=c.now; bumpSpent(c.price);
+  log('🎫 '+c.nm+'开通成功（¥'+c.price+'）：立刻到账 '+c.now+' 钻，往后 '+c.days+' 天每天可在充值中心领 '+c.daily+' 钻。累计消费 ¥'+G.spent+'，VIP'+G.vip+'。','good');
+  toast(c.nm+'开通！💎 +'+c.now); selCard=''; render();
+}
+function claimCardDaily(k){
+  var P=G.pay2, today=absDay(), c=CARDS[k];
+  var until= k==='month'? P.mUntil : P.sUntil;
+  var last= k==='month'? P.mLast : P.sLast;
+  if(until<today){ toast(c.nm+'已过期，去开通一张新的'); return; }
+  if(last>=today){ toast('今天的'+c.nm+'钻石已经领过了，推进到新的一天再来'); return; }
+  if(k==='month') P.mLast=today; else P.sLast=today;
+  G.diamonds+=c.daily;
+  log('🎫 '+c.nm+'每日钻石到账 +'+c.daily+' 钻。','good');
+  toast('+'+c.daily+' 钻石'); render();
+}
+/* 累计充值奖励：累计消费到达档位领一次 */
+var CUM_TIERS=[
+  {amt:30, dia:150, extra:'', extraTxt:''},
+  {amt:68, dia:320, extra:'', extraTxt:''},
+  {amt:128, dia:600, extra:'trial', n:1, extraTxt:'球星体验卡 ×1'},
+  {amt:328, dia:1500, extra:'voucher', n:1, extraTxt:'球星直签券 ×1'},
+  {amt:648, dia:3200, extra:'title', extraTxt:'专属称号「豪门金主」'},
+  {amt:1288, dia:7000, extra:'voucher', n:1, extraTxt:'球星直签券 ×1'}
+];
+function claimCum(i){
+  var t=CUM_TIERS[i], P=G.pay2;
+  if(P.cum[t.amt]){ toast('这一档已经领过了'); return; }
+  if(G.spent<t.amt){ toast('累计充值还差 ¥'+(t.amt-G.spent)+' 到这一档'); return; }
+  P.cum[t.amt]=true; G.diamonds+=t.dia;
+  var msg='🏅 累计充值 ¥'+t.amt+' 奖励到账：钻石 +'+t.dia;
+  if(t.extra==='trial'){ P.trialCards+=t.n; msg+='、球星体验卡 ×'+t.n; }
+  if(t.extra==='voucher'){ P.vouchers+=t.n; msg+='、球星直签券 ×'+t.n+'（去球星图鉴免转会费直签任意球星）'; }
+  if(t.extra==='title'){ P.titleName='豪门金主'; msg+='、专属称号「豪门金主」（已显示在俱乐部名片上）'; }
+  log(msg+'。','good');
+  toast('累充奖励到账 💎 +'+t.dia); render();
+}
+/* 限时庆祝礼包：赢球后 3 天、夺冠后 5 天（游戏内） */
+var CELEB_PACKS={
+  win:{nm:'🎉 胜利庆祝礼包', price:18, dia:260, cash:200, trial:0, ds:'赢球限时特惠：260 钻 + 运营资金 200万，同样的钱直充只能买 180 钻，赢球才有这个价。'},
+  title:{nm:'🏆 夺冠庆典礼包', price:38, dia:620, cash:300, trial:1, ds:'夺冠专属：620 钻 + 运营资金 300万 + 球星体验卡 ×1，只在夺冠后短暂出现，错过等下次夺冠。'}
+};
+function celebActive(){ var c=G.pay2 && G.pay2.celeb; return !!(c && !c.bought && absDay()<=c.until); }
+function noteMatchWin(){
+  var P=G.pay2; if(!P) return;
+  if(P.celeb && P.celeb.kind==='title' && celebActive()) return; // 夺冠礼包优先，不被胜利礼包覆盖
+  P.celeb={kind:'win', until:absDay()+3, bought:false, shown:false};
+}
+function noteTitleWin(){
+  var P=G.pay2; if(!P) return;
+  if((G.titles||0)>(P.titlesSeen||0)){
+    P.titlesSeen=G.titles;
+    P.celeb={kind:'title', until:absDay()+5, bought:false, shown:false};
+  }
+}
+function maybeCelebPopup(){
+  var P=G.pay2; if(!P || !celebActive() || P.celeb.shown) return;
+  P.celeb.shown=true;
+  showCelebPack();
+}
+function showCelebPack(){
+  var c=G.pay2.celeb; if(!c) return;
+  var pk=CELEB_PACKS[c.kind];
+  $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:22px;">'+pk.nm+'</div><div class="sub">限时特惠 · 还剩 '+(c.until-absDay()+1)+' 天（游戏内），过期就没了</div></div>'
+  +'<div class="body"><p class="desc">'+pk.ds+'</p>'
+  +'<div class="qr-box"><img src="photo-26.jpg" alt="微信收款码，收款人 Deng Yy(**元）">'
+  +'<div style="flex:1;min-width:200px;"><div style="font-weight:800;font-size:16px;">微信扫码付款 ¥'+pk.price+'</div><p class="desc">收款人：Deng Yy(**元）。付款后点下面的按钮，礼包立刻到账。</p>'
+  +'<button class="btn grn" onclick="claimCeleb()">我已付款，领取礼包</button></div></div></div>'
+  +'<div class="foot"><button class="btn" onclick="closeModal()">下次再说（充值中心里也能买）</button></div></div></div>';
+}
+function claimCeleb(){
+  var P=G.pay2, c=P.celeb; if(!c || c.bought){ toast('这个礼包已经买过了'); return; }
+  var pk=CELEB_PACKS[c.kind];
+  c.bought=true; G.diamonds+=pk.dia; G.cash+=pk.cash; if(pk.trial) P.trialCards+=pk.trial;
+  bumpSpent(pk.price);
+  log(pk.nm+'到账：钻石 +'+pk.dia+'、运营资金 +'+fmt(pk.cash)+(pk.trial?'、球星体验卡 ×1':'')+'。累计消费 ¥'+G.spent+'，VIP'+G.vip+'。','good');
+  $modal.innerHTML=''; toast('礼包到账 💎 +'+pk.dia); render();
+}
+/* 钻石招募球星：抽图鉴真球星，10 次保底必出 */
+function gachaDraw(n){
+  var cost= n===10? 1080 : 120;
+  if(G.diamonds<cost){ toast('钻石不够，还差 '+(cost-G.diamonds)+' 钻——先去上面充值'); return; }
+  G.diamonds-=cost;
+  var results=[];
+  for(var i=0;i<n;i++) results.push(gachaOne());
+  log('💎 钻石招募'+(n===10?'十连':'单抽')+'：'+results.map(function(x){ return x.txt; }).join('；')+'。','good');
+  showGachaResults(results, n);
+  render();
+}
+function gachaOne(){
+  var P=G.pay2; P.draws++;
+  var pool=STARS.filter(function(s){ return !starInSquad(s); });
+  var forceStar= P.pity>=9 && pool.length>0;
+  if(pool.length && (forceStar || Math.random()<0.10)){
+    var wp=pool.filter(function(s){ return s.league!=='中超'; });
+    var cp=pool.filter(function(s){ return s.league==='中超'; });
+    var s= (wp.length && (forceStar || Math.random()<0.55))? pick(wp) : (cp.length? pick(cp) : pick(pool));
+    P.pity=0;
+    if(G.squad.length>=22){ G.cash+=200; return {kind:'starfull', s:s, txt:'抽中 '+s.name+'，但阵容已满，转租其他球队补偿现金 +'+fmt(200)}; }
+    grantStar(s,'钻石招募 · '+s.club);
+    return {kind:'star', s:s, txt:'图鉴球星 '+s.name+' 加盟'};
+  }
+  P.pity++;
+  var r2=Math.random();
+  if(r2<0.30){ var d=ri(30,80); G.diamonds+=d; return {kind:'dia', txt:'钻石返还 +'+d}; }
+  if(r2<0.55){ var c=ri(100,300); G.cash+=c; return {kind:'cash', txt:'运营资金 +'+fmt(c)}; }
+  if(r2<0.72){
+    var k=pick(['rep','fans','heat']);
+    if(k==='rep'){ G.rep=clamp(G.rep+3,0,100); return {kind:'rep', txt:'商业包装：声望 +3 → '+G.rep}; }
+    if(k==='fans'){ G.fans+=8000; return {kind:'fans', txt:'球迷嘉年华：球迷 +8,000 人'}; }
+    G.heat=clamp(G.heat-10,0,100); return {kind:'heat', txt:'危机公关：纪检热度 -10 → '+G.heat};
+  }
+  if(G.squad.length>=22){ G.cash+=150; return {kind:'cash', txt:'阵容已满，王牌球员转租补偿现金 +'+fmt(150)}; }
+  var p=genPlayer('star'); p.wage=Math.round(p.wage*10)/10; p.cost=0; p.signNote='钻石招募';
+  G.squad.push(p);
+  return {kind:'player', txt:p.pos+' '+p.name+'（能力 '+p.ab+'）加盟'};
+}
+function showGachaResults(results, n){
+  var items=results.map(function(x){
+    if(x.kind==='star') return '<div class="gacha-it star"><img src="'+x.s.img+'" alt="'+x.s.name+'的真实照片">⭐ 图鉴球星<br>'+x.s.name+'<br><span class="mini">'+x.s.club+' · '+x.s.pos+' · 能力 '+x.s.ab+'</span></div>';
+    if(x.kind==='starfull') return '<div class="gacha-it star"><img src="'+x.s.img+'" alt="'+x.s.name+'的真实照片">⭐ '+x.txt+'</div>';
+    var icon= x.kind==='dia'?'💎': x.kind==='cash'?'🪙': x.kind==='player'?'👕':'🎁';
+    return '<div class="gacha-it"><span class="gi">'+icon+'</span>'+x.txt+'</div>';
+  }).join('');
+  var starN=results.filter(function(x){ return x.kind==='star'; }).length;
+  $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:22px;">💎 钻石招募结果</div><div class="sub">'+(starN? '🎉 抽中 '+starN+' 位图鉴球星，已经进你的球队了！' : '这轮没出图鉴球星——保底进度 '+G.pay2.pity+'/10，攒满必出图鉴球星')+'</div></div>'
+  +'<div class="body"><div class="gacha-res">'+items+'</div></div>'
+  +'<div class="foot"><button class="btn" onclick="closeModal()">关闭</button>'+(G.diamonds>=(n===10?1080:120)?'<button class="btn pri" onclick="closeModal();gachaDraw('+n+')">再来'+(n===10?'十连':'一抽')+'</button>':'')+'</div></div></div>';
+}
+function payClaimableCount(){
+  if(!G || !G.pay2) return 0;
+  var P=G.pay2, n=0, today=absDay();
+  if(G.spent>0 && !P.firstPack) n++;
+  if(celebActive()) n++;
+  if(P.mUntil>=today && P.mLast<today) n++;
+  if(P.sUntil>=today && P.sLast<today) n++;
+  CUM_TIERS.forEach(function(t){ if(G.spent>=t.amt && !P.cum[t.amt]) n++; });
+  return n;
+}
+function payExtraHTML(){
+  var P=G.pay2, today=absDay(), h='';
+  if(celebActive()){
+    var pk=CELEB_PACKS[P.celeb.kind];
+    h+='<div class="card deal"><h3>'+pk.nm+'<span class="hint">限时特惠 · 还剩 '+(P.celeb.until-today+1)+' 天（游戏内）</span></h3>'
+    +'<p class="desc">'+pk.ds+'</p>'
+    +'<div class="qr-box"><img src="photo-26.jpg" alt="微信收款码，收款人 Deng Yy(**元）"><div style="flex:1;min-width:200px;"><div style="font-weight:800;font-size:16px;">微信扫码付款 ¥'+pk.price+'</div><p class="desc">收款人：Deng Yy(**元）。付款后点按钮，礼包立刻到账。</p><button class="btn grn" onclick="claimCeleb()">我已付款，领取礼包</button></div></div></div>';
+  }
+  h+='<div class="card'+(G.spent>0 && !P.firstPack?' deal':'')+'"><h3>🎁 首充大礼包<span class="hint">任意充值一档即可领取 · 只领一次</span></h3>'
+  +(P.firstPack? '<p class="desc">已领取 ✓ 内容：钻石 388 + 球星体验卡 ×1 + 专属徽章「首充金主」。</p>'
+    : G.spent>0? '<p class="desc">你已经充值过，礼包在等你领：<b>钻石 +388</b>、<b>球星体验卡 ×1</b>（一名球星级球员租借加盟 3 个月）、<b>专属徽章「首充金主」</b>（显示在俱乐部名片上）。</p><button class="btn pri" onclick="claimFirstPack()">立即领取首充大礼包</button>'
+    : '<p class="desc">第一次充值（任意档位，最低 ¥1）后，这里解锁：<b>钻石 +388</b>、<b>球星体验卡 ×1</b>、<b>专属徽章「首充金主」</b>。先去上面选一档充值，回来就能领。</p>')
+  +(P.trialCards>0? '<div style="margin-top:10px;"><button class="btn sm" onclick="useTrialCard()">🎫 使用球星体验卡（剩 '+P.trialCards+' 张）</button><span class="mini" style="margin-left:8px;">一名能力 76–87 的球星租借加盟 3 个月，免转会费</span></div>':'')
+  +(P.vouchers>0? '<div style="margin-top:10px;"><span class="pill up">🎟️ 球星直签券 ×'+P.vouchers+'</span><span class="mini" style="margin-left:8px;">去球星图鉴，任意一位球星都能免转会费直接签下</span> <button class="btn sm" onclick="go(\'stars\')">去图鉴选球星</button></div>':'')
+  +'</div>';
+  function cardHTML(k){
+    var c=CARDS[k], until= k==='month'? P.mUntil : P.sUntil, last= k==='month'? P.mLast : P.sLast;
+    var active= until>=today;
+    var s='<div class="card-deal'+(active?' on':'')+'"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;"><b style="font-size:15.5px;">'+(k==='month'?'🌙 月卡':'☀️ 季卡')+' · ¥'+c.price+'</b>'+(active?'<span class="pill up">生效中 · 还剩 '+(until-today+1)+' 天</span>':'<span class="pill">未开通</span>')+'</div>'
+    +'<p class="desc" style="margin:6px 0 10px;">'+c.ds+'</p>';
+    if(active){
+      s+= (last>=today? '<span class="pill up">今日已领 ✓</span>' : '<button class="btn pri sm" onclick="claimCardDaily(\''+k+'\')">领今日 '+c.daily+' 钻</button>');
+      s+=' <button class="btn sm" onclick="selectCard(\''+k+'\')">续费 '+c.days+' 天</button>';
+    } else {
+      s+='<button class="btn pri sm" onclick="selectCard(\''+k+'\')">'+(selCard===k?'已选中 · 扫码开通':'开通'+c.nm)+'</button>';
+    }
+    if(selCard===k){
+      s+='<div class="qr-box" style="margin-top:12px;"><img src="photo-26.jpg" alt="微信收款码，收款人 Deng Yy(**元）"><div style="flex:1;min-width:200px;"><div style="font-weight:800;">微信扫码付款 ¥'+c.price+'</div><p class="desc">收款人：Deng Yy(**元）。付款后点按钮，'+c.nm+'立刻生效，先到账 '+c.now+' 钻。</p><button class="btn grn" onclick="claimCard()">我已付款，开通'+c.nm+'</button></div></div>';
+    }
+    return s+'</div>';
+  }
+  h+='<div class="card"><h3>🎫 月卡 / 季卡<span class="hint">小额开通，每天回来领钻石——最划算的钻石来源</span></h3><div style="display:flex;flex-direction:column;gap:10px;">'+cardHTML('month')+cardHTML('season')+'</div></div>';
+  var next=null;
+  for(var ci=0;ci<CUM_TIERS.length;ci++){ if(G.spent<CUM_TIERS[ci].amt){ next=CUM_TIERS[ci]; break; } }
+  var pct= next? Math.min(100, Math.round(G.spent/next.amt*100)) : 100;
+  var cumRows=CUM_TIERS.map(function(t,i){
+    var got=!!P.cum[t.amt], can=G.spent>=t.amt && !got;
+    return '<div class="cum-row"><span class="num" style="font-weight:800;min-width:64px;">¥'+t.amt+'</span><div class="grow"><div style="font-weight:700;">钻石 +'+t.dia+(t.extraTxt?' · '+t.extraTxt:'')+'</div><div class="mini">'+(got?'已领取': can?'已达成，点右边领取':'累计充值达到 ¥'+t.amt+' 解锁')+'</div></div>'+(got?'<span class="pill up">✓ 已领</span>': can?'<button class="btn pri sm" onclick="claimCum('+i+')">领取</button>':'<span class="pill">还差 ¥'+(t.amt-G.spent)+'</span>')+'</div>';
+  }).join('');
+  h+='<div class="card"><h3>🏅 累计充值奖励<span class="hint">累计已充 ¥'+G.spent+' · 充得越多，送得越多</span></h3>'
+  +(next? '<div class="mini">距离下一档 ¥'+next.amt+' 还差 ¥'+(next.amt-G.spent)+'</div><div class="prog"><i style="width:'+pct+'%"></i></div>' : '<div class="mini">全部档位都已达成，感谢支持！</div>')
+  + cumRows +'</div>';
+  h+='<div class="card"><h3>💎 钻石招募球星<span class="hint">余额 💎 '+G.diamonds+' 钻 · 已招募 '+P.draws+' 次 · 保底 '+P.pity+'/10</span></h3>'
+  +'<p class="desc">用钻石直接招募：有机会抽中<b>图鉴里的真球星</b>（姆巴佩、罗德里、范戴克、武磊、颜骏凌……还没签过的都有机会），抽中直接进一线队、免转会费；没抽中也有钻石返还、运营资金、声望 / 球迷 / 公关物资或王牌球员加盟。<b>保底：连续 10 次没出图鉴球星，第 10 次必出。</b></p>'
+  +'<div style="display:flex;gap:10px;flex-wrap:wrap;"><button class="btn pri" onclick="gachaDraw(1)">单抽 · 💎 120</button><button class="btn" style="border-color:#d4af37;color:#8a6508;font-weight:800;" onclick="gachaDraw(10)">十连抽 · 💎 1080（省 120）</button></div></div>';
+  return h;
+}
 /* ---- 自动模拟 ---- */
 function autoStep(){
   if(!autoOn || !G || G.ended){ stopAuto(); return; }
@@ -1928,6 +2207,8 @@ function render(){
   if(G.monthGate==null) G.monthGate=0;
   if(G.fanSat==null) G.fanSat=62;
   if(!G.sign) G.sign={last:0, streak:0};
+  if(!G.pay2) G.pay2={firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:(G.titles||0)};
+  if(!G.pay2.cum) G.pay2.cum={};
   if(G.sponsorBoost==null) G.sponsorBoost=1;
   if(G.sponsorDealSeason==null) G.sponsorDealSeason=-1;
   if(!G.train) G.train={intensity:'标准', physio:1};
@@ -1945,7 +2226,7 @@ function render(){
   +'<div><img class="game-logo" src="logo.png" alt="豪门缔造者"></div>'
   +'<div><div class="club-name">'+esc(G.club)+'</div><div class="club-sub">江州 · '+d.name+' · 第 '+Math.ceil(G.month/12)+' 赛季</div></div>'
   +'<div class="month-box"><div class="m num">'+G.mon+'月'+G.day+'日<span>'+G.year+'年 · 第 '+G.month+' 个月 · 无限生涯</span></div><div class="s">联赛排名 第 '+myRank()+' · 积分 '+G.pts+' · 🏆 冠军×'+(G.titles||0)+' · 王朝评级 '+dynastyGrade().grade+'</div></div>'
-  +'<div class="tag-row"><span class="tag hot">'+d.short+'</span><span class="tag">声望 '+G.rep+'</span><span class="tag">🏢 '+STAGES[groupStage()].name+(ventCount()?' · '+ventCount()+'板块':'')+'</span>'+(G.champion?'<span class="tag hot">🏆 已夺冠</span>':'')+(G.vip?'<span class="tag hot">VIP'+G.vip+'</span>':'')+'</div>'
+  +'<div class="tag-row"><span class="tag hot">'+d.short+'</span><span class="tag">声望 '+G.rep+'</span><span class="tag">🏢 '+STAGES[groupStage()].name+(ventCount()?' · '+ventCount()+'板块':'')+'</span>'+(G.champion?'<span class="tag hot">🏆 已夺冠</span>':'')+(G.vip?'<span class="tag hot">VIP'+G.vip+'</span>':'')+((G.pay2&&G.pay2.titleName)?'<span class="tag hot">👑 '+esc(G.pay2.titleName)+'</span>':'')+((G.pay2&&G.pay2.badge)?'<span class="tag">'+esc(G.pay2.badge)+'</span>':'')+'</div>'
   +'<nav class="side">'+navBtns()+'</nav>'
   +'<div class="side-stats">'
   +'<div class="row"><span>现金</span><b class="num'+(G.cash<0?' neg':'')+'">'+fmt(G.cash)+'</b></div>'
@@ -2446,6 +2727,7 @@ function pagePay(){
   +'<div class="qr-box" style="margin-top:16px;"><img src="photo-26.jpg" alt="微信收款码，收款人 Deng Yy(**元）">'
   +'<div style="flex:1;min-width:200px;"><div style="font-weight:800;font-size:16px;">微信扫码付款 ¥'+t.amt+'</div><p class="desc">收款人：Deng Yy(**元）。付款后点下面的按钮，'+( !G.claimed[t.amt]? '本档首充双倍，到账 💎 '+(t.dia*2)+' 钻。' : '到账 💎 '+t.dia+' 钻。')+'</p>'
   +'<button class="btn grn" onclick="claimDiamonds()">我已付款，领取钻石</button></div></div></div>'
+  + payExtraHTML()
   +'<div class="card"><h3>💎 钻石商城</h3><div class="shop-grid">'+shopHTML+'</div></div>';
 }
 function pageAuto(){
@@ -2488,7 +2770,31 @@ var STARS=[
   {id:'zhangyuning', name:'张玉宁', en:'Zhang Yuning', nat:'中国', club:'北京国安', league:'中超', pos:'前锋', age:29, ab:78, fee:550, img:'photo-21.jpg', tag:'国安 9 号中锋，国足主力中锋，支点作用突出。'},
   {id:'weishihao', name:'韦世豪', en:'Wei Shihao', nat:'中国', club:'成都蓉城', league:'中超', pos:'前锋', age:31, ab:77, fee:500, img:'photo-22.jpg', tag:'蓉城攻击手，脚下技术细腻，脾气和球技一样出名。'},
   {id:'zhuchenjie', name:'朱辰杰', en:'Zhu Chenjie', nat:'中国', club:'上海申花', league:'中超', pos:'后卫', age:26, ab:76, fee:450, img:'photo-23.jpg', tag:'申花 5 号中卫，国足防线新核心，出球稳健。'},
-  {id:'xiepengfei', name:'谢鹏飞', en:'Xie Pengfei', nat:'中国', club:'上海申花', league:'中超', pos:'中场', age:33, ab:75, fee:400, img:'photo-24.jpg', tag:'申花中场，脚法细腻，定位球和最后一传见长。'}
+  {id:'xiepengfei', name:'谢鹏飞', en:'Xie Pengfei', nat:'中国', club:'上海申花', league:'中超', pos:'中场', age:33, ab:75, fee:400, img:'photo-24.jpg', tag:'申花中场，脚法细腻，定位球和最后一传见长。'},
+  {id:'rodri', name:'罗德里', en:'Rodri', nat:'西班牙', club:'曼城', league:'英超', pos:'中场', age:30, ab:93, fee:2400, img:'photo-33.jpg', tag:'2024 年金球奖得主，曼城后腰，公认的世界第一防守中场。'},
+  {id:'pedri', name:'佩德里', en:'Pedri', nat:'西班牙', club:'巴塞罗那', league:'西甲', pos:'中场', age:23, ab:90, fee:2000, img:'photo-34.jpg', tag:'巴萨中场大脑，节奏掌控者，欧洲金童奖得主。'},
+  {id:'rice', name:'赖斯', en:'Declan Rice', nat:'英格兰', club:'阿森纳', league:'英超', pos:'中场', age:27, ab:89, fee:1800, img:'photo-35.jpg', tag:'阿森纳亿元后腰，覆盖全场，远射还有一脚。'},
+  {id:'vitinha', name:'维蒂尼亚', en:'Vitinha', nat:'葡萄牙', club:'巴黎圣日耳曼', league:'法甲', pos:'中场', age:26, ab:89, fee:1800, img:'photo-36.jpg', tag:'大巴黎中场节拍器，欧冠冠军班底的推进核心。'},
+  {id:'vandijk', name:'范戴克', en:'Virgil van Dijk', nat:'荷兰', club:'利物浦', league:'英超', pos:'后卫', age:35, ab:91, fee:1900, img:'photo-37.jpg', tag:'利物浦队长，防线定海神针，英超最稳的中卫之一。'},
+  {id:'dias', name:'鲁本·迪亚斯', en:'Rúben Dias', nat:'葡萄牙', club:'曼城', league:'英超', pos:'后卫', age:29, ab:89, fee:1700, img:'photo-38.jpg', tag:'曼城防线领袖，出球和对抗都是顶级。'},
+  {id:'saliba', name:'萨利巴', en:'William Saliba', nat:'法国', club:'阿森纳', league:'英超', pos:'后卫', age:25, ab:88, fee:1600, img:'photo-39.jpg', tag:'阿森纳后防基石，速度与选位俱佳的年轻中卫。'},
+  {id:'hakimi', name:'阿什拉夫', en:'Achraf Hakimi', nat:'摩洛哥', club:'巴黎圣日耳曼', league:'法甲', pos:'后卫', age:28, ab:88, fee:1600, img:'photo-40.jpg', tag:'世界最快的边卫之一，整条右路走廊一个人包办。'},
+  {id:'courtois', name:'库尔图瓦', en:'Thibaut Courtois', nat:'比利时', club:'皇家马德里', league:'西甲', pos:'门将', age:34, ab:91, fee:1800, img:'photo-41.jpg', tag:'皇马门神，两米身高覆盖整个球门，大场面先生。'},
+  {id:'alisson', name:'阿利松', en:'Alisson Becker', nat:'巴西', club:'利物浦', league:'英超', pos:'门将', age:34, ab:90, fee:1700, img:'photo-42.jpg', tag:'利物浦一号门将，出击果断，脚下出球也是顶级。'},
+  {id:'donnarumma', name:'多纳鲁马', en:'Gianluigi Donnarumma', nat:'意大利', club:'曼城', league:'英超', pos:'门将', age:27, ab:90, fee:1700, img:'photo-43.jpg', tag:'意大利队长，2025 年加盟曼城，扑点球专家。'},
+  {id:'oblak', name:'奥布拉克', en:'Jan Oblak', nat:'斯洛文尼亚', club:'马德里竞技', league:'西甲', pos:'门将', age:33, ab:89, fee:1500, img:'photo-44.jpg', tag:'马竞十年门神，稳定性历史级，常年西甲丢球最少。'},
+  {id:'xuxin', name:'徐新', en:'Xu Xin', nat:'中国', club:'上海海港', league:'中超', pos:'中场', age:32, ab:74, fee:380, img:'photo-45.jpg', tag:'海港 16 号后腰，拦截凶悍，是中场的一道屏障。'},
+  {id:'liyuanyi', name:'李源一', en:'Li Yuanyi', nat:'中国', club:'山东泰山', league:'中超', pos:'中场', age:33, ab:74, fee:360, img:'photo-46.jpg', tag:'泰山 22 号，跑动覆盖大，攻防两端都能顶上。'},
+  {id:'jiangguangtai', name:'蒋光太', en:'Jiang Guangtai', nat:'中国', club:'上海海港', league:'中超', pos:'后卫', age:32, ab:77, fee:480, img:'photo-47.jpg', tag:'海港 3 号中卫，国足主力，身体对抗中超顶级。'},
+  {id:'jiangshenglong', name:'蒋圣龙', en:'Jiang Shenglong', nat:'中国', club:'上海申花', league:'中超', pos:'后卫', age:25, ab:75, fee:420, img:'photo-48.jpg', tag:'申花 4 号，1 米 93 的高塔中卫，头球争顶出色。'},
+  {id:'yanjunling', name:'颜骏凌', en:'Yan Junling', nat:'中国', club:'上海海港', league:'中超', pos:'门将', age:35, ab:79, fee:520, img:'photo-49.jpg', tag:'海港 1 号，国足多年一号门将，反应和选位俱佳。'},
+  {id:'liudianzuo', name:'刘殿座', en:'Liu Dianzuo', nat:'中国', club:'成都蓉城', league:'中超', pos:'门将', age:36, ab:76, fee:420, img:'photo-50.jpg', tag:'蓉城门神，2025 赛季中超最佳守门员，老将稳如泰山。'},
+  {id:'gaotianyi', name:'高天意', en:'Gao Tianyi', nat:'中国', club:'上海申花', league:'中超', pos:'中场', age:27, ab:73, fee:340, img:'photo-51.jpg', tag:'申花 17 号中场，跑动和出球俱佳的国脚级中场。'},
+  {id:'xiewenneng', name:'谢文能', en:'Xie Wenneng', nat:'中国', club:'山东泰山', league:'中超', pos:'中场', age:25, ab:74, fee:360, img:'photo-52.jpg', tag:'泰山 23 号边路突击手，国足新星，速度见长。'},
+  {id:'zhanglinpeng', name:'张琳芃', en:'Zhang Linpeng', nat:'中国', club:'上海海港', league:'中超', pos:'后卫', age:37, ab:75, fee:380, img:'photo-53.jpg', tag:'海港老队长，右路和中卫都能顶，经验拉满。'},
+  {id:'gaozhunyi', name:'高准翼', en:'Gao Zhunyi', nat:'中国', club:'山东泰山', league:'中超', pos:'后卫', age:31, ab:74, fee:350, img:'photo-54.jpg', tag:'泰山后卫，出球型中卫，也能客串边后卫。'},
+  {id:'hanjiaqi', name:'韩佳奇', en:'Han Jiaqi', nat:'中国', club:'北京国安', league:'中超', pos:'门将', age:27, ab:74, fee:340, img:'photo-55.jpg', tag:'国安 1 号门将，反应奇快，年轻门将里的佼佼者。'},
+  {id:'jiantao', name:'蹇韬', en:'Jian Tao', nat:'中国', club:'成都蓉城', league:'中超', pos:'门将', age:25, ab:74, fee:330, img:'photo-56.jpg', tag:'蓉城 16 号门将，拿过中超月度最佳门将，扑救稳健。'}
 ];
 /* ---------------- 荣誉档案：球星个人荣誉 / 五大联赛俱乐部荣誉 / 本游戏联赛俱乐部荣誉 ---------------- */
 var STAR_HONORS={
@@ -2509,7 +2815,31 @@ var STAR_HONORS={
   zhangyuning:'国足主力中锋 · 荷甲海牙留洋经历',
   weishihao:'中超冠军 · 国足边路攻击手',
   zhuchenjie:'足协杯冠军（2023）· 国足防线核心',
-  xiepengfei:'中超冠军 · 申花中场核心'
+  xiepengfei:'中超冠军 · 申花中场核心',
+  rodri:'金球奖（2024）· 欧冠冠军（2023）· 欧洲杯冠军（2024）',
+  pedri:'欧洲杯冠军（2024）· 科帕奖 · 欧洲金童奖',
+  rice:'欧协联冠军（2023）· 英格兰年度最佳球员',
+  vitinha:'欧冠冠军（2025）· 法甲冠军',
+  vandijk:'欧冠冠军（2019）· 英超冠军 · 欧足联年度最佳球员',
+  dias:'欧冠冠军（2023）· 英超冠军 ×4 · 英超赛季最佳球员',
+  saliba:'英超赛季最佳阵容 · 法国国脚',
+  hakimi:'欧冠冠军（2025）· 非洲足球先生（2025）',
+  courtois:'欧冠冠军 ×2 · 世界杯金手套（2018）',
+  alisson:'欧冠冠军（2019）· 英超金手套 · 雅辛奖',
+  donnarumma:'欧洲杯冠军（2021）· 欧洲杯最佳球员 · 欧冠冠军（2025）',
+  oblak:'西甲冠军（2021）· 萨莫拉奖（西甲最佳门将）×5',
+  xuxin:'中超冠军 · 国足主力后腰',
+  liyuanyi:'国足中场 · 泰山中场主力',
+  jiangguangtai:'中超冠军 · 国足主力中卫',
+  jiangshenglong:'足协杯冠军（2023）· 国足中卫',
+  yanjunling:'中超冠军 ×3 · 中超最佳门将 · 国足一号门将',
+  liudianzuo:'2025 赛季中超最佳守门员 · 足协杯冠军',
+  gaotianyi:'国足中场 · 中超 200 场里程碑',
+  xiewenneng:'国足边路新星 · 泰山青训出品',
+  zhanglinpeng:'亚冠冠军 ×2 · 中超冠军多次 · 国足百场老将',
+  gaozhunyi:'国足后卫 · 中超冠军',
+  hanjiaqi:'国足门将 · 国安一号门将',
+  jiantao:'中超月度最佳门将 · 蓉城主力门将'
 };
 var CLUB_HONORS={
   '曼城':'欧冠冠军（2023）· 英超多届冠军','利物浦':'欧冠冠军 ×6 · 英超冠军','阿森纳':'英超冠军 ×13 · 足总杯冠军 ×14',
@@ -2581,7 +2911,8 @@ function starCardHTML(s){
   var owned=starInSquad(s);
   var pot=Math.min(99, s.ab + (s.age<=23?5:1));
   var btn= owned? '<span class="pill up" style="align-self:flex-start;">✓ 已在我的球队</span>'
-    : (G.cash>=s.fee? '<button class="btn pri sm" onclick="signStar(\''+s.id+'\')">签下他</button>' : '<button class="btn sm" disabled>现金不够</button>');
+    : (G.cash>=s.fee? '<button class="btn pri sm" onclick="signStar(\''+s.id+'\')">签下他</button>' : '<button class="btn sm" disabled>现金不够</button>')
+      +((G.pay2 && G.pay2.vouchers>0)? '<button class="btn sm" style="border-color:#d4af37;color:#8a6508;font-weight:800;" onclick="signStarVoucher(\''+s.id+'\')">🎟️ 直签券签下</button>' : '');
   return '<div class="star-card"><img src="'+s.img+'" alt="'+s.name+'（'+s.club+'）的真实比赛照片">'
   +'<div class="sb"><div class="sn">'+s.name+'<small>'+s.en+'</small></div>'
   +'<div class="sm">'+s.club+' · '+s.league+' · '+s.nat+'<br>'+posPill(s.pos)+' '+s.age+' 岁 · 潜力 '+pot+'</div>'
@@ -2589,7 +2920,7 @@ function starCardHTML(s){
   +'<div class="stag">'+s.tag+'</div>'
   +(STAR_HONORS[s.id]? '<div class="stag" style="color:#8a6508;">🏅 '+STAR_HONORS[s.id]+'</div>':'')
   +'<div class="sfee"><span class="mini">转会费</span><b class="num">'+fmt(s.fee)+'</b></div>'
-  +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span class="mini">月薪 '+starWage(s.ab)+'万</span>'+btn+'</div>'
+  +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><span class="mini">月薪 '+starWage(s.ab)+'万</span><span style="display:flex;gap:6px;flex-wrap:wrap;">'+btn+'</span></div>'
   +'</div></div>';
 }
 function pageStars(){
@@ -2618,13 +2949,17 @@ function pageStars(){
     var st=starById(n.sid);
     return '<div class="news-it">'+(st?'<img src="'+st.img+'" alt="'+st.name+'的真实照片">':'')+'<div><b>'+esc(n.t)+'</b><div class="mini">'+n.m+'</div></div></div>';
   }).join('') : '<p class="desc">暂无播报。踢完一个月（开始比赛），这里会播报姆巴佩、哈兰德、武磊们在各自联赛的进球动态。</p>';
-  return '<div class="card"><h3><span class="no">球星</span>球星图鉴<span class="hint">世界级球星 · 五大联赛 · 中超名将 · 照片全部本人对应</span></h3>'
-  +'<p class="desc">照片都是每位球员本人的真实比赛照片，名字、球队、联赛一一对应。这些球星<b>可以真签进你的球队</b>：付转会费签下后，他进入一线队名单，能力直接拉高球队强度，比赛进球记在他名下，首页赛果会写清谁进的球。世界球星身价高、月薪也高，是冲超夺冠后攒钱追的终极目标；中超名将便宜得多，中甲阶段就能下手。当前现金 '+fmt(G.cash)+' · 已签下球星 '+signedN+' 位 · 阵容 '+G.squad.length+'/22。</p></div>'
-  +'<div class="card"><h3>⭐ 世界级球星<span class="hint">来自五大联赛的顶级球员</span></h3><div class="star-grid">'
-  + world.map(function(s){ return '<div id="star-'+s.id+'" style="display:flex;">'+starCardHTML(s)+'</div>'; }).join('') +'</div></div>'
+  var POSG=[['前锋','⚡ 前锋'],['中场','🎯 中场'],['后卫','🛡️ 后卫'],['门将','🧤 门将']];
+  var posHTML=POSG.map(function(pg){
+    var arr=STARS.filter(function(s){ return s.pos===pg[0]; }).sort(function(a,b){ return b.ab-a.ab; });
+    var wn=arr.filter(function(s){ return s.league!=='中超'; }).length;
+    return '<div class="card"><h3>'+pg[1]+'<span class="hint">共 '+arr.length+' 人 · 世界球星 '+wn+' · 中超 '+(arr.length-wn)+' · 按能力排序</span></h3><div class="star-grid">'
+    + arr.map(function(s){ return '<div id="star-'+s.id+'" style="display:flex;">'+starCardHTML(s)+'</div>'; }).join('') +'</div></div>';
+  }).join('');
+  return '<div class="card"><h3><span class="no">球星</span>球星图鉴<span class="hint">按位置分组 · 前锋 / 中场 / 后卫 / 门将 · 照片全部本人对应</span></h3>'
+  +'<p class="desc">照片都是每位球员本人的真实比赛照片，名字、球队、联赛、位置一一对应。图鉴已按<b>前锋 / 中场 / 后卫 / 门将</b>四个位置分组，每个位置都有世界球星和中超名将。这些球星<b>可以真签进你的球队</b>：付转会费签下后，他进入一线队名单，能力直接拉高球队强度，比赛进球记在他名下，首页赛果会写清谁进的球。世界球星身价高、月薪也高，是冲超夺冠后攒钱追的终极目标；中超名将便宜得多，中甲阶段就能下手。有<b>球星直签券</b>时（累计充值奖励发放），任意球星可免转会费直接签下；也可以去充值中心用<b>钻石招募</b>抽图鉴球星。当前现金 '+fmt(G.cash)+' · 已签下球星 '+signedN+' 位 · 阵容 '+G.squad.length+'/22。</p></div>'
+  + posHTML
   +'<div class="card"><h3>🏟️ 五大联赛球队<span class="hint">带 ⭐ 的球队有球星在上面的图鉴里，点球星头像跳到他的卡片</span></h3><div style="display:flex;flex-direction:column;gap:10px;">'+leaguesHTML+'</div></div>'
-  +'<div class="card"><h3>🇨🇳 中超知名球员<span class="hint">价格亲民，先把他们签下来冲超</span></h3><div class="star-grid">'
-  + csl.map(function(s){ return '<div id="star-'+s.id+'" style="display:flex;">'+starCardHTML(s)+'</div>'; }).join('') +'</div></div>'
   +'<div class="grid2"><div class="card"><h3>⚽ 我的球队进球榜<span class="hint">你签的球星进了多少球，一目了然</span></h3>'+scorerHTML+'</div>'
   +'<div class="card"><h3>🌍 世界足坛进球播报<span class="hint">游戏世界内的每月播报</span></h3>'+newsHTML+'</div></div>';
 }
@@ -2700,7 +3035,7 @@ function showTribute(){
   $modal.innerHTML='<div class="tribute-overlay" role="dialog" aria-modal="true" aria-label="致敬传奇 · OBRIGADO CR7 海报">'
   +'<div class="tribute-card">'
   +'<button type="button" class="creator-close" aria-label="关闭" title="关闭" onclick="closeModal()">✕</button>'
-  +'<img src="tribute-cr7.webp" alt="游戏创作者邓元元手举葡萄牙 7 号 RONALDO 球衣的致敬海报：致敬传奇 OBRIGADO CR7，C罗葡萄牙国家队 2003–2026" />'
+  +'<img src="tribute-cr7.webp" onerror="posterImgErr(this)" alt="游戏创作者邓元元手举葡萄牙 7 号 RONALDO 球衣的致敬海报：致敬传奇 OBRIGADO CR7，C罗葡萄牙国家队 2003–2026" />'
   +'<div class="tribute-cap">致 敬 传 奇 · OBRIGADO CR7</div>'
   +'</div></div>';
 }
@@ -2714,6 +3049,7 @@ function showWelfare(){
   +'<div class="item"><div class="grow"><div class="nm">🏅 成就奖励</div><div class="meta">'+(claim>0?'有 '+claim+' 个成就已达成、奖励还没领，去生涯页的成就墙领取。':'暂时没有可领的成就奖励，去生涯页成就墙看进度。')+'</div></div><button class="btn sm" onclick="closeModal();go(\'career\')">去成就墙</button></div>'
   +'<div class="item"><div class="grow"><div class="nm">👑 VIP 福利</div><div class="meta">当前 VIP'+G.vip+' · 累计消费 ¥'+G.spent+'。VIP 每升一级，赞助收入 +2%；在充值中心消费自动升级。</div></div><button class="btn sm" onclick="closeModal();go(\'pay\')">去充值中心</button></div>'
   +'<div class="item"><div class="grow"><div class="nm">💎 钻石商城</div><div class="meta">当前余额 💎 '+G.diamonds+' 钻，可兑换运营资金包、王牌引援卡、商业包装、球迷嘉年华、危机公关。</div></div><button class="btn sm" onclick="closeModal();go(\'pay\')">去钻石商城</button></div>'
+  +'<div class="item"><div class="grow"><div class="nm">🎁 充值好礼</div><div class="meta">'+(payClaimableCount()>0? '有 '+payClaimableCount()+' 项充值福利可以领：首充大礼包 / 月卡·季卡每日钻石 / 累计充值奖励 / 限时庆祝礼包，去充值中心领取。' : '首充大礼包、月卡每天领钻、累计充值奖励、赢球庆祝礼包、钻石招募球星，都在充值中心。')+'</div></div><button class="btn sm" onclick="closeModal();go(\'pay\')">去充值中心</button></div>'
   +'</div><div class="foot"><button class="btn" onclick="closeModal()">关闭</button></div></div></div>';
 }
 function showTasks(){
@@ -2774,7 +3110,7 @@ function posterCarouselHTML(){
   if(!list.length) return '';
   if(_pcIdx>=list.length || _pcIdx<0) _pcIdx=0;
   var slides=list.map(function(p){
-    return '<button type="button" class="pcar-slide" onclick="viewLobbyPoster(\''+p.id+'\')" aria-label="放大看：'+p.name+'"><img src="'+p.src+'" alt="'+p.alt+'"></button>';
+    return '<button type="button" class="pcar-slide" onclick="viewLobbyPoster(\''+p.id+'\')" aria-label="放大看：'+p.name+'"><img src="'+p.src+'" alt="'+p.alt+'" onerror="posterImgErr(this)"></button>';
   }).join('');
   var dots=list.map(function(p,i){
     return '<button type="button" class="pcar-dot'+(i===_pcIdx?' on':'')+'" onclick="pcGo('+i+')" aria-label="切换到第 '+(i+1)+' 张海报"></button>';
@@ -2819,7 +3155,7 @@ function viewLobbyPoster(id){
   $modal.innerHTML='<div class="tribute-overlay" role="dialog" aria-modal="true" aria-label="'+p.name+'">'
   +'<div class="tribute-card">'
   +'<button type="button" class="creator-close" aria-label="关闭" title="关闭" onclick="closeModal()">✕</button>'
-  +'<img src="'+p.src+'" alt="'+p.alt+'" />'
+  +'<img src="'+p.src+'" alt="'+p.alt+'" onerror="posterImgErr(this)" />'
   +'<div class="tribute-cap">'+p.cap+'</div>'
   +'</div></div>';
 }
@@ -2886,7 +3222,7 @@ function lobbyHTML(){
   +'<button class="ltile" onclick="go(\'career\')"><span class="ti">🏆</span>生涯<small>王朝评级 · 成就墙 · 历届冠军</small>'+((G.titles||0)?'<span class="bdg">冠军 ×'+G.titles+'</span>':'')+'</button>'
   +'<button class="ltile" onclick="go(\'league\')"><span class="ti">🛡️</span>联盟<small>积分榜 · 升降级 · 三级联赛</small></button>'
   +'<button class="ltile" onclick="lobbySignIn()"><span class="ti">📅</span>签到<small>每周签到 · 7 天循环领钻石</small>'+(signed?'':'<span class="bdg">可领</span>')+'</button>'
-  +'<button class="ltile" onclick="go(\'pay\')"><span class="ti">💎</span>充值<small>钻石 · VIP · 钻石商城</small></button>'
+  +'<button class="ltile" onclick="go(\'pay\')"><span class="ti">💎</span>充值<small>钻石 · VIP · 首充礼包 · 月卡 · 招募球星</small>'+(payClaimableCount()>0?'<span class="bdg">可领 '+payClaimableCount()+'</span>':'')+'</button>'
   +'<button class="ltile" onclick="showPosterWall()"><span class="ti">🖼️</span>海报墙<small>三张海报 · 查看 / 删除 / 恢复</small></button>';
   var catTilesHTML=''
   +'<button class="ltile" onclick="showLobbyCat(\'club\')"><span class="ti">🏛️</span>俱乐部类<small>集团扩张 · 董事会与设施 · 灰色账本 · 自动模拟</small></button>'
@@ -3483,6 +3819,15 @@ var POSTERS=[
     cap:'游 戏 创 作 者 ：邓 元 元' }
 ];
 function posterById(id){ for(var i=0;i<POSTERS.length;i++){ if(POSTERS[i].id===id) return POSTERS[i]; } return null; }
+/* 海报加载兜底：偶发加载失败（弱网/缓存异常）时自动带参数重拉，最多两次；
+   两次都失败就把图淡化而不是留一块死黑——三张海报文件本身都在 assets 里，
+   入口流程开始前还会先预加载一遍，正常情况下弹窗打开时图已经在缓存里。 */
+function posterImgErr(img){
+  var n=parseInt(img.getAttribute('data-r')||'0',10);
+  if(n<2){ img.setAttribute('data-r',String(n+1)); var s=(img.getAttribute('src')||'').split('?')[0]; img.src=s+'?r='+(n+1); }
+  else { img.style.opacity='0.3'; }
+}
+function preloadPosters(){ POSTERS.forEach(function(p){ var im=new Image(); im.src=p.src; }); }
 function posterDeleted(p){ try{ return localStorage.getItem(p.delKey)==='1'; }catch(e){ return false; } }
 function setPosterDeleted(p, del){
   try{ if(del) localStorage.setItem(p.delKey,'1'); else localStorage.removeItem(p.delKey); }catch(e){}
@@ -3490,6 +3835,7 @@ function setPosterDeleted(p, del){
 var posterQueue=[], posterThenStart=false, curPosterId='';
 function startPosterChain(thenStart){
   // 每次进游戏都跑：把还没被删除的海报按顺序排队，逐张弹出；全删了就直接走后面的流程。
+  preloadPosters();
   posterThenStart=!!thenStart;
   posterQueue=POSTERS.filter(function(p){ return !posterDeleted(p); });
   nextPoster();
@@ -3504,7 +3850,7 @@ function nextPoster(){
   r.innerHTML='<div class="creator-overlay" role="dialog" aria-modal="true" aria-label="'+p.name+'">'
   +'<div class="creator-card">'
   +'<button type="button" class="creator-close" aria-label="永久删除这张海报" title="永久删除这张海报" onclick="deleteCurrentPoster()">✕</button>'
-  +'<img src="'+p.src+'" alt="'+p.alt+'" />'
+  +'<img src="'+p.src+'" alt="'+p.alt+'" onerror="posterImgErr(this)" />'
   +'<div class="creator-hint">'+p.cap+'</div>'
   +'<div class="creator-del-note">点右上角 ✕ 永久删除这张海报（删了不再自动弹，可在大厅「海报墙」恢复）</div>'
   +'<button type="button" class="creator-next" onclick="nextPoster()">'+(last?(posterThenStart?'去开局 ›':'进入游戏 ›'):'下一张 ›')+'</button>'
@@ -3532,7 +3878,7 @@ function showPosterWall(){
   var items=POSTERS.map(function(p){
     var del=posterDeleted(p);
     return '<div class="item pw-item">'
-    +'<img src="'+p.src+'" alt="'+p.alt+'" onclick="viewPoster(\''+p.id+'\')" />'
+    +'<img src="'+p.src+'" alt="'+p.alt+'" onerror="posterImgErr(this)" onclick="viewPoster(\''+p.id+'\')" />'
     +'<div class="grow"><div class="nm">'+p.name+'</div>'
     +'<div class="meta">'+(del?'已删除 · 进游戏时不再自动弹出':'每次进游戏都会弹出 · 点图片放大看')+'</div></div>'
     +(del?'<button class="btn pri sm" onclick="restorePoster(\''+p.id+'\')">恢复</button>'
@@ -3549,7 +3895,7 @@ function viewPoster(id){
   $modal.innerHTML='<div class="tribute-overlay" role="dialog" aria-modal="true" aria-label="'+p.name+'">'
   +'<div class="tribute-card">'
   +'<button type="button" class="creator-close" aria-label="返回海报墙" title="返回海报墙" onclick="showPosterWall()">✕</button>'
-  +'<img src="'+p.src+'" alt="'+p.alt+'" />'
+  +'<img src="'+p.src+'" alt="'+p.alt+'" onerror="posterImgErr(this)" />'
   +'<div class="tribute-cap">'+p.cap+'</div>'
   +'</div></div>';
 }
@@ -4158,11 +4504,12 @@ function processBiz(){
    后统一弹：单场弹完整战报，连推多场弹汇总（可逐场看详情），一场不丢。
    全自动模拟期间只攒不弹，停下时再出汇总。 */
 var pendingReports=[], reportOpen=false, reportFromQueue=false, batchDepth=0, flushTries=0;
-function queueMatchReport(result){ if(result && result.detail) pendingReports.push(result); }
+function queueMatchReport(result){ if(result && result.detail) pendingReports.push(result); if(result && result.detail && result.detail.res==='胜') noteMatchWin(); }
 function flushReports(){
   if(reportOpen || !pendingReports.length || !G || G.ended) return;
   if($modal.innerHTML.trim()){ if(flushTries++<60) setTimeout(flushReports, 700); return; } // 有别的弹窗（如突发事件）先让它处理完
   flushTries=0; reportOpen=true; reportFromQueue=true;
+  noteTitleWin();
   if(pendingReports.length===1) showReportDetail(pendingReports[0], false);
   else showReportSummary();
 }
@@ -4170,6 +4517,7 @@ function closeReport(){
   reportOpen=false;
   if(reportFromQueue){ pendingReports=[]; reportFromQueue=false; }
   $modal.innerHTML='';
+  maybeCelebPopup(); // 战报关掉后，若有赢球/夺冠限时礼包，顺势弹出来
 }
 function showReportSummary(){
   var rows=pendingReports.map(function(rec,i){
