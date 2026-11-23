@@ -15,11 +15,34 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
     <title>豪门缔造者 · 从中乙到中超冠军</title>
     <script>
-      /* 启动看门狗：主脚本若因手机浏览器异常等原因没能把游戏渲染出来，7 秒后
-         自动亮出修复面板，绝不让玩家对着白屏干等。修复的第一选择是「备份并重新
-         读取」：旧存档先原样备份到 zuqiu-km-autosave-v1-bak，本机里的存档一个字
-         都不删，刷新后重新读档；只有玩家自己点最后一项，才会清档重新开始。 */
+      /* 启动看门狗：主脚本若因手机浏览器异常等原因没能把游戏渲染出来，超时后
+         自动亮出修复面板，绝不让玩家对着白屏干等。三条防死锁规矩（旧版就是栽在这
+         上面，玩家被面板永久锁在门外、点哪个按钮都没用）：
+         ① 面板只是兜底，不是终点：面板亮着时每 0.4 秒复查一次，只要游戏随后
+            启动成功，面板立刻自动消失，绝不压住已经打开的游戏；
+         ② 页面里任何一个早期报错都不许直接触发面板——报错时只登记，2.5 秒后
+            复查，没启动成功才亮面板；慢手机上脚本多、打开慢是正常的，不算卡死；
+         ③ 备份 / 清档必须覆盖全部存档位置：游客存档、每个账号各自的存档、登录
+            状态，一个不漏。旧版只管游客那个键，登录账号玩的玩家存档根本不在
+            它手里，点「清档重新开始」也清不掉、永远循环同一块面板。 */
       window.__hmBooted = false;
+      function hmSaveKeys() {
+        var keys = [], i, k;
+        try {
+          for (i = 0; i < localStorage.length; i++) {
+            k = localStorage.key(i);
+            if (!k) continue;
+            if (k.slice(-4) === '-bak') continue; /* 备份本身不再重复备份 / 删除 */
+            if (k === 'zuqiu-km-autosave-v1' || k === 'hm-session-v1' || k.indexOf('zuqiu-km-acct-v1-') === 0) keys.push(k);
+          }
+        } catch (e) {}
+        return keys;
+      }
+      function hmBackupAllSaves() {
+        hmSaveKeys().forEach(function (k) {
+          try { var v = localStorage.getItem(k); if (v != null) localStorage.setItem(k + '-bak', v); } catch (e) {}
+        });
+      }
       window.__hmRescue = function () {
         if (window.__hmBooted || document.getElementById('hm-rescue')) return;
         if (!document.body) { setTimeout(window.__hmRescue, 1000); return; }
@@ -35,27 +58,30 @@
           + '<button id="hm-rescue-wipe" style="display:block;width:100%;padding:12px;border:1px solid #6e3a30;border-radius:10px;background:transparent;color:#d8a294;font-size:13.5px;cursor:pointer;">实在打不开：备份后清档重新开始（当前进度会重开）</button>'
           + '</div>';
         document.body.appendChild(d);
+        /* 面板亮着不等于游戏死了：游戏一旦随后启动成功，面板自动消失。 */
+        var watch = setInterval(function () {
+          if (window.__hmBooted) {
+            clearInterval(watch);
+            var el = document.getElementById('hm-rescue');
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+          }
+        }, 400);
         document.getElementById('hm-rescue-fix').onclick = function () {
-          try {
-            var raw = localStorage.getItem('zuqiu-km-autosave-v1');
-            if (raw) localStorage.setItem('zuqiu-km-autosave-v1-bak', raw);
-          } catch (e) {}
+          hmBackupAllSaves();
           location.reload();
         };
         document.getElementById('hm-rescue-retry').onclick = function () { location.reload(); };
         document.getElementById('hm-rescue-wipe').onclick = function () {
-          try {
-            var raw2 = localStorage.getItem('zuqiu-km-autosave-v1');
-            if (raw2) localStorage.setItem('zuqiu-km-autosave-v1-bak', raw2);
-            localStorage.removeItem('zuqiu-km-autosave-v1');
-          } catch (e) {}
+          hmBackupAllSaves(); /* 先把游客 + 全部账号的存档和登录状态都备份好 */
+          hmSaveKeys().forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
           location.reload();
         };
       };
       window.addEventListener('error', function (e) {
-        if (!window.__hmBooted && e && e.message) setTimeout(window.__hmRescue, 300);
+        /* 早期报错只登记、延迟复查：报错不等于启动失败，慢手机上启动本来就要几秒。 */
+        if (!window.__hmBooted && e && e.message) setTimeout(window.__hmRescue, 2500);
       }, true);
-      setTimeout(window.__hmRescue, 7000);
+      setTimeout(window.__hmRescue, 10000);
     </script>
     <style>
       button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
@@ -5271,30 +5297,52 @@ try{
     if(badRaw){ try{ localStorage.setItem(curSaveKey()+'-bak', badRaw); }catch(e2){} }
     var rescued=false;
     try{ rescued=loadAutoSave(); }catch(e3){ rescued=false; }
+    /* 逐级兜底，每一级都单独包好：读档渲染失败 → 开局界面 → 登录界面。
+       旧版只有前两级且共用一个 try：第二级的 render() 再抛错就被最外层吞掉，
+       __hmBooted 永远置不上，看门狗面板成了唯一的「界面」，而旧面板的按钮又
+       只管游客存档——账号玩家就这样被永久锁死。现在只要有任何一屏画出来，
+       就置 __hmBooted，游戏至少能进；三级全灭才轮到看门狗面板。 */
+    var shown=false;
     if(rescued){
-      PAGE='home';
-      render();
-      toast('💾 已自动读取上次存档：'+G.club+' · 第 '+G.month+' 个月，接着玩！');
-      startPosterChain(false);
-    } else {
-      /* 抢救失败也绝不自动清档：存档原样保留，只进开局界面兜底显示。 */
-      G=null; PAGE='home';
-      render();
-      startPosterChain(true);
-      toast('⚠️ 这次没能读出旧存档，但它还完整保存在本机、没有被删除。退出重开一次通常就能恢复。');
+      try{
+        PAGE='home';
+        render();
+        toast('💾 已自动读取上次存档：'+G.club+' · 第 '+G.month+' 个月，接着玩！');
+        startPosterChain(false);
+        shown=true;
+      }catch(e6){ shown=false; }
     }
-    window.__hmBooted=true;
+    if(!shown){
+      /* 抢救失败也绝不自动清档：存档原样保留，只进开局界面兜底显示。 */
+      try{
+        G=null; PAGE='home';
+        render();
+        startPosterChain(true);
+        toast('⚠️ 这次没能读出旧存档，但它还完整保存在本机、没有被删除。退出重开一次通常就能恢复。');
+        shown=true;
+      }catch(e7){
+        try{ G=null; showLoginScreen('login'); shown=true; }catch(e8){}
+      }
+    }
+    if(shown) window.__hmBooted=true;
   }catch(fallbackErr){ /* 看门狗接管，显示一键修复面板 */ }
 }
 }
 function hmBoot(){
   /* 先看登录状态：没登录（或账号已被删）就停在登录界面，不进大厅；
-     已登录（账号或游客）保持登录状态，直接进游戏。 */
-  fetchAdminData(); /* 启动先拉一次后台数据（封禁 / 邮件 / 公告），拉不到不影响进游戏 */
-  initSession();
-  if(!SESSION){ showLoginScreen('login'); window.__hmBooted=true; return; }
-  enterGame();
-  postEnterHooks();
+     已登录（账号或游客）保持登录状态，直接进游戏。
+     整个启动包在 try 里：主流程任何一步抛错，都退到完全不读存档的登录界面，
+     绝不让启动死在半路、只剩看门狗面板。 */
+  try{
+    fetchAdminData(); /* 启动先拉一次后台数据（封禁 / 邮件 / 公告），拉不到不影响进游戏 */
+    initSession();
+    if(!SESSION){ showLoginScreen('login'); window.__hmBooted=true; return; }
+    enterGame();
+    try{ postEnterHooks(); }catch(hookErr){}
+  }catch(bootErr){
+    try{ G=null; showLoginScreen('login'); window.__hmBooted=true; }
+    catch(e2){ /* 登录界面也画不出来才交给看门狗面板 */ }
+  }
 }
 if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', hmBoot); }
 else{ hmBoot(); }
