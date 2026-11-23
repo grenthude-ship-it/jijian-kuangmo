@@ -294,6 +294,31 @@
       @media (max-width:640px){ .live-cols{ grid-template-columns:1fr; max-height:58vh; } .live-side{ border-left:none; border-top:1px solid var(--line); } .mr-score .sc{ font-size:30px; } }
       .btn-start{ background:var(--orange); color:#fff; border:none; font-size:16px; font-weight:800; padding:12px 30px; border-radius:10px; }
       .btn-start:hover{ background:var(--orange-d); }
+      /* ---------- 登录界面 / 账号中心 ---------- */
+      .login-wrap{ position:fixed; inset:0; overflow-y:auto; background:linear-gradient(168deg,#1b3049 0%,#101d29 55%,#0b141d 100%); display:flex; align-items:flex-start; justify-content:center; padding:34px 14px 40px; z-index:5; }
+      .login-card{ background:#fff; border-radius:16px; max-width:430px; width:100%; box-shadow:0 18px 50px rgba(0,0,0,.4); overflow:hidden; }
+      .login-hero{ background:linear-gradient(120deg,#173550,#0e2233); padding:24px 26px 18px; text-align:center; }
+      .login-hero .game-logo{ width:min(300px,86%); margin:0 auto; }
+      .login-sub{ color:#a9bfd1; font-size:12.5px; margin-top:8px; line-height:1.6; }
+      .login-body{ padding:18px 26px 24px; }
+      .login-body label.fl, .card label.fl{ display:block; font-size:12.5px; color:var(--ink2); font-weight:700; margin:14px 0 6px; }
+      .login-body input[type=text], .login-body input[type=password], .card input[type=text], .card input[type=password]{ width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:9px; font-size:15px; font-family:inherit; }
+      .login-main{ width:100%; margin-top:18px; }
+      .login-row{ display:flex; gap:10px; margin-top:12px; }
+      .login-row .btn{ flex:1; padding:10px 8px; font-size:14px; }
+      .login-err{ background:#fdecea; color:#b3352a; border:1px solid #f2c4bd; border-radius:9px; padding:9px 12px; font-size:13.5px; margin-top:14px; }
+      .login-sec{ font-weight:800; font-size:14px; margin:20px 0 8px; }
+      .login-note{ font-size:12.5px; color:var(--ink2); line-height:1.7; margin:18px 0 0; background:#f4f7f9; border-radius:9px; padding:10px 12px; }
+      .login-note2{ font-size:13px; color:var(--ink2); margin:14px 0 0; }
+      .acct-item{ display:flex; flex-direction:column; align-items:flex-start; gap:2px; width:100%; text-align:left; background:#f7fafc; border:1.5px solid var(--line); border-radius:11px; padding:10px 13px; margin-bottom:8px; font-family:inherit; }
+      .acct-item:active{ border-color:var(--orange); }
+      .acct-item .ai-n{ font-weight:800; font-size:15px; color:var(--ink); }
+      .acct-item .ai-m{ font-size:12.5px; color:var(--ink2); }
+      .vrow{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:7px 0; border-bottom:1px dashed var(--line); font-size:13.5px; }
+      .vrow span{ color:var(--ink2); }
+      .vrow.tot{ border-bottom:none; border-top:2px solid var(--line); margin-top:4px; padding-top:10px; font-size:15px; }
+      .vrow.tot span{ color:var(--ink); font-weight:800; }
+      .vrow.tot b{ color:var(--orange-d); font-size:17px; }
       .ev-choices{ display:flex; flex-direction:column; gap:9px; margin-top:12px; }
       .ev-choices button{ text-align:left; }
       .end-grade{ font-size:54px; font-weight:900; color:var(--orange); line-height:1; }
@@ -618,8 +643,10 @@ function autoSave(){
   if(typeof G==='undefined' || !G || !G.started) return;
   try{
     lastSaveAt=new Date();
-    localStorage.setItem(SAVE_KEY, JSON.stringify({v:1, savedAt:lastSaveAt.getTime(), data:G}));
+    localStorage.setItem(curSaveKey(), JSON.stringify({v:1, savedAt:lastSaveAt.getTime(), data:G}));
     saveAvailable=true;
+    /* 登录状态下顺手把账号总价值刷新到注册表缓存，登录界面的账号列表直接读它。 */
+    if(CUR_USER){ try{ var _all=acctAll(); if(_all[CUR_USER]){ _all[CUR_USER].val=accountValueParts().total; acctSaveAll(_all); } }catch(e2){} }
   }catch(e){ saveAvailable=false; }
 }
 function sanitizeSaveData(d){
@@ -728,7 +755,7 @@ function sanitizeSaveData(d){
 }
 function loadAutoSave(){
   try{
-    var raw=localStorage.getItem(SAVE_KEY);
+    var raw=localStorage.getItem(curSaveKey());
     if(!raw) return false;
     var obj=JSON.parse(raw);
     if(!obj) return false;
@@ -744,7 +771,7 @@ function loadAutoSave(){
   }catch(e){ return false; }
 }
 function clearAutoSave(){
-  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  try{ localStorage.removeItem(curSaveKey()); }catch(e){}
   lastSaveAt=null;
 }
 function saveTimeText(){
@@ -754,6 +781,316 @@ function saveTimeText(){
   return p(lastSaveAt.getHours())+':'+p(lastSaveAt.getMinutes())+':'+p(lastSaveAt.getSeconds());
 }
 window.addEventListener('beforeunload', function(){ autoSave(); });
+/* ---------------- 账号系统（本机多账号，价值和装备跟着账号走） ----------------
+   账号只存在本设备：注册表 hm-accounts-v1 存用户名 / 密码哈希（不存明文）/
+   密码提示 / 注册时间 / 上次登录 / 账号总价值缓存；hm-session-v1 记登录状态，
+   下次打开直接进大厅，点「退出登录」才回登录界面。每个账号的存档单独存一个
+   localStorage 键（ACCT_SAVE_PREFIX + 用户名），游客继续用原来的默认存档键
+   SAVE_KEY——老进度原样保留，账号之间、账号与游客之间互不干扰。 */
+var ACCT_KEY='hm-accounts-v1', SESSION_KEY='hm-session-v1', ACCT_SAVE_PREFIX='zuqiu-km-acct-v1-';
+var CUR_USER=null, IS_GUEST=false, SESSION=null;
+function curSaveKey(){ return CUR_USER? ACCT_SAVE_PREFIX+CUR_USER : SAVE_KEY; }
+function pwHash(name, pw){
+  var s='hm·'+name+'·'+pw, h1=5381, h2=52711;
+  for(var i=0;i<s.length;i++){ var c=s.charCodeAt(i); h1=((h1*33)^c)>>>0; h2=((h2*31)^c)>>>0; }
+  return 'h'+h1.toString(36)+h2.toString(36);
+}
+function acctAll(){ try{ var o=JSON.parse(localStorage.getItem(ACCT_KEY)||'{}'); return (o&&typeof o==='object')? o : {}; }catch(e){ return {}; } }
+function acctSaveAll(all){ try{ localStorage.setItem(ACCT_KEY, JSON.stringify(all)); }catch(e){} }
+function acctGet(name){ if(!name) return null; var all=acctAll(); return all[name]||null; }
+function setSession(s){ SESSION=s; try{ if(s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); }catch(e){} }
+function initSession(){
+  var s=null; try{ s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null'); }catch(e){}
+  CUR_USER=null; IS_GUEST=false; SESSION=null;
+  if(s && s.u && acctGet(s.u)){ CUR_USER=s.u; SESSION={u:s.u}; }
+  else if(s && s.g){ IS_GUEST=true; SESSION={g:1}; }
+}
+function fmtDayTime(ts){
+  if(!ts) return '—';
+  var d=new Date(ts), p=function(n){ return (n<10?'0':'')+n; };
+  return d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+/* 账号总价值（当前进度，实时算）：俱乐部估值 + 现金 + 阵容总身价 + 钻石折算
+   + 品牌/海外/跨界业务价值。钻石折算按充值中心「运营资金包」的兑换价：
+   100 钻 = 现金 500万，即 1 钻 = 5万。 */
+function accountValueParts(){
+  ensureBiz();
+  var club=valuation(), cash=G.cash||0, squad=squadValue(), dia=(G.diamonds||0)*5, biz=bizValue();
+  return {club:club, cash:cash, squad:squad, dia:dia, biz:biz, total:club+cash+squad+dia+biz};
+}
+/* 不加载进游戏、只凭一份存档数据算账号总价值（登录界面的账号列表用）：
+   公式和 accountValueParts / valuation / bizValue 完全一致。 */
+function valueFromData(d){
+  try{
+    if(!d || !(d.squad instanceof Array)) return null;
+    var squad=0; d.squad.forEach(function(p){ squad+=(p&&p.value)||0; });
+    var f=d.fac||{};
+    var fac=((f.stadium||0)+(f.academy||0)+(f.training||0)+(f.medical||0)+(f.data||0))*120;
+    var vent=0;
+    if(d.ventures){ Object.keys(d.ventures).forEach(function(id){ var df=(typeof ventDef==='function')? ventDef(id):null; if(df) vent+=Math.round(df.cost*(0.6+0.5*d.ventures[id])); }); }
+    var biz=0, b=d.biz;
+    if(b){
+      if(b.overseas){ Object.keys(b.overseas).forEach(function(id){ var od=(typeof ovDef==='function')? ovDef(id):null; if(od) biz+=Math.round(od.cost*(0.6+0.45*(((b.overseas[id]||{}).lv)||1))); }); }
+      if(b.brand && b.brand.founded) biz+=Math.round(b.brand.value||0);
+      if(b.cross){ Object.keys(b.cross).forEach(function(id){ var c=b.cross[id]||{}; biz+=Math.round((c.invested||0)*(0.75+0.2*(c.lv||1))); }); }
+    }
+    var club=Math.round((d.cash||0)-(d.debt||0)+squad+fac+vent+biz+(d.rep||0)*15+(d.fans||0)*0.04);
+    return club+(d.cash||0)+squad+(d.diamonds||0)*5+biz;
+  }catch(e){ return null; }
+}
+function acctListValue(name, rec){
+  var val=null;
+  try{
+    var raw=localStorage.getItem(ACCT_SAVE_PREFIX+name);
+    if(raw){ var obj=JSON.parse(raw); var d=(obj&&obj.data)? obj.data : obj; val=valueFromData(d); }
+  }catch(e){}
+  if(val==null && rec && typeof rec.val==='number') val=rec.val;
+  return val;
+}
+/* ---------------- 登录界面 ---------------- */
+var _loginErr='', _loginName='';
+function showLoginScreen(mode){
+  if(typeof stopPosterCarousel==='function') stopPosterCarousel();
+  if(typeof stopAuto==='function') stopAuto();
+  $modal.innerHTML='';
+  var cr=document.getElementById('creator-root'); if(cr) cr.innerHTML='';
+  document.body.classList.remove('home-dark');
+  var all=acctAll();
+  var names=Object.keys(all).sort(function(a,b){ return (all[b].last||0)-(all[a].last||0); });
+  window._loginNames=names;
+  var formHTML='', listHTML='';
+  if(mode==='reg'){
+    formHTML='<div class="login-sec" style="margin-top:0;">注册新账号</div>'
+    +'<label class="fl">用户名（3–20 个字符）</label><input type="text" id="reg-user" maxlength="20" placeholder="给账号起个名" autocomplete="username">'
+    +'<label class="fl">密码（至少 4 位）</label><input type="password" id="reg-pw" placeholder="设置密码" autocomplete="new-password" onkeydown="if(event.key===\'Enter\')doRegister()">'
+    +'<label class="fl">密码提示（可选，密码忘了时看）</label><input type="text" id="reg-hint" maxlength="30" placeholder="比如：我的幸运数字">'
+    +(_loginErr? '<div class="login-err">'+esc(_loginErr)+'</div>':'')
+    +'<button type="button" class="btn-start login-main" onclick="doRegister()">注册并进入游戏</button>'
+    +'<div class="login-row"><button type="button" class="btn" onclick="showLoginScreen(\'login\')">← 返回登录</button></div>';
+  } else {
+    formHTML='<label class="fl">用户名</label><input type="text" id="login-user" maxlength="20" placeholder="输入用户名" autocomplete="username" value="'+esc(_loginName)+'" onkeydown="if(event.key===\'Enter\'){var p=document.getElementById(\'login-pw\'); if(p) p.focus(); }">'
+    +'<label class="fl">密码</label><input type="password" id="login-pw" placeholder="输入密码" autocomplete="current-password" onkeydown="if(event.key===\'Enter\')doLogin()">'
+    +(_loginErr? '<div class="login-err">'+esc(_loginErr)+'</div>':'')
+    +'<button type="button" class="btn-start login-main" onclick="doLogin()">登 录</button>'
+    +'<div class="login-row"><button type="button" class="btn" onclick="showLoginScreen(\'reg\')">注册新账号</button><button type="button" class="btn" onclick="doGuestLogin()">游客登录</button></div>';
+    if(names.length){
+      listHTML='<div class="login-sec">本设备上的账号（点一下自动填用户名）</div>'+names.map(function(n,i){
+        var rec=all[n], v=acctListValue(n, rec);
+        return '<button type="button" class="acct-item" onclick="fillLoginUser('+i+')"><span class="ai-n">👤 '+esc(n)+'</span><span class="ai-m">账号总价值 <b class="num">'+(v==null?'—':fmt(v))+'</b> · 上次登录 '+fmtDayTime(rec.last)+'</span></button>';
+      }).join('');
+    } else {
+      listHTML='<p class="login-note2">本设备上还没有账号，点「注册新账号」建一个，或者先用游客登录直接玩。</p>';
+    }
+  }
+  $app.innerHTML='<div class="login-wrap"><div class="login-card">'
+  +'<div class="login-hero"><img class="game-logo" src="logo.png" alt="豪门缔造者"><div class="login-sub">从一支中乙小球队，到中超冠军与体育帝国<br>登录账号进入游戏 · 账号的价值和装备都跟着账号走</div></div>'
+  +'<div class="login-body">'+formHTML+listHTML
+  +'<p class="login-note">🔒 账号和密码只保存在本设备上，不会上传到任何服务器。换设备时，用账号中心里的「账号备份码」就能把账号和进度一起带走。</p>'
+  +'</div></div></div>';
+  _loginErr='';
+}
+function fillLoginUser(i){
+  var n=(window._loginNames||[])[i]; if(!n) return;
+  _loginName=n;
+  var u=document.getElementById('login-user'); if(u) u.value=n;
+  var p=document.getElementById('login-pw'); if(p){ p.value=''; p.focus(); }
+}
+function doLogin(){
+  var name=((document.getElementById('login-user')||{}).value||'').trim();
+  var pw=(document.getElementById('login-pw')||{}).value||'';
+  _loginName=name;
+  var rec=acctGet(name);
+  if(!rec){ _loginErr='这个账号还没有注册'; showLoginScreen('login'); return; }
+  if(pwHash(name,pw)!==rec.h){
+    _loginErr='密码不对，请重新输入'+(rec.hint? '（密码提示：'+rec.hint+'）':'');
+    showLoginScreen('login'); return;
+  }
+  var all=acctAll(); all[name].last=Date.now(); acctSaveAll(all);
+  CUR_USER=name; IS_GUEST=false; setSession({u:name});
+  toast('欢迎回来，'+name+'！正在进入游戏…');
+  enterGame();
+}
+function doGuestLogin(){
+  CUR_USER=null; IS_GUEST=true; setSession({g:1});
+  toast('已以游客身份进入，进度保存在原来的默认存档里');
+  enterGame();
+}
+function validNewName(name){
+  if(name.length<3 || name.length>20) return '用户名要 3–20 个字符';
+  if(acctGet(name)) return '这个用户名已经被注册了，换一个';
+  return '';
+}
+function doRegister(){
+  var name=((document.getElementById('reg-user')||{}).value||'').trim();
+  var pw=(document.getElementById('reg-pw')||{}).value||'';
+  var hint=((document.getElementById('reg-hint')||{}).value||'').trim();
+  var err=validNewName(name);
+  if(!err && pw.length<4) err='密码至少 4 位';
+  if(err){ _loginErr=err; showLoginScreen('reg');
+    var u=document.getElementById('reg-user'); if(u) u.value=name;
+    var h=document.getElementById('reg-hint'); if(h) h.value=hint;
+    return; }
+  var now=Date.now(), all=acctAll();
+  all[name]={h:pwHash(name,pw), hint:hint, reg:now, last:now, val:null};
+  acctSaveAll(all);
+  CUR_USER=name; IS_GUEST=false; setSession({u:name});
+  toast('账号「'+name+'」注册成功，开始新开局！');
+  enterGame();
+}
+function doLogout(){
+  autoSave();
+  if(typeof stopAuto==='function') stopAuto();
+  setSession(null); CUR_USER=null; IS_GUEST=false; G=null; PAGE='home';
+  window._acctImportPending=null; _loginName='';
+  showLoginScreen('login');
+  toast('已退出登录');
+}
+/* ---------------- 账号中心 ---------------- */
+function pageAccount(){
+  ensureBiz();
+  var parts=accountValueParts();
+  var starters=Math.min(11, G.squad.length);
+  var topNames=G.squad.slice().sort(function(a,b){ return (b.value||0)-(a.value||0); }).slice(0,3).map(function(p){ return esc(p.name)+'（'+fmt(p.value)+'）'; }).join('、');
+  var html='';
+  if(window._acctImportPending){
+    html+='<div class="card" style="border:2px solid var(--orange);"><h3>📥 恢复账号「'+esc(window._acctImportPending.name)+'」</h3><p class="desc">备份码已识别。为这个账号重新设置一个密码（至少 4 位），确认后就会切换登录到这个账号，并加载它的全部进度。</p><label class="fl">新密码</label><input type="password" id="acct-imp-pw" placeholder="为恢复的账号设置密码"><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;"><button class="btn pri" onclick="acctImportConfirm()">确认恢复并登录</button><button class="btn" onclick="acctImportCancel()">取消</button></div></div>';
+  }
+  if(CUR_USER){
+    var rec=acctGet(CUR_USER)||{};
+    html+='<div class="card"><h3>👤 账号中心<span class="hint">账号的价值和装备都跟着账号走</span></h3>'
+    +'<div class="item"><div class="grow"><div class="nm">用户名：<b>'+esc(CUR_USER)+'</b></div><div class="meta">注册时间 '+fmtDayTime(rec.reg)+' · 上次登录 '+fmtDayTime(rec.last)+'</div></div><span class="pill up">已登录</span></div>'
+    +'<p class="desc">当前进度——俱乐部、现金、阵容、钻石、道具、品牌、海外俱乐部等——全部保存在这个账号名下。退出登录换别的账号，进度互不干扰。</p></div>';
+  } else {
+    html+='<div class="card"><h3>👤 账号中心<span class="hint">当前是游客模式</span></h3>'
+    +'<p class="desc">你现在以<b>游客</b>身份在玩，进度保存在本设备的默认存档里（和以前一样，不会丢）。把当前进度注册成账号后，这份进度就归这个账号所有，以后登录这个账号就能接着玩。</p>'
+    +'<label class="fl">用户名（3–20 个字符）</label><input type="text" id="guest-reg-user" maxlength="20" placeholder="给账号起个名">'
+    +'<label class="fl">密码（至少 4 位）</label><input type="password" id="guest-reg-pw" placeholder="设置密码">'
+    +'<label class="fl">密码提示（可选）</label><input type="text" id="guest-reg-hint" maxlength="30" placeholder="忘记密码时看的提示">'
+    +'<div style="margin-top:12px;"><button class="btn pri" onclick="guestToAccount()">把当前进度注册为账号</button></div></div>';
+  }
+  html+='<div class="card"><h3>💰 账号总价值<span class="hint">随经营实时变化</span></h3>'
+  +'<div class="vrow"><span>俱乐部估值</span><b class="num">'+fmt(parts.club)+'</b></div>'
+  +'<div class="vrow"><span>现金</span><b class="num">'+fmt(parts.cash)+'</b></div>'
+  +'<div class="vrow"><span>阵容总身价</span><b class="num">'+fmt(parts.squad)+'</b></div>'
+  +'<div class="vrow"><span>钻石折算（💎 '+(G.diamonds||0)+' 钻）</span><b class="num">'+fmt(parts.dia)+'</b></div>'
+  +'<div class="vrow"><span>品牌 / 海外 / 跨界业务价值</span><b class="num">'+fmt(parts.biz)+'</b></div>'
+  +'<div class="vrow tot"><span>账号总价值</span><b class="num">'+fmt(parts.total)+'</b></div>'
+  +'<p class="mini" style="margin-top:8px;">钻石折算按充值中心「运营资金包」的兑换价：100 钻 = 现金 500万，即 1 钻 = 5万。</p></div>';
+  html+='<div class="card"><h3>🎒 账号装备</h3>'
+  +'<div class="item"><div class="grow"><div class="nm">⚽ 阵容球员 '+G.squad.length+' 人 · 首发主力 '+starters+' 人</div><div class="meta">阵容总身价 '+fmt(squadValue())+(topNames? ' · 身价最高：'+topNames : '')+'</div></div><button class="btn sm" onclick="go(\'squad\')">看阵容</button></div>'
+  +'<div class="item"><div class="grow"><div class="nm">💎 钻石 '+(G.diamonds||0)+'</div><div class="meta">VIP'+(G.vip||0)+' · 累计充值 ¥'+(G.spent||0)+'</div></div><button class="btn sm" onclick="go(\'pay\')">充值中心</button></div>'
+  +'<div class="item"><div class="grow"><div class="nm">🎟️ 直签券 × '+((G.pay2&&G.pay2.vouchers)||0)+' · 🧪 球星试用卡 × '+((G.pay2&&G.pay2.trialCards)||0)+'</div><div class="meta">其他道具：抽卡碎片 × '+((G.pack&&G.pack.shards)||0)+' · 巅峰卡 × '+(((G.pack&&G.pack.peaks)||[]).length)+' 张</div></div><button class="btn sm" onclick="go(\'packs\')">球星抽卡</button></div>'
+  +'</div>';
+  html+='<div class="card"><h3>⚙️ 账号操作</h3>';
+  if(CUR_USER){
+    html+='<label class="fl">修改密码 · 原密码</label><input type="password" id="acct-old-pw" placeholder="输入原密码">'
+    +'<label class="fl">新密码（至少 4 位）</label><input type="password" id="acct-new-pw" placeholder="输入新密码">'
+    +'<div style="margin-top:10px;"><button class="btn sm" onclick="acctChangePw()">修改密码</button></div>';
+  }
+  html+='<label class="fl">'+(CUR_USER? '账号备份码（带账号名，换设备时导入就能恢复这个账号）' : '存档码备份（游客进度也可以先导出一份留着）')+'</label>'
+  +'<textarea class="code" id="acct-code" placeholder="点「导出」生成，或把备份码粘贴到这里再点「导入」"></textarea>'
+  +'<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button class="btn sm" onclick="acctExport()">'+(CUR_USER? '导出账号备份码' : '导出存档码')+'</button><button class="btn sm" onclick="acctImport()">'+(CUR_USER? '导入账号备份码' : '导入存档码')+'</button></div>'
+  +'<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;"><button class="btn" onclick="doLogout()">退出登录</button>'
+  +(CUR_USER? '<button class="btn" style="color:var(--red);border-color:#e5b3ab;" onclick="acctDelete(this)">删除账号</button>' : '')
+  +'</div>'
+  +(CUR_USER? '' : '<p class="mini" style="margin-top:8px;">退出后回到登录界面；游客进度仍保留在默认存档里，下次游客登录还能接着玩。</p>')
+  +'</div>';
+  return html;
+}
+function guestToAccount(){
+  var name=((document.getElementById('guest-reg-user')||{}).value||'').trim();
+  var pw=(document.getElementById('guest-reg-pw')||{}).value||'';
+  var hint=((document.getElementById('guest-reg-hint')||{}).value||'').trim();
+  var err=validNewName(name);
+  if(err){ toast(err); return; }
+  if(pw.length<4){ toast('密码至少 4 位'); return; }
+  var now=Date.now(), all=acctAll();
+  all[name]={h:pwHash(name,pw), hint:hint, reg:now, last:now, val:null};
+  acctSaveAll(all);
+  autoSave(); /* 先把当前进度稳稳存进默认存档，保证一份不丢 */
+  var raw=null; try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){}
+  CUR_USER=name; IS_GUEST=false; setSession({u:name});
+  if(raw){ try{ localStorage.setItem(curSaveKey(), raw); }catch(e){} }
+  autoSave();
+  PAGE='account'; render();
+  toast('已注册为账号「'+name+'」，当前进度已归到这个账号名下');
+}
+function acctChangePw(){
+  if(!CUR_USER) return;
+  var oldPw=(document.getElementById('acct-old-pw')||{}).value||'';
+  var newPw=(document.getElementById('acct-new-pw')||{}).value||'';
+  var all=acctAll(), rec=all[CUR_USER];
+  if(!rec){ toast('账号记录不见了，请重新登录'); return; }
+  if(pwHash(CUR_USER,oldPw)!==rec.h){ toast('原密码不对'); return; }
+  if(newPw.length<4){ toast('新密码至少 4 位'); return; }
+  rec.h=pwHash(CUR_USER,newPw); acctSaveAll(all);
+  toast('密码已修改，下次登录用新密码');
+  render();
+}
+function acctExport(){
+  var el=document.getElementById('acct-code'); if(!el) return;
+  var payload= CUR_USER? {hmAcct:1, name:CUR_USER, data:G} : G;
+  el.value=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  el.select();
+  toast(CUR_USER? '账号备份码已生成（带账号名），复制保存好' : '存档码已生成，复制保存好');
+}
+function acctImport(){
+  var el=document.getElementById('acct-code');
+  var txt=((el&&el.value)||'').trim();
+  if(!txt){ toast('先把备份码粘贴到上面的框里'); return; }
+  try{
+    var obj=JSON.parse(decodeURIComponent(escape(atob(txt))));
+    if(obj && obj.hmAcct && obj.name && obj.data){
+      var data=sanitizeSaveData(JSON.parse(JSON.stringify(obj.data)));
+      if(!data) throw 0;
+      window._acctImportPending={name:String(obj.name), data:data};
+      PAGE='account'; render();
+      toast('已识别账号「'+obj.name+'」，请为它重新设置密码');
+      return;
+    }
+    var rawData=(obj && obj.data)? obj.data : obj;
+    var data2=sanitizeSaveData(rawData);
+    if(!data2) throw 0;
+    if(typeof stopAuto==='function') stopAuto();
+    G=data2; PAGE='account';
+    log('💾 存档导入成功，回到第 '+G.month+' 个月。此后会自动存档，退出重开接着玩。','good');
+    render(); autoSave();
+    toast('导入成功，已存到'+(CUR_USER? '当前账号「'+CUR_USER+'」名下' : '默认存档里'));
+  }catch(e){ toast('备份码不对，导入失败'); }
+}
+function acctImportConfirm(){
+  var p=window._acctImportPending; if(!p) return;
+  var pw=(document.getElementById('acct-imp-pw')||{}).value||'';
+  if(pw.length<4){ toast('密码至少 4 位'); return; }
+  autoSave(); /* 先把当前账号/游客的进度存好，再切换账号，不丢任何一边 */
+  var now=Date.now(), all=acctAll(), old=all[p.name]||{};
+  all[p.name]={h:pwHash(p.name,pw), hint:old.hint||'', reg:old.reg||now, last:now, val:null};
+  acctSaveAll(all);
+  CUR_USER=p.name; IS_GUEST=false; setSession({u:p.name});
+  try{ localStorage.setItem(curSaveKey(), JSON.stringify({v:1, savedAt:now, data:p.data})); }catch(e){}
+  window._acctImportPending=null;
+  G=p.data; PAGE='home'; render(); autoSave();
+  toast('账号「'+p.name+'」已恢复并登录，进度已带过来');
+}
+function acctImportCancel(){ window._acctImportPending=null; render(); }
+function acctDelete(btn){
+  if(!CUR_USER) return;
+  if(window._acctDelArm){
+    window._acctDelArm=false;
+    var name=CUR_USER;
+    try{ localStorage.removeItem(ACCT_SAVE_PREFIX+name); }catch(e){}
+    var all=acctAll(); delete all[name]; acctSaveAll(all);
+    setSession(null); CUR_USER=null; IS_GUEST=false; G=null; PAGE='home';
+    if(typeof stopAuto==='function') stopAuto();
+    showLoginScreen('login');
+    toast('账号「'+name+'」已删除，它的存档也一并清除了');
+    return;
+  }
+  window._acctDelArm=true;
+  btn.textContent='再点一次确认删除（账号和存档都没了）';
+  toast('删除后这个账号和它的全部进度都会被清除，再点一次确认');
+  setTimeout(function(){ window._acctDelArm=false; },5000);
+}
 /* ---------------- App 模式：安装到主屏幕 / 全屏 ---------------- */
 var deferredInstallPrompt=null;
 window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferredInstallPrompt=e; refreshInstallUI(); });
@@ -2245,7 +2582,7 @@ function restart(){ stopAuto(); clearAutoSave(); G=null; PAGE='home'; showStart(
 <script>
 "use strict";
 /* ---------------- 渲染 ---------------- */
-var NAV=[['home','游戏大厅','📋'],['tasks','每日任务','✅'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['fun','趣味乐园','🎡'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['neg','商务谈判中心','📞'],['cross','跨行业经营','🏭'],['ipo','企业上市','📈'],['packs','球星抽卡','🃏'],['hall','荣耀殿堂','🏛️'],['bet','体彩竞猜','🎟️'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
+var NAV=[['home','游戏大厅','📋'],['account','账号中心','👤'],['tasks','每日任务','✅'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['fun','趣味乐园','🎡'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['neg','商务谈判中心','📞'],['cross','跨行业经营','🏭'],['ipo','企业上市','📈'],['packs','球星抽卡','🃏'],['hall','荣耀殿堂','🏛️'],['bet','体彩竞猜','🎟️'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
 function navBtns(cls){
   return NAV.map(function(n){
     var bdg='';
@@ -2314,6 +2651,7 @@ function render(){
   +'<div class="row"><span>纪检热度</span><b style="color:'+heatColor(G.heat)+'">'+G.heat+' / 100</b></div>'
   +'<div class="row"><span>钻石</span><b class="num">💎 '+G.diamonds+'</b></div>'
   +'<div class="row"><span>自动存档</span><b style="color:#9fe8bb;">💾 '+saveTimeText()+'</b></div>'
+  +'<div class="row"><span>登录账号</span><b>'+(CUR_USER? '👤 '+esc(CUR_USER) : '游客')+'</b></div>'
   +'</div>'
   +'<div class="side-btns">'
   +'<div class="sim-row"><button class="btn-ghost" onclick="simDays(1)" '+(G.ended?'disabled style="opacity:.5"':'')+'>模拟 1 天</button><button class="btn-ghost" onclick="simDays(3)" '+(G.ended?'disabled style="opacity:.5"':'')+'>3 天</button><button class="btn-ghost" onclick="simDays(7)" '+(G.ended?'disabled style="opacity:.5"':'')+'>7 天</button></div>'
@@ -2331,6 +2669,7 @@ function render(){
   var body='';
   if(G.ended && G.ending) body+=endingBanner();
   if(PAGE==='home'){ body+=lobbyHTML(); body+=installCardHTML(); body+=pageHome(); }
+  else if(PAGE==='account') body+=pageAccount();
   else if(PAGE==='league') body+=pageLeague();
   else if(PAGE==='market') body+=pageMarket();
   else if(PAGE==='intel') body+=pageIntel();
@@ -2779,7 +3118,7 @@ function pageClub(){
   +'<div class="card"><h3>👑 王朝评级（实时）</h3><p class="desc">没有强制结局，评级随经营一直涨：夺冠次数、杯赛、集团阶段、估值、声望、资历和胜场都算分。</p><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;"><div class="end-grade">'+dynastyGrade().grade+'</div><div><b>'+dynastyGrade().title+'</b><div class="mini" style="margin-top:3px;">王朝积分 '+dynastyGrade().score+' · 中超冠军 '+(G.titles||0)+' 次 · 足协杯关键战 '+(G.cupWins||0)+' 胜 · 已运营 '+(G.seasonsPlayed||0)+' 个赛季 / '+G.month+' 个月 · 累计胜场 '+(G.totalWins||0)+'</div></div></div></div>'
   +'<div class="card"><h3>🏆 长期目标</h3>'+goalHTML+'</div>'
   +'<div class="card"><h3>🏅 成就墙<span class="hint">达成后点领取，钻石直接到账</span></h3>'+achHTML+'</div>'
-  +'<div class="card"><h3>💾 自动存档</h3><p class="desc">游戏已开启<b>自动存档</b>：进入游戏自动读取上次进度，每步操作（结束月份、买卖球员、青训签约提拔、充值等）都会自动保存到本机，退出重开接着玩，不用从头开始。最近一次存档：<b>'+saveTimeText()+'</b>（状态也显示在侧边栏）。自动存档只存在这台设备的这个浏览器里；换设备或想留备份，再用下面的存档码导出一份。</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"><button class="btn pri sm" onclick="autoSave();render();toast(\'已存档 · \'+saveTimeText())">立即存档</button><button class="btn sm" onclick="confirmClearSave(this)">清除存档 · 重新开局</button></div><textarea class="code" id="save-code" placeholder="备份用：点「导出存档码」生成，或把存档码粘贴到这里再点「导入存档码」"></textarea><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button class="btn sm" onclick="exportSave()">导出存档码</button><button class="btn sm" onclick="importSave()">导入存档码</button></div></div>'
+  +'<div class="card"><h3>💾 自动存档</h3><p class="desc">游戏已开启<b>自动存档</b>：进入游戏自动读取上次进度，每步操作（结束月份、买卖球员、青训签约提拔、充值等）都会自动保存到本机，退出重开接着玩，不用从头开始。最近一次存档：<b>'+saveTimeText()+'</b>（状态也显示在侧边栏）。当前登录：<b>'+(CUR_USER? '账号「'+esc(CUR_USER)+'」' : '游客')+'</b>，进度保存在'+(CUR_USER? '这个账号名下' : '默认存档里')+'。自动存档只存在这台设备的这个浏览器里；换设备或想留备份，再用下面的存档码导出一份。</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"><button class="btn pri sm" onclick="autoSave();render();toast(\'已存档 · \'+saveTimeText())">立即存档</button><button class="btn sm" onclick="confirmClearSave(this)">清除存档 · 重新开局</button></div><textarea class="code" id="save-code" placeholder="备份用：点「导出存档码」生成，或把存档码粘贴到这里再点「导入存档码」"></textarea><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button class="btn sm" onclick="exportSave()">导出存档码</button><button class="btn sm" onclick="importSave()">导入存档码</button></div></div>'
   +'</div></div>';
 }
 function confirmClearSave(btn){
@@ -3478,6 +3817,7 @@ function lobbyHTML(){
     return '<button class="ltile" onclick="'+oc+'"><span class="ti">'+icon+'</span>'+name+'<small>'+small+'</small>'+(badge?'<span class="bdg">'+badge+'</span>':'')+'</button>';
   }
   var clubTilesHTML=''
+  + ltile("go('account')",'👤','账号中心','账号价值 · 装备 · 备份码 · 退出登录')
   + ltile("go('empire')",'🏢','集团扩张','电竞 · 篮球 · 海外 · 跨界板块')
   + ltile("go('ipo')",'📈','企业上市','达标申请上市 · 募资 · 股价分红')
   + ltile("go('neg')",'📞','商务谈判','给品牌对接人打电话谈合同')
@@ -4197,10 +4537,13 @@ function wallDeletePoster(id){
    空存档看起来正常，偏偏老玩家进不去）。等 DOMContentLoaded 时全部脚本块
    都已执行完，顺序问题不复存在。
    整个启动包在 try 里：万一读档 / 首屏渲染还是报错，也不能白屏、更不能清档——
-   原始存档先原样备份到 SAVE_KEY+'-bak'，然后做「二次抢救」：重新读档、强制回
+   原始存档先原样备份到 curSaveKey()+'-bak'，然后做「二次抢救」：重新读档、强制回
    大厅再渲染一次；连抢救都失败才进开局界面，但自动存档一个字都不删，原样留在
    本机（玩家手动点「清除存档」或之后版本修好，都还能接着用）。 */
-function hmBoot(){
+/* 登录成功（或已有登录状态）后进入游戏：读当前账号（或游客默认存档）的存档，
+   读不到就走海报 → 开局界面。原启动的二次抢救逻辑原样保留，只是存档键换成
+   当前账号的键 curSaveKey()，哪个账号登录就抢救哪个账号的存档。 */
+function enterGame(){
 try{
   if(loadAutoSave()){
     PAGE='home';
@@ -4215,8 +4558,8 @@ try{
 }catch(bootErr){
   try{
     var badRaw=null;
-    try{ badRaw=localStorage.getItem(SAVE_KEY); }catch(e1){}
-    if(badRaw){ try{ localStorage.setItem(SAVE_KEY+'-bak', badRaw); }catch(e2){} }
+    try{ badRaw=localStorage.getItem(curSaveKey()); }catch(e1){}
+    if(badRaw){ try{ localStorage.setItem(curSaveKey()+'-bak', badRaw); }catch(e2){} }
     var rescued=false;
     try{ rescued=loadAutoSave(); }catch(e3){ rescued=false; }
     if(rescued){
@@ -4234,6 +4577,13 @@ try{
     window.__hmBooted=true;
   }catch(fallbackErr){ /* 看门狗接管，显示一键修复面板 */ }
 }
+}
+function hmBoot(){
+  /* 先看登录状态：没登录（或账号已被删）就停在登录界面，不进大厅；
+     已登录（账号或游客）保持登录状态，直接进游戏。 */
+  initSession();
+  if(!SESSION){ showLoginScreen('login'); window.__hmBooted=true; return; }
+  enterGame();
 }
 if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', hmBoot); }
 else{ hmBoot(); }
