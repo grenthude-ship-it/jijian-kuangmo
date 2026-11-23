@@ -637,7 +637,7 @@ function sanitizeSaveData(d){
     fun:{wheelFree:'', wheelSpins:0, letters:[], letterDay:'', funDay:'', hist:[]},
     neg:{cool:{}, memos:[]},
     ipo:{stage:'none', key:'', stageMonth:0, price:0, raised:0, hist:{}, priceHist:[], lastDiv:-1, inquiries:0, appliedName:''},
-    pack:{draws:0, hist:[], shards:0},
+    pack:{draws:0, hist:[], shards:0, peaks:[]},
     hall:{club:[]},
     bet:{slips:[], rounds:{}, totalBet:0, totalWin:0, settled:0, won:0} };
   for(var k in defs){ if(d[k]===undefined) d[k]=JSON.parse(JSON.stringify(defs[k])); }
@@ -653,8 +653,9 @@ function sanitizeSaveData(d){
   if(!d.neg.cool) d.neg.cool={}; if(!d.neg.memos) d.neg.memos=[];
   if(!d.ipo || typeof d.ipo!=='object') d.ipo={stage:'none', key:'', stageMonth:0, price:0, raised:0, hist:{}, priceHist:[], lastDiv:-1, inquiries:0, appliedName:''};
   if(!d.ipo.hist) d.ipo.hist={}; if(!d.ipo.priceHist) d.ipo.priceHist=[];
-  if(!d.pack || typeof d.pack!=='object') d.pack={draws:0, hist:[], shards:0};
+  if(!d.pack || typeof d.pack!=='object') d.pack={draws:0, hist:[], shards:0, peaks:[]};
   if(!d.pack.hist) d.pack.hist=[]; if(d.pack.shards==null) d.pack.shards=0; if(d.pack.draws==null) d.pack.draws=0;
+  if(!d.pack.peaks) d.pack.peaks=[];
   if(!d.hall || typeof d.hall!=='object') d.hall={club:[]};
   if(!d.hall.club) d.hall.club=[];
   if(!d.bet || typeof d.bet!=='object') d.bet={slips:[], rounds:{}, totalBet:0, totalWin:0, settled:0, won:0};
@@ -917,7 +918,7 @@ function newGame(clubName, origin, diff){
     fun:{wheelFree:'', wheelSpins:0, letters:[], letterDay:'', funDay:'', hist:[]},
     neg:{cool:{}, memos:[]},
     ipo:{stage:'none', key:'', stageMonth:0, price:0, raised:0, hist:{}, priceHist:[], lastDiv:-1, inquiries:0, appliedName:''},
-    pack:{draws:0, hist:[], shards:0},
+    pack:{draws:0, hist:[], shards:0, peaks:[]},
     hall:{club:[]},
     bet:{slips:[], rounds:{}, totalBet:0, totalWin:0, settled:0, won:0},
     grayWinBoost:0, seasonRank:0, negMonths:0,
@@ -2602,7 +2603,7 @@ function showPlayer(name){
 function pageSquad(){
   var sorted=G.squad.slice().sort(function(a,b){ return b.ab-a.ab; });
   var rows=sorted.map(function(p){
-    return '<tr><td>'+(p.img?'<img class="star-thumb" src="'+p.img+'" alt="'+esc(p.name)+'的真实照片">':'')+'<b>'+esc(p.name)+'</b>'+(p.star?' <span class="pill" style="background:#fdf3d3;color:#8a6508;">⭐ 球星</span>':'')+(p.foreign?' <span class="pill">外援</span>':'')+(p.inj>0?' <span class="pill dn">伤停 '+p.inj+' 天</span>':'')+(p.rest?' <span class="pill">轮休</span>':'')+((p.fat||0)>=50?' <span class="pill dn">疲劳 '+(p.fat||0)+'</span>':'')+'</td><td>'+posPill(p.pos)+'</td><td class="num">'+p.age+'</td><td>'+abBar(p)+'</td><td class="num">'+p.pot+'</td><td class="num">'+p.wage+'万</td><td class="num">'+fmt(p.value)+'</td><td class="num">'+fmtSign(p)+'</td><td style="white-space:nowrap;"><button class="btn sm" onclick="trainPlayer(\''+esc(p.name)+'\')">特训 30万</button> <button class="btn sm" onclick="releasePlayer(\''+esc(p.name)+'\')">解约</button></td></tr>';
+    return '<tr><td>'+(p.img?'<img class="star-thumb" src="'+p.img+'" alt="'+esc(p.name)+'的真实照片">':'')+'<b>'+esc(p.name)+'</b>'+(p.star?' <span class="pill" style="background:#fdf3d3;color:#8a6508;">⭐ 球星</span>':'')+(p.peak?' <span class="pill" style="background:#12263f;color:#ffd968;">🌟 卡包限定</span>':'')+(p.foreign?' <span class="pill">外援</span>':'')+(p.inj>0?' <span class="pill dn">伤停 '+p.inj+' 天</span>':'')+(p.rest?' <span class="pill">轮休</span>':'')+((p.fat||0)>=50?' <span class="pill dn">疲劳 '+(p.fat||0)+'</span>':'')+'</td><td>'+posPill(p.pos)+'</td><td class="num">'+p.age+'</td><td>'+abBar(p)+'</td><td class="num">'+p.pot+'</td><td class="num">'+p.wage+'万</td><td class="num">'+fmt(p.value)+'</td><td class="num">'+fmtSign(p)+'</td><td style="white-space:nowrap;"><button class="btn sm" onclick="trainPlayer(\''+esc(p.name)+'\')">特训 30万</button> <button class="btn sm" onclick="releasePlayer(\''+esc(p.name)+'\')">解约</button></td></tr>';
   }).join('');
   var coachCands=COACH_POOL.map(function(c,i){
     var cur= G.coach.name===c.name;
@@ -2778,7 +2779,7 @@ function pagePay(){
   +'<button class="btn grn" onclick="claimDiamonds()">我已付款，领取钻石</button></div></div></div>'
   + payExtraHTML()
   +'<div class="card"><h3>💎 钻石商城</h3><div class="shop-grid">'+shopHTML+'</div></div>'
-  +'<div class="card" style="border:2px solid #d4af37;"><h3>🃏 球星抽卡<span class="hint">商城新玩法 · 五档卡包 · 概率全公开</span></h3><p class="desc">新秀包 60 钻 → 传奇包 1200 钻，五档卡包、五个卡等级（普通 / 优秀 / 精英 / 巨星 / 传奇）：等级越高能力越强、抽中概率越低。传奇卡有机会直接开出<b>图鉴里的真传奇</b>——C罗、梅西、内马尔们都在池子里，抽中直接入队。</p><button class="btn pri" onclick="go(\'packs\')">去抽卡 ›</button></div>';
+  +'<div class="card" style="border:2px solid #d4af37;"><h3>🃏 球星抽卡<span class="hint">商城新玩法 · 五档卡包 · 概率全公开</span></h3><p class="desc">新秀包 60 钻 → 传奇包 1200 钻，五档卡包、六个卡等级（普通 / 优秀 / 精英 / 巨星 / 传奇 / 限定）：等级越高能力越强、抽中概率越低。传奇卡有机会直接开出<b>图鉴里的真传奇</b>；最稀有的<b>限定卡</b>出的是图鉴里没有的<b>卡包限定·巅峰</b>球员——巅峰C罗、巅峰梅西（99）只能在这里抽到。</p><button class="btn pri" onclick="go(\'packs\')">去抽卡 ›</button></div>';
 }
 function pageAuto(){
   return '<div class="card"><h3><span class="no">自动</span>全自动模拟</h3>'
@@ -2994,6 +2995,22 @@ function starCardHTML(s){
   +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><span class="mini">月薪 '+starWage(s.ab)+'万</span><span style="display:flex;gap:6px;flex-wrap:wrap;">'+btn+'</span></div>'
   +'</div></div>';
 }
+function peakLockCardHTML(s){
+  var owned=(typeof peakInSquad==='function') && peakInSquad(s);
+  return '<div class="star-card" style="border-color:#12263f;"><img src="'+s.img+'" alt="'+s.name+'的真实比赛照片">'
+  +'<div class="sb"><div class="sn">'+s.name+'<small>'+s.en+'</small></div>'
+  +'<div class="sm">'+s.club+' · '+s.nat+'<br>'+posPill(s.pos)+' '+s.age+' 岁 · 巅峰状态</div>'
+  +'<div class="ab-wrap"><div class="bar g"><i style="width:'+s.ab+'%"></i></div><b class="num">'+s.ab+'</b></div>'
+  +'<div class="stag">'+s.tag+'</div>'
+  +'<div><span class="pill" style="background:#12263f;color:#ffd968;">🔒 卡包限定 · 仅抽卡获得</span></div>'
+  +(owned? '<span class="pill up" style="align-self:flex-start;">✓ 已抽到，在我的球队</span>' : '<button class="btn sm" style="border-color:#d4af37;color:#8a6508;font-weight:800;align-self:flex-start;" onclick="peakLockedTip()">去抽卡碰运气 ›</button>')
+  +'</div></div>';
+}
+function peakLockedTip(){
+  $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:21px;">🔒 卡包限定 · 仅抽卡获得</div><div class="sub">这批巅峰球员不在图鉴签约名单里</div></div>'
+  +'<div class="body"><p class="desc" style="margin:0;">巅峰C罗（99）、巅峰梅西（99）这些「卡包限定」球员，<b>现金买不到、直签券签不到、转会市场也没有</b>，唯一的获得方式是去<b>球星抽卡</b>开卡包抽「限定卡」（能力 93–99）。限定概率：传奇包 5%（最高）、黄金包 3%、白银包 1%、青铜包 0.3%、新秀包 0.1%，抽中直接入队。</p></div>'
+  +'<div class="foot"><button class="btn" onclick="closeModal()">再想想</button><button class="btn pri" onclick="closeModal();go(\'packs\')">去球星抽卡 ›</button></div></div></div>';
+}
 function pageStars(){
   var world=STARS.filter(function(s){ return s.league!=='中超'; });
   var csl=STARS.filter(function(s){ return s.league==='中超'; });
@@ -3024,6 +3041,10 @@ function pageStars(){
   var legendHTML='<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>👑 传奇巨星<span class="hint">C罗 · 梅西领衔 · 能力 88–97 · 照片均为本人真实比赛动作照</span></h3>'
   +'<p class="desc">这一组是世界足坛的传奇名字：<b>C罗（克里斯蒂亚诺·罗纳尔多）、梅西、内马尔、莫德里奇、德布劳内、莱万多夫斯基、孙兴慜、拉莫斯、克罗斯、本泽马</b>（萨拉赫已在下方前锋组里）。他们年纪都不小了，但能力依旧顶级、身价依旧吓人。签约方式和图鉴其他球星一样：<b>现金直签</b>、<b>球星直签券</b>，或去<b>球星抽卡</b>碰运气——传奇包有机会直接抽中他们。已签下 '+legends.filter(function(s){ return starInSquad(s); }).length+'/'+legends.length+' 位传奇。</p>'
   +'<div class="star-grid">'+legends.map(function(s){ return '<div id="legend-'+s.id+'" style="display:flex;">'+starCardHTML(s)+'</div>'; }).join('')+'</div></div>';
+  var peakGot=(G.pack && G.pack.peaks)? G.pack.peaks.length : 0;
+  var peakHTML='<div class="card" style="border:2px solid #12263f;background:linear-gradient(180deg,#eef3f8,#ffffff);"><h3>🔒 卡包限定 · 巅峰<span class="hint">图鉴里没有 · 能力 93–99 · 仅抽卡获得 · 已抽到 '+peakGot+'/'+PEAK_STARS.length+' 人</span></h3>'
+  +'<p class="desc">这一组是全游戏最强的一档：上面 10 位传奇的<b>巅峰版本</b>（巅峰C罗、巅峰梅西都是 <b>99</b>），再加图鉴里根本没有的<b>维尔茨、帕尔默、巴尔韦德</b>。他们是<b>锁定预览</b>：<b>不能用现金签约、直签券也签不到、转会市场买不到</b>，唯一的获得方式是去<b>球星抽卡</b>开卡包——传奇包抽到限定球员的概率最高（5%）。</p>'
+  +'<div class="star-grid">'+PEAK_STARS.map(function(s){ return '<div style="display:flex;">'+peakLockCardHTML(s)+'</div>'; }).join('')+'</div></div>';
   var POSG=[['前锋','⚡ 前锋'],['中场','🎯 中场'],['后卫','🛡️ 后卫'],['门将','🧤 门将']];
   var posHTML=POSG.map(function(pg){
     var arr=STARS.filter(function(s){ return s.pos===pg[0]; }).sort(function(a,b){ return b.ab-a.ab; });
@@ -3034,6 +3055,7 @@ function pageStars(){
   return '<div class="card"><h3><span class="no">球星</span>球星图鉴<span class="hint">按位置分组 · 前锋 / 中场 / 后卫 / 门将 · 照片全部本人对应</span></h3>'
   +'<p class="desc">照片都是每位球员本人的真实比赛照片，名字、球队、联赛、位置一一对应。图鉴已按<b>前锋 / 中场 / 后卫 / 门将</b>四个位置分组，每个位置都有世界球星和中超名将。这些球星<b>可以真签进你的球队</b>：付转会费签下后，他进入一线队名单，能力直接拉高球队强度，比赛进球记在他名下，首页赛果会写清谁进的球。世界球星身价高、月薪也高，是冲超夺冠后攒钱追的终极目标；中超名将便宜得多，中甲阶段就能下手。有<b>球星直签券</b>时（累计充值奖励发放），任意球星可免转会费直接签下；也可以去充值中心用<b>钻石招募</b>抽图鉴球星。当前现金 '+fmt(G.cash)+' · 已签下球星 '+signedN+' 位 · 阵容 '+G.squad.length+'/22。</p></div>'
   + legendHTML
+  + peakHTML
   + posHTML
   +'<div class="card"><h3>🏟️ 五大联赛球队<span class="hint">带 ⭐ 的球队有球星在上面的图鉴里，点球星头像跳到他的卡片</span></h3><div style="display:flex;flex-direction:column;gap:10px;">'+leaguesHTML+'</div></div>'
   +'<div class="grid2"><div class="card"><h3>⚽ 我的球队进球榜<span class="hint">你签的球星进了多少球，一目了然</span></h3>'+scorerHTML+'</div>'
@@ -3263,7 +3285,7 @@ function showLobbyCat(key){
       ['go','intel','🔭','数据球探','球探报告完整度 · 适配度评分 · 考察任务带回独家候选'],
       ['go','youth','🌱','青训体系','签苗子 · 定培养方案 · 提拔一线队'+(youthReady?' · '+youthReady+' 人已可提拔':'')],
       ['go','stars','⭐','球星图鉴','世界球星 · 五大联赛 · 中超名将，真实照片一一对应，可真签进队'],
-      ['go','packs','🃏','球星抽卡','商城五档卡包（60–1200 钻）· 五个卡等级概率全公开 · 有机会抽中 C罗梅西等图鉴传奇'],
+      ['go','packs','🃏','球星抽卡','商城五档卡包（60–1200 钻）· 六个卡等级概率全公开 · 限定卡独占巅峰C罗梅西（99）等卡包限定球员'],
       ['go','squad','🏋️','训练 · 更衣室 · 球员关系','在阵容页下方：训练强度与理疗、球员谈话、首发承诺、续约都在那']
     ]},
     event:{ t:'🎪 赛事活动类', rows:[
@@ -5478,6 +5500,7 @@ function pageIpo(){
 .prob-tbl th,.prob-tbl td{border:1px solid var(--line);padding:5px 6px;text-align:center;}
 .prob-tbl th{background:#101d29;color:#f3d27a;font-weight:800;}
 .prob-tbl td:first-child{font-weight:700;text-align:left;}
+@media (max-width:640px){ .prob-tbl{font-size:11px;} .prob-tbl th,.prob-tbl td{padding:4px 2px;} }
 .pack-open{font-size:62px;text-align:center;padding:22px 0 26px;animation:packshake .45s ease-in-out 2;}
 @keyframes packshake{0%,100%{transform:rotate(0deg) scale(1);}25%{transform:rotate(-7deg) scale(1.07);}75%{transform:rotate(7deg) scale(1.07);}}
 @media (prefers-reduced-motion: reduce){ .pack-open{animation:none;} }
@@ -5502,8 +5525,9 @@ function pageIpo(){
    抽卡只花游戏内钻石、竞猜只花游戏内现金，都不涉及真实货币。 */
 function ensureX2(){
   if(!G) return;
-  if(!G.pack || typeof G.pack!=='object') G.pack={draws:0, hist:[], shards:0};
+  if(!G.pack || typeof G.pack!=='object') G.pack={draws:0, hist:[], shards:0, peaks:[]};
   if(!G.pack.hist) G.pack.hist=[]; if(G.pack.shards==null) G.pack.shards=0; if(G.pack.draws==null) G.pack.draws=0;
+  if(!G.pack.peaks) G.pack.peaks=[];
   if(!G.hall || typeof G.hall!=='object') G.hall={club:[]};
   if(!G.hall.club) G.hall.club=[];
   if(!G.bet || typeof G.bet!=='object') G.bet={slips:[], rounds:{}, totalBet:0, totalWin:0, settled:0, won:0};
@@ -5511,29 +5535,67 @@ function ensureX2(){
   if(G.bet.totalBet==null) G.bet.totalBet=0; if(G.bet.totalWin==null) G.bet.totalWin=0; if(G.bet.settled==null) G.bet.settled=0; if(G.bet.won==null) G.bet.won=0;
 }
 
-/* ---------------- 球星抽卡：五档卡包 × 五个卡等级 ----------------
-   等级与能力区间：普通 60–70 / 优秀 71–78 / 精英 79–85 / 巨星 86–92 / 传奇 93–97。
-   每档包的五级概率写死在 PACKS.probs 里（顺序：普通/优秀/精英/巨星/传奇），
-   页面上完整公开。巨星/传奇卡优先从图鉴真球星里出（按能力区间匹配），
-   抽到已拥有的球星自动转碎片；阵容满时转现金补偿。 */
+/* ---------------- 球星抽卡：五档卡包 × 六个卡等级 ----------------
+   等级与能力区间：普通 60–70 / 优秀 71–78 / 精英 79–85 / 巨星 86–92 / 传奇 93–97 /
+   限定 93–99（卡包限定·巅峰池，全游戏最强的一档）。
+   每档包的六级概率写死在 PACKS.probs 里（顺序：普通/优秀/精英/巨星/传奇/限定），
+   每档合计 100%，页面上完整公开。巨星/传奇卡优先从图鉴真球星里出（按能力区间匹配），
+   限定卡只从 PEAK_STARS 里出；抽到已拥有的球员自动转碎片；阵容满时转现金补偿。 */
 var CARD_TIERS=[
   {nm:'普通', ab:[60,70], col:'#7d8a96', dup:5,  cash:50},
   {nm:'优秀', ab:[71,78], col:'#2b6cb0', dup:12, cash:100},
   {nm:'精英', ab:[79,85], col:'#0e7a7a', dup:30, cash:200},
   {nm:'巨星', ab:[86,92], col:'#e85d1f', dup:80, cash:400},
-  {nm:'传奇', ab:[93,97], col:'#c9930a', dup:200, cash:800}
+  {nm:'传奇', ab:[93,97], col:'#c9930a', dup:200, cash:800},
+  {nm:'限定', ab:[93,99], col:'#12263f', dup:400, cash:2000}
 ];
 var PACKS=[
-  {id:'rookie', nm:'新秀包', price:60,   probs:[70,24,5,0.9,0.1],  ds:'便宜练手：普通、优秀为主，偶尔蹦出一张精英。'},
-  {id:'bronze', nm:'青铜包', price:150,  probs:[50,35,12,2.7,0.3], ds:'精英开始常见，巨星得看运气，传奇基本是梦想。'},
-  {id:'silver', nm:'白银包', price:300,  probs:[32,38,22,7,1],     ds:'精英概率明显提升，传奇也有 1% 的盼头。'},
-  {id:'gold',   nm:'黄金包', price:600,  probs:[15,30,35,17,3],    ds:'冲高卡的主力包：巨星 17%、传奇 3%。'},
-  {id:'legend', nm:'传奇包', price:1200, probs:[5,18,37,35,5],     ds:'传奇概率全场最高（5%）——抽中就是图鉴里的真传奇。'}
+  {id:'rookie', nm:'新秀包', price:60,   probs:[69.9,24,5,0.9,0.1,0.1],  ds:'便宜练手：普通、优秀为主，偶尔蹦出一张精英；限定只有 0.1%，纯属撞大运。'},
+  {id:'bronze', nm:'青铜包', price:150,  probs:[49.7,35,12,2.7,0.3,0.3], ds:'精英开始常见，巨星得看运气，传奇和限定基本是梦想。'},
+  {id:'silver', nm:'白银包', price:300,  probs:[31,38,22,7,1,1],         ds:'精英概率明显提升，传奇、限定各有 1% 的盼头。'},
+  {id:'gold',   nm:'黄金包', price:600,  probs:[12,30,35,17,3,3],        ds:'冲高卡的主力包：巨星 17%、传奇 3%、限定 3%。'},
+  {id:'legend', nm:'传奇包', price:1200, probs:[2,18,37,33,5,5],         ds:'传奇 5%、限定 5% 都是全场最高——限定池里是巅峰C罗、巅峰梅西。'}
 ];
 function packDef(id){ var f=null; PACKS.forEach(function(p){ if(p.id===id) f=p; }); return f; }
-function rollTier(probs){ var r=Math.random()*100, acc=0; for(var i=0;i<5;i++){ acc+=probs[i]; if(r<acc) return i; } return 0; }
+function rollTier(probs){ var r=Math.random()*100, acc=0; for(var i=0;i<probs.length;i++){ acc+=probs[i]; if(r<acc) return i; } return 0; }
+/* ---------------- 卡包限定 · 巅峰池（PEAK_STARS） ----------------
+   图鉴里没有、转会市场买不到、现金和直签券都签不到——只能抽卡获得。
+   前 10 位是图鉴传奇巨星的巅峰版本（照片复用同一位球员的图鉴照片），
+   后 3 位是图鉴里没有的其他顶级球星。抽中直接入队，收集记录存 G.pack.peaks。 */
+var PEAK_STARS=[
+  {id:'pk-ronaldo', name:'巅峰C罗', en:'Cristiano Ronaldo · 巅峰期', nat:'葡萄牙', club:'皇家马德里', pos:'前锋', age:29, ab:99, img:'photo-58.jpg', tag:'2014 年的 C罗：欧冠单赛季 17 球封王，头顶脚踢无所不能，身体机能和射术同时拉满的历史级赛季。'},
+  {id:'pk-messi', name:'巅峰梅西', en:'Lionel Messi · 巅峰期', nat:'阿根廷', club:'巴塞罗那', pos:'前锋', age:25, ab:99, img:'photo-57.jpg', tag:'2012 年的梅西：自然年 91 球的世界纪录，五大联赛在他脚下踢得像训练赛。'},
+  {id:'pk-neymar', name:'巅峰内马尔', en:'Neymar Jr · 巅峰期', nat:'巴西', club:'巴塞罗那', pos:'前锋', age:23, ab:97, img:'photo-61.jpg', tag:'2015 年的内马尔：MSN 组合的左翼，欧冠决赛进球，三冠王赛季的桑巴魔术师。'},
+  {id:'pk-debruyne', name:'巅峰德布劳内', en:'Kevin De Bruyne · 巅峰期', nat:'比利时', club:'曼城', pos:'中场', age:29, ab:97, img:'photo-60.jpg', tag:'2020 年的德布劳内：单赛季 20 次助攻追平英超纪录，每一脚传球都像装了导航。'},
+  {id:'pk-modric', name:'巅峰莫德里奇', en:'Luka Modrić · 巅峰期', nat:'克罗地亚', club:'皇家马德里', pos:'中场', age:33, ab:96, img:'photo-64.jpg', tag:'2018 年的莫德里奇：欧冠三连冠 + 世界杯亚军 + 金球奖，打破梅罗十年垄断的那个人。'},
+  {id:'pk-lewandowski', name:'巅峰莱万', en:'Robert Lewandowski · 巅峰期', nat:'波兰', club:'拜仁慕尼黑', pos:'前锋', age:32, ab:96, img:'photo-59.jpg', tag:'2020 年的莱万：六冠王赛季的全勤中锋，德甲 41 球打破尘封纪录，禁区里没有死角。'},
+  {id:'pk-kroos', name:'巅峰克罗斯', en:'Toni Kroos · 巅峰期', nat:'德国', club:'皇家马德里', pos:'中场', age:28, ab:96, img:'photo-63.jpg', tag:'2018 年的克罗斯：欧冠三连冠的节拍器，传球成功率常年九成以上，冷静得像台机器。'},
+  {id:'pk-benzema', name:'巅峰本泽马', en:'Karim Benzema · 巅峰期', nat:'法国', club:'皇家马德里', pos:'前锋', age:34, ab:96, img:'photo-62.jpg', tag:'2022 年的本泽马：欧冠淘汰赛连续上演帽子戏法逆天改命，金球奖实至名归的大器晚成。'},
+  {id:'pk-son', name:'巅峰孙兴慜', en:'Son Heung-min · 巅峰期', nat:'韩国', club:'托特纳姆热刺', pos:'前锋', age:29, ab:95, img:'photo-65.jpg', tag:'2022 年的孙兴慜：23 球零点球拿下英超金靴，亚洲球员的天花板，左右脚都能轰世界波。'},
+  {id:'pk-ramos', name:'巅峰拉莫斯', en:'Sergio Ramos · 巅峰期', nat:'西班牙', club:'皇家马德里', pos:'后卫', age:28, ab:95, img:'photo-66.jpg', tag:'2014 年的拉莫斯：欧冠决赛 92 分 48 秒头球绝平，铁血队长，关键球比前锋还狠。'},
+  {id:'pk-wirtz', name:'维尔茨', en:'Florian Wirtz', nat:'德国', club:'利物浦', pos:'中场', age:22, ab:94, img:'photo-70.jpg', tag:'图鉴里没有的限定球星：勒沃库森不败夺冠的进攻核心，2025 年天价登陆安菲尔德，德国队的新大脑。'},
+  {id:'pk-palmer', name:'帕尔默', en:'Cole Palmer', nat:'英格兰', club:'切尔西', pos:'前锋', age:23, ab:94, img:'photo-71.jpg', tag:'图鉴里没有的限定球星：切尔西的“冰人”，大心脏先生，2025 年世俱杯决赛一战封神。'},
+  {id:'pk-valverde', name:'巴尔韦德', en:'Federico Valverde', nat:'乌拉圭', club:'皇家马德里', pos:'中场', age:27, ab:93, img:'photo-72.jpg', tag:'图鉴里没有的限定球星：皇马的永动机，覆盖全场、远射如炮弹，能从后腰踢到边锋的全能战士。'}
+];
+function peakById(id){ var f=null; PEAK_STARS.forEach(function(s){ if(s.id===id) f=s; }); return f; }
+function peakInSquad(pk){ return G.squad.some(function(p){ return p.peak===pk.id; }); }
+function grantPeak(pk){
+  var p=mkPlayer(pk.name, pk.pos, pk.ab, pk.age, true);
+  p.pot=99; p.cost=0; p.signNote='球星抽卡 · 卡包限定'; p.peak=pk.id; p.img=pk.img;
+  G.squad.push(p);
+  G.fans+=30000; G.rep=clamp(G.rep+5,0,100);
+  return p;
+}
 function resolvePackTier(tier){
   var T=CARD_TIERS[tier];
+  if(tier===5){
+    var pk2=pick(PEAK_STARS);
+    if(peakInSquad(pk2)){ G.pack.shards+=T.dup; return {tier:5, peak:pk2, dup:true, txt:'重复！卡包限定 '+pk2.name+' 已经在队里，自动转为球员碎片 +'+T.dup}; }
+    if(G.squad.length>=22){ G.cash+=T.cash; return {tier:5, peak:pk2, full:true, txt:'抽中卡包限定 '+pk2.name+'（能力 '+pk2.ab+'），但阵容已满（22人），转为现金补偿 +'+fmt(T.cash)}; }
+    grantPeak(pk2);
+    if(G.pack.peaks.indexOf(pk2.id)<0) G.pack.peaks.push(pk2.id);
+    return {tier:5, peak:pk2, txt:'卡包限定 '+pk2.name+'（'+pk2.pos+' · 能力 '+pk2.ab+'）直接入队！'};
+  }
   if(tier>=3){
     var pool=STARS.filter(function(s){ return s.ab>=T.ab[0] && s.ab<=T.ab[1]; });
     var chance= tier===4? 0.75 : 0.5;
@@ -5579,11 +5641,12 @@ function showPackResults(pk, results, n){
   var items=results.map(function(r){
     var T=CARD_TIERS[r.tier];
     var head='<span class="tier-badge" style="background:'+T.col+';">'+T.nm+'卡</span>';
+    if(r.peak) return '<div class="gacha-it" style="border:3px solid #d4af37;background:linear-gradient(180deg,#12263f,#0a1420);color:#ffe9a8;font-weight:800;"><img src="'+r.peak.img+'" alt="'+r.peak.name+'的真实比赛照片"><span class="tier-badge" style="background:#d4af37;color:#12263f;font-size:13px;">🌟 卡包限定</span><br>'+r.txt+'</div>';
     if(r.star) return '<div class="gacha-it" style="border:2px solid '+T.col+';background:#fffaf0;font-weight:700;"><img src="'+r.star.img+'" alt="'+r.star.name+'的真实比赛照片">'+head+'<br>'+r.txt+'</div>';
     return '<div class="gacha-it" style="border:2px solid '+T.col+';"><span class="gi">👕</span>'+head+'<br>'+r.txt+'</div>';
   }).join('');
   var best=Math.max.apply(null, results.map(function(r){ return r.tier; }));
-  $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:22px;">🃏 '+pk.nm+' · 开包结果</div><div class="sub">'+(best>=4?'🌟 传奇降临！这包开出传奇卡了！': best===3?'🔥 出巨星了！': best===2?'✨ 至少一张精英，不亏。':'开包完成，球员已入队（重复的自动转碎片，阵容满的转现金）。')+'</div></div>'
+  $modal.innerHTML='<div class="overlay"><div class="modal"><div class="hero"><div class="big" style="font-size:22px;">🃏 '+pk.nm+' · 开包结果</div><div class="sub">'+(best>=5?'🌟🌟 卡包限定降临！图鉴里买不到的巅峰巨星来了！': best>=4?'🌟 传奇降临！这包开出传奇卡了！': best===3?'🔥 出巨星了！': best===2?'✨ 至少一张精英，不亏。':'开包完成，球员已入队（重复的自动转碎片，阵容满的转现金）。')+'</div></div>'
   +'<div class="body"><div class="pack-open" id="pack-open">🎁</div><div class="gacha-res" id="pack-res" style="display:none;">'+items+'</div></div>'
   +'<div class="foot"><button class="btn" onclick="closeModal()">关闭</button>'+(G.diamonds>=pk.price?'<button class="btn pri" onclick="closeModal();drawPack(\''+pk.id+'\','+n+')">再来'+(n===10?'十连':'一包')+'（💎 '+(pk.price*n)+'）</button>':'')+'</div></div></div>';
   setTimeout(function(){
@@ -5612,13 +5675,26 @@ function pagePacks(){
   var tbl='<table class="prob-tbl"><tr><th>卡包</th><th>价格</th>'+CARD_TIERS.map(function(T){ return '<th>'+T.nm+'<br><span style="font-weight:400;font-size:11px;">能力 '+T.ab[0]+'–'+T.ab[1]+'</span></th>'; }).join('')+'</tr>'
   + PACKS.map(function(pk){ return '<tr><td>'+pk.nm+'</td><td>💎 '+pk.price+'</td>'+pk.probs.map(function(x){ return '<td>'+x+'%</td>'; }).join('')+'</tr>'; }).join('') +'</table>';
   var hist= G.pack.hist.length? G.pack.hist.map(function(h){ var T=CARD_TIERS[h.tier]; return '<div class="item"><span class="tier-badge" style="background:'+T.col+';">'+T.nm+'</span><div class="grow"><div class="nm" style="font-weight:600;">'+esc(h.t)+'</div><div class="meta">'+h.m+'</div></div></div>'; }).join('') : '<p class="desc">还没有抽卡记录。开第一包，看看运气怎么样。</p>';
+  var peakPool='<div class="star-grid">'+PEAK_STARS.map(function(s){
+    var got=peakInSquad(s) || G.pack.peaks.indexOf(s.id)>=0;
+    return '<div class="star-card" style="border:2px solid #d4af37;"><img src="'+s.img+'" alt="'+s.name+'的真实比赛照片">'
+    +'<div class="sb"><div class="sn">'+s.name+'<small>'+s.en+'</small></div>'
+    +'<div class="sm">'+s.club+' · '+s.nat+'<br>'+posPill(s.pos)+' '+s.age+' 岁 · 巅峰状态</div>'
+    +'<div class="ab-wrap"><div class="bar g"><i style="width:'+s.ab+'%"></i></div><b class="num">'+s.ab+'</b></div>'
+    +'<div class="stag">'+s.tag+'</div>'
+    +'<div><span class="pill" style="background:#12263f;color:#ffd968;">🌟 卡包限定 · 仅抽卡获得</span>'+(got?' <span class="pill up">✓ 已抽到</span>':'')+'</div>'
+    +'</div></div>';
+  }).join('')+'</div>';
   return '<div class="card"><h3><span class="no">抽卡</span>球星抽卡<span class="hint">钻石余额 💎 '+G.diamonds+' · 累计已抽 '+G.pack.draws+' 包 · 球员碎片 '+G.pack.shards+' 个</span></h3>'
-  +'<p class="desc">商城新玩法：用<b>游戏内钻石</b>开卡包（不涉及真实货币，钻石在充值中心获取）。五档卡包价格不同，五种卡的等级与能力区间也不同——<b>等级越高、能力越强，抽中概率越低</b>，全部概率见下方概率表。抽到的球员<b>直接进一线队</b>；巨星卡（86–92）和传奇卡（93–97）有机会直接开出<b>图鉴里的真球星</b>（含 C罗、梅西等传奇巨星）；抽到<b>重复球员</b>自动转为球员碎片（1 碎片 = 2 钻，随时兑换），阵容满 22 人时转为现金补偿。十连抽保底至少一张精英卡。</p>'
+  +'<p class="desc">商城新玩法：用<b>游戏内钻石</b>开卡包（不涉及真实货币，钻石在充值中心获取）。五档卡包价格不同，六种卡的等级与能力区间也不同——<b>等级越高、能力越强，抽中概率越低</b>，全部概率见下方概率表。抽到的球员<b>直接进一线队</b>；巨星卡（86–92）和传奇卡（93–97）有机会直接开出<b>图鉴里的真球星</b>（含 C罗、梅西等传奇巨星）；最稀有的是<b>限定卡（93–99）</b>——出的是<b>图鉴里没有的「卡包限定·巅峰」球员</b>，比图鉴传奇更强，只能抽卡获得。抽到<b>重复球员</b>自动转为球员碎片（1 碎片 = 2 钻，随时兑换），阵容满 22 人时转为现金补偿。十连抽保底至少一张精英卡。</p>'
   +(G.pack.shards>0? '<div class="acts"><button class="btn sm" onclick="exchangeShards()">♻️ 把 '+G.pack.shards+' 碎片兑换成 💎 '+(G.pack.shards*2)+' 钻</button></div>':'')
   +'<div class="acts"><button class="btn sm" onclick="go(\'pay\')">💎 钻石不够？去充值中心</button><button class="btn sm" onclick="go(\'stars\')">⭐ 去图鉴看传奇巨星</button></div></div>'
   +'<div class="pack-grid">'+cards+'</div>'
-  +'<div class="card"><h3>📊 概率公示<span class="hint">五档卡包 × 五个等级，抽之前看清楚</span></h3>'+tbl
-  +'<p class="mini" style="margin-top:8px;">读法：传奇包每包有 5% 出传奇卡（93–97），是新秀包（0.1%）的 50 倍；但即便是传奇包，传奇卡也仍然稀有——这就是它的价值。巨星 / 传奇卡命中图鉴真球星的概率分别为 50% / 75%，其余为同能力区间的虚构强援。</p></div>'
+  +'<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>🌟 卡包限定池 · 巅峰<span class="hint">共 '+PEAK_STARS.length+' 人 · 能力 93–99 · 已抽到 '+G.pack.peaks.length+'/'+PEAK_STARS.length+' 人</span></h3>'
+  +'<p class="desc">这一池是全游戏最强的一档：10 位传奇巨星的<b>巅峰版本</b>（巅峰C罗、巅峰梅西都是 <b>99</b>），加上图鉴里根本没有的<b>维尔茨、帕尔默、巴尔韦德</b>。他们<b>不在图鉴签约名单里、转会市场买不到、直签券也签不到</b>——<b>仅抽卡获得</b>。限定卡概率：新秀包 0.1% / 青铜包 0.3% / 白银包 1% / 黄金包 3% / <b>传奇包 5%（最高）</b>，抽中直接入队。</p>'
+  + peakPool +'</div>'
+  +'<div class="card"><h3>📊 概率公示<span class="hint">五档卡包 × 六个等级，抽之前看清楚</span></h3>'+tbl
+  +'<p class="mini" style="margin-top:8px;">读法：限定卡（93–99）是最稀有的一档——传奇包每包 5%，是新秀包（0.1%）的 50 倍；传奇卡（93–97）传奇包同样是 5%。巨星 / 传奇卡命中图鉴真球星的概率分别为 50% / 75%，其余为同能力区间的虚构强援；限定卡则必出上面限定池里的真球星。</p></div>'
   +'<div class="card"><h3>🧾 最近抽卡记录</h3>'+hist+'</div>'
   +'<div class="acts" style="margin:4px 0 10px;"><button class="btn" onclick="go(\'home\')">← 回大厅</button><button class="btn sm" onclick="go(\'squad\')">去阵容看新球员 →</button></div>';
 }
