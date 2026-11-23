@@ -83,6 +83,13 @@
         color: var(--ink-3); font-size: 13px; line-height: 1.6;
       }
       .gate-err { color: #ff9d97; font-size: 13.5px; min-height: 20px; margin: 8px 0 0; }
+      .gate-forgot { text-align: right; margin-top: 6px; }
+      .link-btn {
+        background: none; border: none; color: var(--gold-2); font-size: 13.5px;
+        padding: 4px 2px; min-height: 32px; cursor: pointer; text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .link-btn:hover { color: var(--gold); }
 
       /* ---------- 表单通用 ---------- */
       .field { margin-bottom: 14px; }
@@ -360,6 +367,9 @@
           <button type="submit" class="btn-gold wide">进入后台</button>
           <p class="gate-err" id="loginErr"></p>
         </form>
+        <div class="gate-forgot" id="forgotPwRow" hidden>
+          <button type="button" class="link-btn" id="forgotPwLink">忘记密码？</button>
+        </div>
         <div class="note">密码忘了就清掉本页的浏览器数据重设：清除本站点的浏览器数据后，重新打开本页即可重新设置密码（之前保存在本机的后台数据也会一并清掉，请先在「数据同步」里下载备份）。</div>
       </div>
     </div>
@@ -2174,6 +2184,9 @@
           try { has = !!localStorage.getItem(LS_PW); } catch (e) { has = false; }
           $('gateSetup').hidden = has;
           $('gateLogin').hidden = !has;
+          // 「忘记密码」重置入口只在登录界面、且本机已保存同步令牌时显示：
+          // 只有当初在这台浏览器里设置过后台（存过令牌）的人才能重置密码。
+          $('forgotPwRow').hidden = !(has && !!getToken());
           if (has) { setTimeout(function () { $('loginPw').focus(); }, 50); }
           else { setTimeout(function () { $('setupPw1').focus(); }, 50); }
         }
@@ -2213,6 +2226,23 @@
               $('loginPw').value = '';
               $('loginPw').focus();
             }
+          });
+        });
+        // 忘记密码：只清除本机保存的密码哈希，同步令牌和其他数据一律不动；
+        // 清完回到首次设置密码的界面。没有保存令牌的浏览器不允许重置。
+        $('forgotPwLink').addEventListener('click', function () {
+          var err = $('loginErr');
+          if (!getToken()) {
+            err.textContent = '本机未保存同步令牌，无法验证身份，不能重置。';
+            return;
+          }
+          confirmDialog('重置管理密码？这会清除本浏览器保存的管理密码，之后需要重新设置新密码。同步令牌不受影响。', '重置密码').then(function (yes) {
+            if (!yes) return;
+            try { localStorage.removeItem(LS_PW); } catch (e) { /* 忽略 */ }
+            $('loginPw').value = '';
+            err.textContent = '';
+            showGate();
+            toast('管理密码已清除，请重新设置新密码');
           });
         });
         $('lockBtn').addEventListener('click', function () { showGate(); });
