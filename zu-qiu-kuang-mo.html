@@ -3015,6 +3015,14 @@ function starInSquad(s){
    图鉴卡、详情、殿堂、阵容表都显示三个位置；排阵时三个位置都认他、不算客串 */
 var CREATOR_SLOTS=['门将','中场','前锋'];
 var CREATOR_POS_TEXT='守门员 · 中场 · 前锋';
+/* 创作者三张链接卡各自的位置短评：图鉴卡（置顶分区 + 位置分组）和详情弹窗只显示对应位置的这一句，
+   不再重复整段人物介绍；总体介绍只在图鉴置顶分区顶部出现一次 */
+var CREATOR_POS_TAG={
+ 'creator-gk':'守门员：反应极快，扑救稳健，指挥防线像指挥董事会，一夫当关。',
+ 'creator-mf':'中场：视野开阔，调度从容，攻防转换的节拍器。',
+ 'creator-fw':'前锋：射门果断，跑位鬼魅，禁区里的终结者。'
+};
+function creatorPosTag(s){ return CREATOR_POS_TAG[s.id] || s.tag; }
 function isCreatorPlayer(p){ return !!(p && (p.linkGroup==='creator' || p.star==='creator' || (typeof p.star==='string' && p.star.indexOf('creator-')===0))); }
 function creatorPosPills(){ return '<span class="pill gk">守门员</span> <span class="pill mf">中场</span> <span class="pill fw">前锋</span>'; }
 function squadPosHTML(p){ return isCreatorPlayer(p)? creatorPosPills() : posPill(p.pos); }
@@ -3080,7 +3088,7 @@ function creatorCardHTML(s){
   +'<div><span class="pill" style="background:#12263f;color:#ffd968;font-weight:800;">✍️ 创作者</span> <span class="pill" style="background:#fdf3d3;color:#8a6508;font-weight:800;">🔗 链接球员</span></div>'
   +'<div class="sm">'+s.club+' · '+s.nat+'<br>'+posPill(s.pos)+' '+s.age+' 岁 · 潜力 99<br><span class="mini">三张创作者卡是同一个人，签一张 = 三张全签</span></div>'
   +'<div class="ab-wrap"><div class="bar g"><i style="width:'+s.ab+'%"></i></div><b class="num">'+s.ab+'</b></div>'
-  +'<div class="stag">'+s.tag+'</div>'
+  +'<div class="stag">'+creatorPosTag(s)+'</div>'
   +(STAR_HONORS[s.id]? '<div class="stag" style="color:#8a6508;">🏅 '+STAR_HONORS[s.id]+'</div>':'')
   +'<div class="sfee"><span class="mini">转会费</span><b class="num">'+fmt(s.fee)+'</b></div>'
   +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><span class="mini">月薪 '+starWage(s.ab)+'万</span><span style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn sm" onclick="showCreatorDetail(\''+s.id+'\')">看详情</button>'+btn+'</span></div>'
@@ -3098,7 +3106,7 @@ function showCreatorDetail(id){
   +'<div class="body">'
   +'<img src="'+s.img+'" alt="游戏创作者邓元元的球员照片（'+posLabel+'）" style="width:100%;border-radius:10px;display:block;margin-bottom:10px;">'
   +'<div class="item"><div class="grow"><div class="nm">能力 '+s.ab+' · 潜力 99</div><div class="meta">本卡位置 '+posLabel+'（三栖：'+CREATOR_POS_TEXT+'） · '+s.nat+' · '+s.age+' 岁 · 月薪 '+starWage(s.ab)+'万 · 转会费 '+fmt(s.fee)+'</div></div></div>'
-  +'<div class="item"><div class="grow"><div class="nm">✍️ 游戏创作者 · 🔗 链接球员</div><div class="meta">'+s.tag+'</div></div></div>'
+  +'<div class="item"><div class="grow"><div class="nm">✍️ 游戏创作者 · 🔗 链接球员</div><div class="meta">'+creatorPosTag(s)+'</div></div></div>'
   +(STAR_HONORS[s.id]? '<div class="item"><div class="grow"><div class="nm">🏅 荣誉</div><div class="meta">'+STAR_HONORS[s.id]+'</div></div></div>':'')
   +'<div class="item"><div class="grow"><div class="nm">签约方式</div><div class="meta">和图鉴传奇一样：现金直签或球星直签券签下；球星抽卡与钻石招募不会产出创作者卡。守门员、中场、前锋三张创作者卡是<b>同一个人</b>：签下任意一张，另外两张同步显示已签约，不能重复签；他进入一线队只占一个名额，三个位置都能首发（排阵时三处都算他的本行），也陈列在荣耀殿堂最顶部。</div></div></div>'
   +'</div><div class="foot">'+signBtns+'<button class="btn" onclick="closeModal()">关闭</button></div></div></div>';
@@ -3147,7 +3155,7 @@ function pageStars(){
   }).join('') : '<p class="desc">暂无播报。踢完一个月（开始比赛），这里会播报姆巴佩、哈兰德、武磊们在各自联赛的进球动态。</p>';
   var creatorTrio=STARS.filter(function(s){ return s.creator; }).sort(function(a,b){ return (POS_ORDER[a.pos]||0)-(POS_ORDER[b.pos]||0); });
   var creatorHTML= creatorTrio.length? '<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>✍️ 创作者<span class="hint">图鉴置顶 · 三个链接球员 · 邓元元（守门员 / 中场 / 前锋）· 能力 99</span></h3>'
-  +'<p class="desc">图鉴第一行是<b>这个游戏的创作者邓元元</b>，拆成<b>三个链接球员</b>并排陈列：<b>邓元元（守门员）、邓元元（中场）、邓元元（前锋）</b>，每人能力 <b>99</b>、转会费 <b>5000 万</b>，和巅峰C罗并列全游戏最高。三人其实是<b>同一个人</b>：签下任意一个，另外两个同步显示已签约，不能重复签，球队里也只占一个名额，排阵时三个位置都能上。下面的<b>门将 / 中场 / 前锋</b>三个位置分组里各有对应的一张（带「创作者」角标）。签约方式和传奇巨星一样：<b>现金直签</b>或<b>球星直签券</b>；抽卡和钻石招募都抽不到他。点照片或「看详情」看对应位置的资料——他同时陈列在<b>荣耀殿堂</b>最顶部。</p>'
+  +'<p class="desc" style="font-size:14px;line-height:1.7;"><b>邓元元 · 游戏创作者 · 能力 99</b> —— 守门员、中场、前锋三栖全能，三个位置都能踢到顶级。球场上的掌控者，商场上的资本家；三个位置，一种气场。</p>'
   +'<div class="star-grid">'+creatorTrio.map(function(s){ return '<div style="display:flex;">'+creatorCardHTML(s)+'</div>'; }).join('')+'</div></div>' : '';
   var legends=STARS.filter(function(s){ return s.legend; }).sort(function(a,b){ return b.ab-a.ab; });
   var legendHTML='<div class="card" style="border:2px solid #d4af37;background:linear-gradient(180deg,#fffdf4,#ffffff);"><h3>👑 传奇巨星<span class="hint">C罗（97）领衔 · 梅西（95） · 能力 88–97 · 照片均为本人真实比赛动作照</span></h3>'
