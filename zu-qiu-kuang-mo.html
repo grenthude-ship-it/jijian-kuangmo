@@ -905,10 +905,15 @@ function doLogin(){
     _loginErr='密码不对，请重新输入'+(rec.hint? '（密码提示：'+rec.hint+'）':'');
     showLoginScreen('login'); return;
   }
-  var all=acctAll(); all[name].last=Date.now(); acctSaveAll(all);
-  CUR_USER=name; IS_GUEST=false; setSession({u:name});
-  toast('欢迎回来，'+name+'！正在进入游戏…');
-  enterGame();
+  adminReady().then(function(){
+    var ban=findActiveBan(name);
+    if(ban){ _loginErr=banNoticeText(ban); showLoginScreen('login'); return; }
+    var all=acctAll(); all[name].last=Date.now(); acctSaveAll(all);
+    CUR_USER=name; IS_GUEST=false; setSession({u:name});
+    toast('欢迎回来，'+name+'！正在进入游戏…');
+    enterGame();
+    postEnterHooks();
+  });
 }
 function doGuestLogin(){
   CUR_USER=null; IS_GUEST=true; setSession({g:1});
@@ -930,12 +935,17 @@ function doRegister(){
     var u=document.getElementById('reg-user'); if(u) u.value=name;
     var h=document.getElementById('reg-hint'); if(h) h.value=hint;
     return; }
-  var now=Date.now(), all=acctAll();
-  all[name]={h:pwHash(name,pw), hint:hint, reg:now, last:now, val:null};
-  acctSaveAll(all);
-  CUR_USER=name; IS_GUEST=false; setSession({u:name});
-  toast('账号「'+name+'」注册成功，开始新开局！');
-  enterGame();
+  adminReady().then(function(){
+    var ban=findActiveBan(name);
+    if(ban){ _loginErr=banNoticeText(ban); showLoginScreen('reg'); return; }
+    var now=Date.now(), all=acctAll();
+    all[name]={h:pwHash(name,pw), hint:hint, reg:now, last:now, val:null};
+    acctSaveAll(all);
+    CUR_USER=name; IS_GUEST=false; setSession({u:name});
+    toast('账号「'+name+'」注册成功，开始新开局！');
+    enterGame();
+    postEnterHooks();
+  });
 }
 function doLogout(){
   autoSave();
@@ -1004,6 +1014,9 @@ function guestToAccount(){
   var err=validNewName(name);
   if(err){ toast(err); return; }
   if(pw.length<4){ toast('密码至少 4 位'); return; }
+  adminReady().then(function(){
+  var ban=findActiveBan(name);
+  if(ban){ toast(banNoticeText(ban)); return; }
   var now=Date.now(), all=acctAll();
   all[name]={h:pwHash(name,pw), hint:hint, reg:now, last:now, val:null};
   acctSaveAll(all);
@@ -1014,6 +1027,7 @@ function guestToAccount(){
   autoSave();
   PAGE='account'; render();
   toast('已注册为账号「'+name+'」，当前进度已归到这个账号名下');
+  });
 }
 function acctChangePw(){
   if(!CUR_USER) return;
@@ -1062,6 +1076,8 @@ function acctImportConfirm(){
   var p=window._acctImportPending; if(!p) return;
   var pw=(document.getElementById('acct-imp-pw')||{}).value||'';
   if(pw.length<4){ toast('密码至少 4 位'); return; }
+  var ban=findActiveBan(p.name);
+  if(ban){ toast(banNoticeText(ban)); return; }
   autoSave(); /* 先把当前账号/游客的进度存好，再切换账号，不丢任何一边 */
   var now=Date.now(), all=acctAll(), old=all[p.name]||{};
   all[p.name]={h:pwHash(p.name,pw), hint:old.hint||'', reg:old.reg||now, last:now, val:null};
@@ -1090,6 +1106,215 @@ function acctDelete(btn){
   btn.textContent='再点一次确认删除（账号和存档都没了）';
   toast('删除后这个账号和它的全部进度都会被清除，再点一次确认');
   setTimeout(function(){ window._acctDelArm=false; },5000);
+}
+/* ---------------- 管理后台数据（admin-data.json） ----------------
+   后台数据文件 admin-data.json 与游戏同目录，启动时 fetch 一次（带时间戳防
+   缓存，5 秒超时），成功就存进 localStorage 缓存 zuqiu-km-admin-cache-v1；
+   拉不到就用上次缓存，再没有就当没有后台数据——游戏照常玩。
+   游客没有用户名：不查封禁、不收邮件、不弹公告。 */
+var ADMIN=null, ADMIN_STATE='idle', ADMIN_PROMISE=null;
+var ADMIN_CACHE_KEY='zuqiu-km-admin-cache-v1';
+function loadAdminCache(){
+  try{ var o=JSON.parse(localStorage.getItem(ADMIN_CACHE_KEY)||'null'); if(o && typeof o==='object'){ ADMIN=o; return o; } }catch(e){}
+  return null;
+}
+function saveAdminCache(d){ try{ localStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(d)); }catch(e){} }
+loadAdminCache();
+function fetchAdminData(force){
+  if(ADMIN_PROMISE && !force) return ADMIN_PROMISE;
+  ADMIN_STATE='loading';
+  ADMIN_PROMISE=new Promise(function(resolve){
+    var done=false;
+    function finish(d){
+      if(done) return; done=true;
+      if(d){ ADMIN=d; saveAdminCache(d); ADMIN_STATE='done'; }
+      else ADMIN_STATE= ADMIN? 'done' : 'failed';
+      resolve(ADMIN);
+    }
+    var ctrl=('AbortController' in window)? new AbortController() : null;
+    var timer=setTimeout(function(){ if(ctrl){ try{ ctrl.abort(); }catch(e){} } finish(null); }, 5000);
+    try{
+      fetch('./admin-data.json?t='+Date.now(), ctrl? {signal:ctrl.signal, cache:'no-store'} : {cache:'no-store'})
+      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(d){ clearTimeout(timer); finish((d && typeof d==='object')? d : null); })
+      .catch(function(){ clearTimeout(timer); finish(null); });
+    }catch(e){ clearTimeout(timer); finish(null); }
+  });
+  return ADMIN_PROMISE;
+}
+function adminReady(){ return fetchAdminData(); }
+function fmtISODate(s){ if(!s) return '—'; var t=Date.parse(s); return isNaN(t)? '—' : fmtDayTime(t); }
+/* 封禁：用户名命中 bans 且 until 为空（永久）或还没到期，就是生效中的封禁 */
+function findActiveBan(name){
+  if(!name || !ADMIN || !(ADMIN.bans instanceof Array)) return null;
+  var now=Date.now();
+  for(var i=0;i<ADMIN.bans.length;i++){
+    var b=ADMIN.bans[i];
+    if(!b || b.username!==name) continue;
+    if(!b.until) return b;
+    var t=Date.parse(b.until);
+    if(isNaN(t) || now<t) return b;
+  }
+  return null;
+}
+function banNoticeText(b){
+  return '🚫 该账号已被封禁。封禁原因：'+(b.reason||'违反游戏规则')+'。'+(b.until? '封禁至 '+fmtISODate(b.until)+'，到期自动解封。' : '永久封禁。');
+}
+function forceBanLogout(ban){
+  var name=CUR_USER;
+  if(typeof stopAuto==='function') stopAuto();
+  setSession(null); CUR_USER=null; IS_GUEST=false; G=null; PAGE='home';
+  _loginName=name||''; _loginErr=banNoticeText(ban);
+  showLoginScreen('login');
+  toast('该账号已被封禁，已退出登录');
+}
+/* 每次进大厅都重新拉一次后台数据查封禁：玩着玩着被封，也会被请回登录界面 */
+function lobbyBanCheck(){
+  if(!CUR_USER) return;
+  fetchAdminData(true).then(function(){
+    if(!CUR_USER) return;
+    var ban=findActiveBan(CUR_USER);
+    if(ban) forceBanLogout(ban);
+  });
+}
+function postEnterHooks(){
+  if(!CUR_USER) return; /* 游客不查封禁、不弹公告 */
+  lobbyBanCheck();
+  maybeShowAnnouncement();
+}
+/* ---------------- 公告（登录成功后弹一次，同一条每个账号只弹一次） ---------------- */
+function currentAnnouncement(){
+  if(!ADMIN || !ADMIN.announcement) return null;
+  var a=ADMIN.announcement;
+  if(typeof a==='string') return a.trim()? {title:'📢 游戏公告', body:a, sig:'s:'+a} : null;
+  if(typeof a==='object'){
+    var title=a.title||'📢 游戏公告', body=a.body||a.content||'';
+    if(!body && !a.title) return null;
+    var sig= a.id? 'id:'+a.id : (a.sentAt? 'at:'+a.sentAt : 'h:'+title+'|'+body);
+    return {title:title, body:body, sig:sig};
+  }
+  return null;
+}
+function maybeShowAnnouncement(){
+  if(!CUR_USER) return;
+  fetchAdminData().then(function(){
+    var ann=currentAnnouncement(); if(!ann) return;
+    var seen=null; try{ seen=localStorage.getItem('zuqiu-km-ann-seen-v1-'+CUR_USER); }catch(e){}
+    if(seen===ann.sig) return;
+    /* 海报弹窗等先占着弹窗位时等一等，等弹窗空出来再弹公告，不抢位 */
+    var tries=0;
+    var iv=setInterval(function(){
+      tries++;
+      if(!CUR_USER){ clearInterval(iv); return; }
+      if($modal && !$modal.innerHTML){
+        clearInterval(iv);
+        try{ localStorage.setItem('zuqiu-km-ann-seen-v1-'+CUR_USER, ann.sig); }catch(e){}
+        $modal.innerHTML='<div class="overlay"><div class="modal">'
+        +'<div class="hero"><div class="big" style="font-size:22px;">'+esc(ann.title)+'</div><div class="sub">来自游戏管理后台</div></div>'
+        +'<div class="body"><p class="desc" style="font-size:14px;line-height:1.75;">'+esc(ann.body).replace(/\n/g,'<br>')+'</p></div>'
+        +'<div class="foot"><button class="btn pri" onclick="closeModal()">知道了</button></div></div></div>';
+      } else if(tries>40){ clearInterval(iv); }
+    }, 1200);
+  });
+}
+/* ---------------- 收件箱（后台邮件） ----------------
+   邮件收件人是用户名；已领取记录按账号存在 localStorage
+   （zuqiu-km-mail-claimed-v1-<用户名>），领过的不重复发。 */
+function mailClaimedSet(){
+  var o={};
+  try{ var arr=JSON.parse(localStorage.getItem('zuqiu-km-mail-claimed-v1-'+CUR_USER)||'[]'); if(arr instanceof Array) arr.forEach(function(id){ o[id]=1; }); }catch(e){}
+  return o;
+}
+function myMails(){
+  if(!CUR_USER || !ADMIN || !(ADMIN.mail instanceof Array)) return [];
+  var now=Date.now();
+  return ADMIN.mail.filter(function(m){
+    if(!m || m.to!==CUR_USER) return false;
+    if(m.expiresAt){ var t=Date.parse(m.expiresAt); if(!isNaN(t) && now>=t) return false; }
+    return true;
+  }).sort(function(a,b){ return (Date.parse(b.sentAt)||0)-(Date.parse(a.sentAt)||0); });
+}
+function unclaimedMailCount(){
+  if(!CUR_USER) return 0;
+  var c=mailClaimedSet(), n=0;
+  myMails().forEach(function(m){ if(!c[m.id]) n++; });
+  return n;
+}
+function mailItemsParts(m){
+  var it=m.items||{}, parts=[];
+  if(it.diamonds) parts.push('💎 钻石 ×'+it.diamonds);
+  if(it.cash) parts.push('🪙 现金 '+fmt(it.cash));
+  if(it.vouchers) parts.push('🎟️ 球星直签券 ×'+it.vouchers);
+  if(it.trialCards) parts.push('🧪 球星试用卡 ×'+it.trialCards);
+  if(it.shards) parts.push('🧩 抽卡碎片 ×'+it.shards);
+  if(it.playerId){
+    var s=(typeof starById==='function')? starById(it.playerId) : null;
+    parts.push('⭐ 球星：'+(s? esc(s.name)+'（能力 '+s.ab+'）' : esc(String(it.playerId))));
+  }
+  return parts;
+}
+function pageInbox(){
+  if(!CUR_USER){
+    return '<div class="card"><h3>📬 收件箱</h3><p class="desc">游客身份没有用户名，收不到管理后台发的邮件。把当前进度注册成账号（或登录已有账号）之后，后台发给你的钻石、现金、道具和球星都会送到这里来。</p><button class="btn pri" onclick="go(\'account\')">去账号中心注册 / 查看账号</button></div>';
+  }
+  if(!ADMIN){
+    if(ADMIN_STATE!=='failed') fetchAdminData().then(function(){ if(PAGE==='inbox') render(); });
+    return '<div class="card"><h3>📬 收件箱<span class="hint">账号：'+esc(CUR_USER)+'</span></h3><p class="desc">'+(ADMIN_STATE==='failed'? '暂时读不到后台邮件数据（网络不通或后台文件不可用），不影响正常游戏，过一会儿再进来看看。' : '正在读取后台邮件…')+'</p></div>';
+  }
+  var list=myMails(), claimed=mailClaimedSet();
+  var head='<div class="card"><h3>📬 收件箱<span class="hint">账号：'+esc(CUR_USER)+' · 共 '+list.length+' 封 · 未领取 '+unclaimedMailCount()+' 封</span></h3>'
+  +'<p class="desc">这里是游戏管理后台发给你的邮件。带附件的邮件点「领取」，钻石、现金和道具就会发到你的账号里；领过的不能重复领。未领取的邮件会一直留在这里，过期邮件会自动消失。</p>';
+  if(!list.length) return head+'<p class="desc">暂时没有发给你的邮件。</p></div>';
+  var items=list.map(function(m){
+    var parts=mailItemsParts(m), isC=!!claimed[m.id];
+    var safeId=String(m.id).replace(/\\/g,'').replace(/'/g,'');
+    return '<div class="item"><div class="grow"><div class="nm">✉️ '+esc(m.title||'（无标题）')+(isC?' <span class="pill">已领取</span>':' <span class="pill up">未领取</span>')+'</div>'
+    +'<div class="meta">发送时间 '+fmtISODate(m.sentAt)+(m.expiresAt? ' · 有效期至 '+fmtISODate(m.expiresAt) : '')+'</div>'
+    +'<p class="desc" style="margin-top:6px;">'+esc(m.body||'').replace(/\n/g,'<br>')+'</p>'
+    +(parts.length? '<div class="meta" style="margin-top:4px;">🎁 附件：'+parts.join(' · ')+'</div>' : '<div class="meta" style="margin-top:4px;">（这封邮件没有附件）</div>')
+    +'</div>'
+    +(parts.length? (isC? '<span class="pill">✓ 已领取</span>' : '<button class="btn pri sm" onclick="claimMail(\''+safeId+'\')">领取</button>') : '')
+    +'</div>';
+  }).join('');
+  return head+items+'</div>';
+}
+function claimMail(id){
+  if(!CUR_USER || !G) return;
+  var m=null;
+  myMails().forEach(function(x){ if(x.id===id) m=x; });
+  if(!m){ toast('这封邮件找不到了'); return; }
+  var claimed=mailClaimedSet();
+  if(claimed[id]){ toast('这封邮件已经领取过了'); return; }
+  if(!G.pay2) G.pay2={firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:0};
+  if(!G.pack) G.pack={draws:0, hist:[], shards:0, peaks:[]};
+  var it=m.items||{}, got=[];
+  if(it.diamonds){ G.diamonds=(G.diamonds||0)+it.diamonds; got.push('💎 钻石 ×'+it.diamonds); }
+  if(it.cash){ G.cash=(G.cash||0)+it.cash; got.push('🪙 现金 '+fmt(it.cash)); }
+  if(it.vouchers){ G.pay2.vouchers=(G.pay2.vouchers||0)+it.vouchers; got.push('🎟️ 直签券 ×'+it.vouchers); }
+  if(it.trialCards){ G.pay2.trialCards=(G.pay2.trialCards||0)+it.trialCards; got.push('🧪 试用卡 ×'+it.trialCards); }
+  if(it.shards){ G.pack.shards=(G.pack.shards||0)+it.shards; got.push('🧩 碎片 ×'+it.shards); }
+  if(it.playerId){
+    var s=(typeof starById==='function')? starById(it.playerId) : null;
+    if(s){
+      if(starInSquad(s)){ G.cash+=s.fee; got.push('⭐ '+s.name+' 已在你的球队里，折成现金 '+fmt(s.fee)); }
+      else if(G.squad.length>=22){ G.cash+=s.fee; got.push('⭐ 阵容已满（22 人），'+s.name+' 折成现金 '+fmt(s.fee)); }
+      else{
+        var p=mkPlayer(s.name, s.pos, s.ab, s.age, s.league!=='中超');
+        p.pot=Math.min(99, s.ab + (s.age<=23? 5 : 1));
+        p.cost=0; p.signNote='后台邮件赠送'; p.star=s.id; p.img=s.img;
+        if(s.linkGroup) p.linkGroup=s.linkGroup;
+        G.squad.push(p);
+        got.push('⭐ 球星 '+s.name+'（能力 '+s.ab+'）已加入阵容');
+      }
+    }
+    /* playerId 不是有效球星 id 时只跳过这一项，其他附件照常发放 */
+  }
+  claimed[id]=1;
+  try{ localStorage.setItem('zuqiu-km-mail-claimed-v1-'+CUR_USER, JSON.stringify(Object.keys(claimed))); }catch(e){}
+  log('📬 领取了后台邮件「'+(m.title||'')+'」的附件：'+(got.join('、')||'无附件')+'。','good');
+  autoSave();
+  toast(got.length? '领取成功：'+got.join('、') : '已领取（这封邮件没有附件）');
+  render();
 }
 /* ---------------- App 模式：安装到主屏幕 / 全屏 ---------------- */
 var deferredInstallPrompt=null;
@@ -1931,7 +2156,7 @@ function endGame(kind){
 <script>
 "use strict";
 /* ---------------- 操作 ---------------- */
-function go(p){ PAGE=p; render(); window.scrollTo(0,0); }
+function go(p){ PAGE=p; render(); window.scrollTo(0,0); if(p==='home' && typeof lobbyBanCheck==='function') lobbyBanCheck(); }
 function buyPlayer(i){
   var p=G.market[i]; if(!p) return;
   if(G.director && G.director.mode==='none'){ toast('当前是「零引援」建队策略：只靠原阵容和青训。去转会页把策略改掉才能买人。'); return; }
@@ -2582,7 +2807,7 @@ function restart(){ stopAuto(); clearAutoSave(); G=null; PAGE='home'; showStart(
 <script>
 "use strict";
 /* ---------------- 渲染 ---------------- */
-var NAV=[['home','游戏大厅','📋'],['account','账号中心','👤'],['tasks','每日任务','✅'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['fun','趣味乐园','🎡'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['neg','商务谈判中心','📞'],['cross','跨行业经营','🏭'],['ipo','企业上市','📈'],['packs','球星抽卡','🃏'],['hall','荣耀殿堂','🏛️'],['bet','体彩竞猜','🎟️'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
+var NAV=[['home','游戏大厅','📋'],['account','账号中心','👤'],['inbox','收件箱','📬'],['tasks','每日任务','✅'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['fun','趣味乐园','🎡'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['neg','商务谈判中心','📞'],['cross','跨行业经营','🏭'],['ipo','企业上市','📈'],['packs','球星抽卡','🃏'],['hall','荣耀殿堂','🏛️'],['bet','体彩竞猜','🎟️'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
 function navBtns(cls){
   return NAV.map(function(n){
     var bdg='';
@@ -2590,6 +2815,7 @@ function navBtns(cls){
     if(n[0]==='youth' && G && G.youth){ var pr=G.youth.filter(function(p){ return p.age>=16 && p.ab>=50; }).length; if(pr) bdg='<span class="bdg">可提拔 '+pr+'</span>'; }
     if(n[0]==='gray' && G && G.heat>=60) bdg='<span class="bdg">热度'+G.heat+'</span>';
     if(n[0]==='tasks' && G && typeof dailyClaimable==='function'){ var dc=dailyClaimable(); if(dc) bdg='<span class="bdg">'+dc+' 可领</span>'; }
+    if(n[0]==='inbox' && CUR_USER && typeof unclaimedMailCount==='function'){ var uc=unclaimedMailCount(); if(uc) bdg='<span class="bdg">'+uc+' 未领</span>'; }
     return '<button class="'+(PAGE===n[0]?'on':'')+'" onclick="go(\''+n[0]+'\')"><span class="ic">'+n[2]+'</span>'+n[1]+bdg+'</button>';
   }).join('');
 }
@@ -2670,6 +2896,7 @@ function render(){
   if(G.ended && G.ending) body+=endingBanner();
   if(PAGE==='home'){ body+=lobbyHTML(); body+=installCardHTML(); body+=pageHome(); }
   else if(PAGE==='account') body+=pageAccount();
+  else if(PAGE==='inbox') body+=pageInbox();
   else if(PAGE==='league') body+=pageLeague();
   else if(PAGE==='market') body+=pageMarket();
   else if(PAGE==='intel') body+=pageIntel();
@@ -3810,6 +4037,7 @@ function lobbyHTML(){
   var claim=claimableAchCount();
   var signed=!signCan();
   var welfareN=claim+(signed?0:1);
+  var mailN=(CUR_USER && typeof unclaimedMailCount==='function')? unclaimedMailCount() : 0;
   /* 功能区按 俱乐部 / 球队 / 赛事 / 商城 分组摆瓷砖（统一尺寸、统一字号），
      不常用的收进「更多功能」弹窗；一个玩法只出现一次，不再重复摆 */
   var youthReady=(G.youth||[]).filter(function(p){ return p.age>=16 && p.ab>=50; }).length;
@@ -3818,6 +4046,7 @@ function lobbyHTML(){
   }
   var clubTilesHTML=''
   + ltile("go('account')",'👤','账号中心','账号价值 · 装备 · 备份码 · 退出登录')
+  + ltile("go('inbox')",'📬','收件箱','后台邮件 · 钻石道具附件领取', mailN? mailN+' 封未领':'')
   + ltile("go('empire')",'🏢','集团扩张','电竞 · 篮球 · 海外 · 跨界板块')
   + ltile("go('ipo')",'📈','企业上市','达标申请上市 · 募资 · 股价分红')
   + ltile("go('neg')",'📞','商务谈判','给品牌对接人打电话谈合同')
@@ -4581,9 +4810,11 @@ try{
 function hmBoot(){
   /* 先看登录状态：没登录（或账号已被删）就停在登录界面，不进大厅；
      已登录（账号或游客）保持登录状态，直接进游戏。 */
+  fetchAdminData(); /* 启动先拉一次后台数据（封禁 / 邮件 / 公告），拉不到不影响进游戏 */
   initSession();
   if(!SESSION){ showLoginScreen('login'); window.__hmBooted=true; return; }
   enterGame();
+  postEnterHooks();
 }
 if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', hmBoot); }
 else{ hmBoot(); }

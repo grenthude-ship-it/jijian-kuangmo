@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="data:," />
+    <title>豪门缔造者 · 管理后台</title>
+    <style>
+      :root {
+        --bg: #0a1322;
+        --bg-2: #0e1a30;
+        --panel: #12203a;
+        --panel-2: #16263f;
+        --line: #24365a;
+        --line-soft: #1c2c4a;
+        --ink: #eef2f9;
+        --ink-2: #b9c6dc;
+        --ink-3: #8296b5;
+        --gold: #d9a93c;
+        --gold-2: #f0c95c;
+        --gold-ink: #1a1405;
+        --danger: #e5534b;
+        --danger-bg: #3a1d22;
+        --ok: #3fb27f;
+        --radius: 10px;
+        --radius-s: 7px;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      button, input, select, textarea { font: inherit; color: inherit; }
+      button { cursor: pointer; }
+      button, select, input:not([type="checkbox"]) { min-height: 40px; }
+      textarea { min-height: 40px; }
+      :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+      /* ---------- 顶栏 ---------- */
+      .topbar {
+        position: sticky; top: 0; z-index: 20;
+        background: var(--bg-2);
+        border-bottom: 2px solid var(--gold);
+      }
+      .topbar-in {
+        max-width: 1080px; margin: 0 auto; padding: 12px 18px;
+        display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      }
+      .brand { font-size: 19px; font-weight: 700; letter-spacing: .02em; }
+      .brand .gold { color: var(--gold-2); }
+      .topbar .spacer { flex: 1; }
+      .src-badge {
+        font-size: 12.5px; color: var(--ink-2);
+        border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px;
+        background: var(--panel);
+      }
+      .src-badge b { color: var(--gold-2); font-weight: 600; }
+      .btn-lock {
+        background: transparent; border: 1px solid var(--line); color: var(--ink-2);
+        border-radius: var(--radius-s); padding: 0 14px; min-height: 36px; font-size: 13.5px;
+      }
+      .btn-lock:hover { border-color: var(--gold); color: var(--gold-2); }
+
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 18px 56px; }
+
+      /* ---------- 密码门 ---------- */
+      .gate {
+        max-width: 420px; margin: 8vh auto 0; background: var(--panel);
+        border: 1px solid var(--line); border-radius: 14px; padding: 30px 28px 26px;
+      }
+      .gate h1 { font-size: 21px; margin: 0 0 6px; }
+      .gate h1 .gold { color: var(--gold-2); }
+      .gate p.sub { color: var(--ink-2); margin: 0 0 20px; font-size: 14px; }
+      .gate .note {
+        margin-top: 18px; padding: 11px 13px; border-radius: var(--radius-s);
+        background: var(--bg-2); border: 1px solid var(--line-soft);
+        color: var(--ink-3); font-size: 13px; line-height: 1.6;
+      }
+      .gate-err { color: #ff9d97; font-size: 13.5px; min-height: 20px; margin: 8px 0 0; }
+
+      /* ---------- 表单通用 ---------- */
+      .field { margin-bottom: 14px; }
+      .field label { display: block; font-size: 13.5px; color: var(--ink-2); margin-bottom: 6px; font-weight: 600; }
+      .field label .opt { color: var(--ink-3); font-weight: 400; }
+      input[type="text"], input[type="password"], input[type="number"], select, textarea {
+        width: 100%; background: var(--bg-2); border: 1px solid var(--line);
+        border-radius: var(--radius-s); padding: 9px 12px; color: var(--ink);
+      }
+      input::placeholder, textarea::placeholder { color: var(--ink-3); }
+      input:focus, select:focus, textarea:focus { border-color: var(--gold); outline: none; }
+      textarea { resize: vertical; }
+      .btn-gold {
+        background: var(--gold); color: var(--gold-ink); border: none; font-weight: 700;
+        border-radius: var(--radius-s); padding: 0 22px; min-height: 42px; font-size: 15px;
+      }
+      .btn-gold:hover { background: var(--gold-2); }
+      .btn-gold.wide { width: 100%; }
+      .btn-ghost {
+        background: transparent; border: 1px solid var(--line); color: var(--ink);
+        border-radius: var(--radius-s); padding: 0 16px; min-height: 38px; font-size: 14px;
+      }
+      .btn-ghost:hover { border-color: var(--gold); color: var(--gold-2); }
+      .btn-danger {
+        background: transparent; border: 1px solid var(--danger); color: #ff9d97;
+        border-radius: var(--radius-s); padding: 0 14px; min-height: 36px; font-size: 13.5px; white-space: nowrap;
+      }
+      .btn-danger:hover { background: var(--danger-bg); }
+      .form-err { color: #ff9d97; font-size: 13.5px; margin: 10px 0 0; min-height: 18px; }
+      .form-ok { color: var(--ok); font-size: 13.5px; margin: 10px 0 0; min-height: 18px; }
+
+      /* ---------- 页签 ---------- */
+      .tabs {
+        display: flex; gap: 6px; flex-wrap: wrap;
+        border-bottom: 1px solid var(--line); margin-bottom: 22px;
+      }
+      .tab {
+        background: transparent; border: none; color: var(--ink-2);
+        padding: 10px 18px; font-size: 15.5px; font-weight: 600; min-height: 44px;
+        border-bottom: 3px solid transparent; margin-bottom: -1px; border-radius: 6px 6px 0 0;
+      }
+      .tab:hover { color: var(--ink); }
+      .tab.active { color: var(--gold-2); border-bottom-color: var(--gold); }
+      .tab .count {
+        display: inline-block; min-width: 20px; text-align: center; margin-left: 6px;
+        background: var(--panel-2); border: 1px solid var(--line); color: var(--ink-2);
+        font-size: 12px; border-radius: 999px; padding: 0 6px; line-height: 18px; vertical-align: 2px;
+      }
+      .tab.active .count { color: var(--gold-2); border-color: var(--gold); }
+
+      .panel {
+        background: var(--panel); border: 1px solid var(--line);
+        border-radius: var(--radius); padding: 20px; margin-bottom: 20px;
+      }
+      .panel h2 { font-size: 16.5px; margin: 0 0 4px; }
+      .panel .desc { color: var(--ink-3); font-size: 13.5px; margin: 0 0 16px; }
+      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+      .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 14px; }
+      @media (max-width: 640px) {
+        .grid2, .grid3 { grid-template-columns: 1fr; }
+        .panel { padding: 16px; }
+        .brand { font-size: 17px; }
+      }
+
+      /* ---------- 列表 ---------- */
+      .list-head {
+        display: flex; align-items: baseline; gap: 10px; margin: 4px 0 12px;
+      }
+      .list-head h2 { font-size: 16.5px; margin: 0; }
+      .list-head span { color: var(--ink-3); font-size: 13px; }
+      .empty {
+        border: 1px dashed var(--line); border-radius: var(--radius);
+        color: var(--ink-3); text-align: center; padding: 26px 16px; font-size: 14px;
+      }
+      .row-card {
+        background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 14px 16px; margin-bottom: 10px;
+        display: flex; gap: 14px; align-items: flex-start;
+      }
+      .row-card .main { flex: 1; min-width: 0; }
+      .row-card .title-line { font-size: 15.5px; font-weight: 700; word-break: break-all; }
+      .row-card .title-line .who { color: var(--gold-2); }
+      .row-card .meta { color: var(--ink-2); font-size: 13.5px; margin-top: 3px; word-break: break-all; }
+      .row-card .meta .k { color: var(--ink-3); }
+      .pill {
+        display: inline-block; font-size: 12px; border-radius: 999px; padding: 1px 9px;
+        border: 1px solid var(--line); color: var(--ink-2); margin-left: 8px; vertical-align: 2px;
+      }
+      .pill.perm { border-color: var(--danger); color: #ff9d97; }
+      .pill.temp { border-color: var(--gold); color: var(--gold-2); }
+      .pill.expired { border-color: var(--line); color: var(--ink-3); }
+
+      /* ---------- 公告 ---------- */
+      .announce-view {
+        background: var(--bg-2); border: 1px solid var(--gold); border-radius: var(--radius);
+        padding: 18px 20px;
+      }
+      .announce-view .a-title { font-size: 17px; font-weight: 700; color: var(--gold-2); margin: 0 0 8px; }
+      .announce-view .a-body { white-space: pre-wrap; word-break: break-word; color: var(--ink); margin: 0; }
+      .announce-view .a-time { color: var(--ink-3); font-size: 12.5px; margin-top: 12px; }
+      .announce-actions { margin-top: 14px; }
+
+      /* ---------- 同步 ---------- */
+      .sync-json {
+        width: 100%; min-height: 340px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 12.5px; line-height: 1.6; white-space: pre; overflow: auto;
+      }
+      .sync-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+      .sync-note {
+        margin-top: 16px; padding: 13px 15px; border-radius: var(--radius-s);
+        background: var(--bg-2); border: 1px solid var(--gold);
+        color: var(--ink-2); font-size: 14px; line-height: 1.7;
+      }
+      .sync-note b { color: var(--gold-2); }
+      .stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+      .stat {
+        flex: 1; min-width: 130px; background: var(--panel); border: 1px solid var(--line);
+        border-radius: var(--radius); padding: 13px 16px;
+      }
+      .stat .n { font-size: 22px; font-weight: 700; color: var(--gold-2); }
+      .stat .t { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+
+      /* ---------- 提示条 ---------- */
+      .toast {
+        position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+        background: var(--panel-2); border: 1px solid var(--gold); color: var(--ink);
+        border-radius: 999px; padding: 10px 22px; font-size: 14px; opacity: 0;
+        pointer-events: none; transition: opacity .25s, transform .25s; z-index: 50;
+        max-width: calc(100vw - 32px); text-align: center;
+      }
+      .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+
+    <!-- ================= 密码门 ================= -->
+    <div id="gateView" class="wrap" hidden>
+      <!-- 首次设置 -->
+      <div class="gate" id="gateSetup" hidden>
+        <h1>豪门缔造者 · <span class="gold">管理后台</span></h1>
+        <p class="sub">第一次打开，请先设置一个管理密码。以后每次打开都要输对这个密码才能进入后台。</p>
+        <form id="setupForm" autocomplete="off">
+          <div class="field">
+            <label for="setupPw1">设置管理密码</label>
+            <input type="password" id="setupPw1" placeholder="至少 4 位" autocomplete="new-password" />
+          </div>
+          <div class="field">
+            <label for="setupPw2">再输一次确认</label>
+            <input type="password" id="setupPw2" placeholder="和上面一致" autocomplete="new-password" />
+          </div>
+          <button type="submit" class="btn-gold wide">设置密码并进入</button>
+          <p class="gate-err" id="setupErr"></p>
+        </form>
+        <div class="note">密码只保存在这台设备的浏览器里（存的是加密哈希，不存明文）。<br />密码忘了就清掉本页的浏览器数据重设：清除本站点的浏览器数据后，重新打开本页即可重新设置密码。</div>
+      </div>
+
+      <!-- 登录 -->
+      <div class="gate" id="gateLogin" hidden>
+        <h1>豪门缔造者 · <span class="gold">管理后台</span></h1>
+        <p class="sub">请输入管理密码进入后台。</p>
+        <form id="loginForm" autocomplete="off">
+          <div class="field">
+            <label for="loginPw">管理密码</label>
+            <input type="password" id="loginPw" placeholder="输入管理密码" autocomplete="current-password" />
+          </div>
+          <button type="submit" class="btn-gold wide">进入后台</button>
+          <p class="gate-err" id="loginErr"></p>
+        </form>
+        <div class="note">密码忘了就清掉本页的浏览器数据重设：清除本站点的浏览器数据后，重新打开本页即可重新设置密码（之前保存在本机的后台数据也会一并清掉，请先在「数据同步」里下载备份）。</div>
+      </div>
+    </div>
+
+    <!-- ================= 后台主体 ================= -->
+    <div id="adminView" hidden>
+      <header class="topbar">
+        <div class="topbar-in">
+          <div class="brand">豪门缔造者 · <span class="gold">管理后台</span></div>
+          <div class="spacer"></div>
+          <span class="src-badge" id="srcBadge">数据来源：<b>—</b></span>
+          <button class="btn-lock" id="lockBtn" type="button">锁定后台</button>
+        </div>
+      </header>
+
+      <div class="wrap">
+        <nav class="tabs" role="tablist">
+          <button class="tab active" type="button" data-tab="bans" role="tab">账号封禁<span class="count" id="banCount">0</span></button>
+          <button class="tab" type="button" data-tab="mail" role="tab">发邮件<span class="count" id="mailCount">0</span></button>
+          <button class="tab" type="button" data-tab="announce" role="tab">全服公告</button>
+          <button class="tab" type="button" data-tab="sync" role="tab">数据同步</button>
+        </nav>
+
+        <!-- ========== 页签1：账号封禁 ========== -->
+        <section id="tab-bans">
+          <div class="panel">
+            <h2>封禁账号</h2>
+            <p class="desc">被封禁的账号在封禁期内无法登录游戏。同步到线上后生效。</p>
+            <form id="banForm" autocomplete="off">
+              <div class="grid2">
+                <div class="field">
+                  <label for="banUser">用户名</label>
+                  <input type="text" id="banUser" placeholder="要封禁的玩家用户名" maxlength="32" />
+                </div>
+                <div class="field">
+                  <label for="banDays">封禁期限</label>
+                  <select id="banDays">
+                    <option value="0">永久</option>
+                    <option value="1">1 天</option>
+                    <option value="7">7 天</option>
+                    <option value="30">30 天</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label for="banReason">封禁原因</label>
+                <input type="text" id="banReason" placeholder="例如：使用外挂、恶意刷钻石" maxlength="100" />
+              </div>
+              <button type="submit" class="btn-gold">封禁</button>
+              <p class="form-err" id="banErr"></p>
+            </form>
+          </div>
+
+          <div class="list-head"><h2>封禁列表</h2><span id="banListInfo"></span></div>
+          <div id="banList"></div>
+        </section>
+
+        <!-- ========== 页签2：发邮件 ========== -->
+        <section id="tab-mail" hidden>
+          <div class="panel">
+            <h2>给玩家发邮件</h2>
+            <p class="desc">邮件会发到玩家的游戏邮箱，附件道具在玩家领取时到账。同步到线上后生效。</p>
+            <form id="mailForm" autocomplete="off">
+              <div class="grid2">
+                <div class="field">
+                  <label for="mailTo">收件人用户名</label>
+                  <input type="text" id="mailTo" placeholder="玩家用户名" maxlength="32" />
+                </div>
+                <div class="field">
+                  <label for="mailTitle">邮件标题</label>
+                  <input type="text" id="mailTitle" placeholder="例如：活动奖励" maxlength="60" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="mailBody">邮件正文 <span class="opt">（可不填）</span></label>
+                <textarea id="mailBody" rows="3" placeholder="写给玩家的话" maxlength="500"></textarea>
+              </div>
+              <div class="grid3">
+                <div class="field">
+                  <label for="itDiamonds">附件 · 钻石</label>
+                  <input type="number" id="itDiamonds" min="0" step="1" value="0" />
+                </div>
+                <div class="field">
+                  <label for="itCash">附件 · 现金（万）</label>
+                  <input type="number" id="itCash" min="0" step="1" value="0" />
+                </div>
+                <div class="field">
+                  <label for="itVouchers">附件 · 直签券（张）</label>
+                  <input type="number" id="itVouchers" min="0" step="1" value="0" />
+                </div>
+                <div class="field">
+                  <label for="itTrial">附件 · 试用卡（张）</label>
+                  <input type="number" id="itTrial" min="0" step="1" value="0" />
+                </div>
+                <div class="field">
+                  <label for="itShards">附件 · 碎片</label>
+                  <input type="number" id="itShards" min="0" step="1" value="0" />
+                </div>
+                <div class="field">
+                  <label for="itPlayer">附件 · 球星</label>
+                  <select id="itPlayer">
+                    <option value="">不送球星</option>
+                    <option value="ronaldo">C罗</option>
+                    <option value="messi">梅西</option>
+                    <option value="neymar">内马尔</option>
+                    <option value="modric">莫德里奇</option>
+                    <option value="debruyne">德布劳内</option>
+                    <option value="lewandowski">莱万</option>
+                    <option value="son">孙兴慜</option>
+                    <option value="ramos">拉莫斯</option>
+                    <option value="kroos">克罗斯</option>
+                    <option value="benzema">本泽马</option>
+                    <option value="creator-gk">创作者守门员</option>
+                    <option value="creator-mf">创作者中场</option>
+                    <option value="creator-fw">创作者前锋</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="btn-gold">发送</button>
+              <p class="form-err" id="mailErr"></p>
+              <p class="form-ok" id="mailOk"></p>
+            </form>
+          </div>
+
+          <div class="list-head"><h2>已发邮件</h2><span id="mailListInfo"></span></div>
+          <div id="mailList"></div>
+        </section>
+
+        <!-- ========== 页签3：全服公告 ========== -->
+        <section id="tab-announce" hidden>
+          <div class="panel">
+            <h2>发布全服公告</h2>
+            <p class="desc">公告会显示给所有玩家。发布新公告会替换当前公告；同一时间只保留一条。</p>
+            <form id="annForm" autocomplete="off">
+              <div class="field">
+                <label for="annTitle">公告标题</label>
+                <input type="text" id="annTitle" placeholder="例如：新版本更新说明" maxlength="60" />
+              </div>
+              <div class="field">
+                <label for="annBody">公告正文</label>
+                <textarea id="annBody" rows="5" placeholder="公告内容" maxlength="1000"></textarea>
+              </div>
+              <button type="submit" class="btn-gold">发布公告</button>
+              <p class="form-err" id="annErr"></p>
+            </form>
+          </div>
+
+          <div class="list-head"><h2>当前公告</h2></div>
+          <div id="annView"></div>
+        </section>
+
+        <!-- ========== 页签4：数据同步 ========== -->
+        <section id="tab-sync" hidden>
+          <div class="stat-row">
+            <div class="stat"><div class="n" id="statBans">0</div><div class="t">封禁账号</div></div>
+            <div class="stat"><div class="n" id="statMail">0</div><div class="t">已发邮件</div></div>
+            <div class="stat"><div class="n" id="statAnn">无</div><div class="t">全服公告</div></div>
+            <div class="stat"><div class="n" id="statUpdated" style="font-size:15px;line-height:30px;">—</div><div class="t">最后修改时间</div></div>
+          </div>
+
+          <div class="panel">
+            <h2>后台数据（admin-data.json）</h2>
+            <p class="desc">下面是当前完整的后台数据，和游戏共用同一份格式。所有改动都会实时保存到本机并同步显示在这里。</p>
+            <textarea class="sync-json" id="syncJson" readonly spellcheck="false"></textarea>
+            <div class="sync-actions">
+              <button class="btn-gold" id="copyJsonBtn" type="button">复制 JSON</button>
+              <button class="btn-ghost" id="dlJsonBtn" type="button">下载 admin-data.json</button>
+            </div>
+            <div class="sync-note"><b>同步方法：</b>改完后把这个 JSON 发给管理员同步到线上，玩家那边才会生效。本页的修改只保存在这台设备的浏览器里，不会自动上传。</div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      (function () {
+        'use strict';
+
+        var LS_PW = 'hm-admin-pw-hash-v1';
+        var LS_DATA = 'hm-admin-data-v1';
+
+        var PLAYER_NAMES = {
+          'ronaldo': 'C罗', 'messi': '梅西', 'neymar': '内马尔', 'modric': '莫德里奇',
+          'debruyne': '德布劳内', 'lewandowski': '莱万', 'son': '孙兴慜', 'ramos': '拉莫斯',
+          'kroos': '克罗斯', 'benzema': '本泽马', 'creator-gk': '创作者守门员',
+          'creator-mf': '创作者中场', 'creator-fw': '创作者前锋'
+        };
+
+        /* ---------- 工具 ---------- */
+        function $(id) { return document.getElementById(id); }
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+        // 带本地时区偏移的 ISO 时间戳，例如 2026-11-23T16:50:00+08:00
+        function isoNow(d) {
+          d = d || new Date();
+          var off = -d.getTimezoneOffset();
+          var sign = off >= 0 ? '+' : '-';
+          off = Math.abs(off);
+          return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+            'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) +
+            sign + pad(Math.floor(off / 60)) + ':' + pad(off % 60);
+        }
+        function fmtTime(iso) {
+          if (!iso) return '—';
+          var d = new Date(iso);
+          if (isNaN(d.getTime())) return iso;
+          return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+            ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+        }
+        function esc(s) {
+          return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        var toastTimer = null;
+        function toast(msg) {
+          var t = $('toast');
+          t.textContent = msg;
+          t.classList.add('show');
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+        }
+        // 密码哈希：SHA-256（浏览器自带），只存哈希不存明文
+        function hashPw(pw) {
+          var enc = new TextEncoder().encode('hm-admin::' + pw);
+          if (window.crypto && crypto.subtle && crypto.subtle.digest) {
+            return crypto.subtle.digest('SHA-256', enc).then(function (buf) {
+              var arr = Array.prototype.slice.call(new Uint8Array(buf));
+              return 'sha256:' + arr.map(function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+            });
+          }
+          // 极少数不支持 subtle 的环境退回简单哈希（仍不存明文）
+          var h1 = 0xdeadbeef, h2 = 0x41c6ce57, s = 'hm-admin::' + pw;
+          for (var i = 0; i < s.length; i++) {
+            var ch = s.charCodeAt(i);
+            h1 = Math.imul(h1 ^ ch, 2654435761);
+            h2 = Math.imul(h2 ^ ch, 1597334677);
+          }
+          h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+          h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+          return Promise.resolve('x:' + (h2 >>> 0).toString(16) + (h1 >>> 0).toString(16));
+        }
+
+        /* ---------- 数据 ---------- */
+        function emptyData() {
+          return { version: 1, updatedAt: isoNow(), bans: [], mail: [], announcement: null };
+        }
+        function normalizeData(raw) {
+          var d = emptyData();
+          if (!raw || typeof raw !== 'object') return d;
+          d.version = 1;
+          if (typeof raw.updatedAt === 'string') d.updatedAt = raw.updatedAt;
+          if (Array.isArray(raw.bans)) {
+            d.bans = raw.bans.filter(function (b) { return b && typeof b.username === 'string'; }).map(function (b) {
+              return {
+                username: b.username,
+                reason: typeof b.reason === 'string' ? b.reason : '',
+                until: b.until == null ? null : String(b.until),
+                bannedAt: typeof b.bannedAt === 'string' ? b.bannedAt : isoNow()
+              };
+            });
+          }
+          if (Array.isArray(raw.mail)) {
+            d.mail = raw.mail.filter(function (m) { return m && typeof m.to === 'string'; }).map(function (m) {
+              var it = (m.items && typeof m.items === 'object') ? m.items : {};
+              function num(v) { v = Number(v); return (isFinite(v) && v > 0) ? Math.floor(v) : 0; }
+              return {
+                id: typeof m.id === 'string' ? m.id : ('m-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)),
+                to: m.to,
+                title: typeof m.title === 'string' ? m.title : '',
+                body: typeof m.body === 'string' ? m.body : '',
+                items: {
+                  diamonds: num(it.diamonds), cash: num(it.cash), vouchers: num(it.vouchers),
+                  trialCards: num(it.trialCards), shards: num(it.shards),
+                  playerId: (typeof it.playerId === 'string' && it.playerId) ? it.playerId : null
+                },
+                sentAt: typeof m.sentAt === 'string' ? m.sentAt : isoNow(),
+                expiresAt: m.expiresAt == null ? null : String(m.expiresAt)
+              };
+            });
+          }
+          if (raw.announcement && typeof raw.announcement === 'object' && typeof raw.announcement.title === 'string') {
+            d.announcement = {
+              title: raw.announcement.title,
+              body: typeof raw.announcement.body === 'string' ? raw.announcement.body : '',
+              publishedAt: typeof raw.announcement.publishedAt === 'string' ? raw.announcement.publishedAt : isoNow()
+            };
+          }
+          return d;
+        }
+
+        var data = emptyData();
+        var dataSource = '本机（新数据）';
+
+        function saveLocal() {
+          try { localStorage.setItem(LS_DATA, JSON.stringify(data)); } catch (e) { /* 存储不可用时静默 */ }
+        }
+        function touch() {
+          data.updatedAt = isoNow();
+          saveLocal();
+          renderAll();
+        }
+        function loadLocal() {
+          try {
+            var s = localStorage.getItem(LS_DATA);
+            if (s) return normalizeData(JSON.parse(s));
+          } catch (e) { /* 忽略损坏数据 */ }
+          return null;
+        }
+        // 打开页面时先读线上 admin-data.json，读不到再读本机上次保存的
+        function loadData() {
+          var done = function (d, src) {
+            data = d; dataSource = src;
+            $('srcBadge').innerHTML = '数据来源：<b>' + esc(src) + '</b>';
+            renderAll();
+          };
+          var fallback = function () {
+            var local = loadLocal();
+            if (local) done(local, '本机上次保存');
+            else done(emptyData(), '本机（新数据）');
+          };
+          try {
+            fetch('./admin-data.json', { cache: 'no-store' })
+              .then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); })
+              .then(function (j) {
+                if (j && typeof j === 'object' && ('bans' in j || 'mail' in j || 'announcement' in j)) {
+                  done(normalizeData(j), '线上 admin-data.json');
+                } else { fallback(); }
+              })
+              .catch(fallback);
+          } catch (e) { fallback(); }
+        }
+
+        /* ---------- 渲染 ---------- */
+        function renderBans() {
+          $('banCount').textContent = data.bans.length;
+          $('banListInfo').textContent = data.bans.length ? ('共 ' + data.bans.length + ' 个') : '';
+          var box = $('banList');
+          if (!data.bans.length) {
+            box.innerHTML = '<div class="empty">目前没有被封禁的账号。</div>';
+            return;
+          }
+          var now = Date.now();
+          box.innerHTML = data.bans.map(function (b, i) {
+            var pill, untilTxt;
+            if (b.until == null) { pill = '<span class="pill perm">永久封禁</span>'; untilTxt = '永久'; }
+            else {
+              var t = new Date(b.until).getTime();
+              if (!isNaN(t) && t <= now) { pill = '<span class="pill expired">已到期</span>'; }
+              else { pill = '<span class="pill temp">限时封禁</span>'; }
+              untilTxt = fmtTime(b.until);
+            }
+            return '<div class="row-card"><div class="main">' +
+              '<div class="title-line"><span class="who">' + esc(b.username) + '</span>' + pill + '</div>' +
+              '<div class="meta"><span class="k">原因：</span>' + esc(b.reason || '（未填写）') + '</div>' +
+              '<div class="meta"><span class="k">到期时间：</span>' + esc(untilTxt) +
+              '　<span class="k">封禁时间：</span>' + esc(fmtTime(b.bannedAt)) + '</div>' +
+              '</div><button type="button" class="btn-danger" data-unban="' + i + '">解封</button></div>';
+          }).join('');
+          var btns = box.querySelectorAll('[data-unban]');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].addEventListener('click', function () {
+              var idx = Number(this.getAttribute('data-unban'));
+              var name = data.bans[idx] ? data.bans[idx].username : '';
+              data.bans.splice(idx, 1);
+              touch();
+              toast('已解封账号：' + name);
+            });
+          }
+        }
+
+        function itemsSummary(it) {
+          var parts = [];
+          if (it.diamonds) parts.push('钻石 ×' + it.diamonds);
+          if (it.cash) parts.push('现金 ' + it.cash + ' 万');
+          if (it.vouchers) parts.push('直签券 ×' + it.vouchers);
+          if (it.trialCards) parts.push('试用卡 ×' + it.trialCards);
+          if (it.shards) parts.push('碎片 ×' + it.shards);
+          if (it.playerId) parts.push('球星：' + (PLAYER_NAMES[it.playerId] || it.playerId));
+          return parts.length ? parts.join('、') : '无附件';
+        }
+
+        function renderMail() {
+          $('mailCount').textContent = data.mail.length;
+          $('mailListInfo').textContent = data.mail.length ? ('共 ' + data.mail.length + ' 封') : '';
+          var box = $('mailList');
+          if (!data.mail.length) {
+            box.innerHTML = '<div class="empty">还没有发过邮件。</div>';
+            return;
+          }
+          var list = data.mail.slice().reverse();
+          box.innerHTML = list.map(function (m) {
+            return '<div class="row-card"><div class="main">' +
+              '<div class="title-line">' + esc(m.title || '（无标题）') + '</div>' +
+              '<div class="meta"><span class="k">收件人：</span><span style="color:var(--gold-2)">' + esc(m.to) + '</span></div>' +
+              '<div class="meta"><span class="k">附件：</span>' + esc(itemsSummary(m.items)) + '</div>' +
+              '<div class="meta"><span class="k">发送时间：</span>' + esc(fmtTime(m.sentAt)) + '</div>' +
+              '</div><button type="button" class="btn-danger" data-delmail="' + esc(m.id) + '">删除</button></div>';
+          }).join('');
+          var btns = box.querySelectorAll('[data-delmail]');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].addEventListener('click', function () {
+              var id = this.getAttribute('data-delmail');
+              data.mail = data.mail.filter(function (m) { return m.id !== id; });
+              touch();
+              toast('邮件已删除');
+            });
+          }
+        }
+
+        function renderAnnounce() {
+          var box = $('annView');
+          var a = data.announcement;
+          if (!a) {
+            box.innerHTML = '<div class="empty">当前没有正在发布的全服公告。</div>';
+            return;
+          }
+          box.innerHTML = '<div class="announce-view">' +
+            '<p class="a-title">' + esc(a.title) + '</p>' +
+            '<p class="a-body">' + esc(a.body) + '</p>' +
+            '<div class="a-time">发布时间：' + esc(fmtTime(a.publishedAt)) + '</div>' +
+            '<div class="announce-actions"><button type="button" class="btn-danger" id="annDownBtn">撤下公告</button></div>' +
+            '</div>';
+          $('annDownBtn').addEventListener('click', function () {
+            data.announcement = null;
+            touch();
+            toast('公告已撤下');
+          });
+        }
+
+        function renderSync() {
+          $('syncJson').value = JSON.stringify(data, null, 2);
+          $('statBans').textContent = data.bans.length;
+          $('statMail').textContent = data.mail.length;
+          $('statAnn').textContent = data.announcement ? '已发布' : '无';
+          $('statUpdated').textContent = fmtTime(data.updatedAt);
+        }
+
+        function renderAll() { renderBans(); renderMail(); renderAnnounce(); renderSync(); }
+
+        /* ---------- 页签切换 ---------- */
+        var tabs = document.querySelectorAll('.tab');
+        for (var ti = 0; ti < tabs.length; ti++) {
+          tabs[ti].addEventListener('click', function () {
+            var name = this.getAttribute('data-tab');
+            for (var j = 0; j < tabs.length; j++) {
+              tabs[j].classList.toggle('active', tabs[j] === this);
+            }
+            ['bans', 'mail', 'announce', 'sync'].forEach(function (n) {
+              $('tab-' + n).hidden = (n !== name);
+            });
+            if (name === 'sync') renderSync();
+          });
+        }
+
+        /* ---------- 封禁 ---------- */
+        $('banForm').addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          var user = $('banUser').value.trim();
+          var reason = $('banReason').value.trim();
+          var days = Number($('banDays').value);
+          var err = $('banErr');
+          err.textContent = '';
+          if (!user) { err.textContent = '请填写用户名。'; return; }
+          if (!reason) { err.textContent = '请填写封禁原因。'; return; }
+          var until = null;
+          if (days > 0) {
+            var d = new Date(Date.now() + days * 24 * 3600 * 1000);
+            until = isoNow(d);
+          }
+          var existing = -1;
+          for (var i = 0; i < data.bans.length; i++) {
+            if (data.bans[i].username === user) { existing = i; break; }
+          }
+          var rec = { username: user, reason: reason, until: until, bannedAt: isoNow() };
+          if (existing >= 0) data.bans[existing] = rec; else data.bans.push(rec);
+          touch();
+          $('banUser').value = ''; $('banReason').value = ''; $('banDays').value = '0';
+          toast(existing >= 0 ? ('已更新对 ' + user + ' 的封禁') : ('已封禁账号：' + user));
+        });
+
+        /* ---------- 发邮件 ---------- */
+        function numVal(id) {
+          var v = Number($(id).value);
+          return (isFinite(v) && v > 0) ? Math.floor(v) : 0;
+        }
+        $('mailForm').addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          var to = $('mailTo').value.trim();
+          var title = $('mailTitle').value.trim();
+          var body = $('mailBody').value.trim();
+          var err = $('mailErr'), ok = $('mailOk');
+          err.textContent = ''; ok.textContent = '';
+          if (!to) { err.textContent = '请填写收件人用户名。'; return; }
+          if (!title) { err.textContent = '请填写邮件标题。'; return; }
+          var items = {
+            diamonds: numVal('itDiamonds'), cash: numVal('itCash'), vouchers: numVal('itVouchers'),
+            trialCards: numVal('itTrial'), shards: numVal('itShards'),
+            playerId: $('itPlayer').value ? $('itPlayer').value : null
+          };
+          var hasItems = items.diamonds || items.cash || items.vouchers || items.trialCards || items.shards || items.playerId;
+          if (!hasItems && !body) { err.textContent = '正文和附件至少要填一样：请写正文，或给至少一项附件。'; return; }
+          var mail = {
+            id: 'm-' + Date.now() + '-' + Math.floor(Math.random() * 1e6),
+            to: to, title: title, body: body, items: items,
+            sentAt: isoNow(), expiresAt: null
+          };
+          data.mail.push(mail);
+          touch();
+          $('mailTo').value = ''; $('mailTitle').value = ''; $('mailBody').value = '';
+          ['itDiamonds', 'itCash', 'itVouchers', 'itTrial', 'itShards'].forEach(function (id) { $(id).value = '0'; });
+          $('itPlayer').value = '';
+          ok.textContent = '已发送给 ' + to + '（同步到线上后玩家可见）。';
+          toast('邮件已发送给：' + to);
+        });
+
+        /* ---------- 公告 ---------- */
+        $('annForm').addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          var title = $('annTitle').value.trim();
+          var body = $('annBody').value.trim();
+          var err = $('annErr');
+          err.textContent = '';
+          if (!title) { err.textContent = '请填写公告标题。'; return; }
+          if (!body) { err.textContent = '请填写公告正文。'; return; }
+          data.announcement = { title: title, body: body, publishedAt: isoNow() };
+          touch();
+          $('annTitle').value = ''; $('annBody').value = '';
+          toast('全服公告已发布');
+        });
+
+        /* ---------- 同步页按钮 ---------- */
+        $('copyJsonBtn').addEventListener('click', function () {
+          var txt = $('syncJson').value;
+          function fallbackCopy() {
+            $('syncJson').select();
+            try { document.execCommand('copy'); toast('JSON 已复制'); }
+            catch (e) { toast('复制失败，请手动全选复制'); }
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(txt).then(function () { toast('JSON 已复制'); }, fallbackCopy);
+          } else { fallbackCopy(); }
+        });
+        $('dlJsonBtn').addEventListener('click', function () {
+          var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = 'admin-data.json';
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+          toast('admin-data.json 已下载');
+        });
+
+        /* ---------- 密码门 ---------- */
+        function showGate() {
+          $('adminView').hidden = true;
+          $('gateView').hidden = false;
+          var has = false;
+          try { has = !!localStorage.getItem(LS_PW); } catch (e) { has = false; }
+          $('gateSetup').hidden = has;
+          $('gateLogin').hidden = !has;
+          if (has) { setTimeout(function () { $('loginPw').focus(); }, 50); }
+          else { setTimeout(function () { $('setupPw1').focus(); }, 50); }
+        }
+        function enterAdmin() {
+          $('gateView').hidden = true;
+          $('adminView').hidden = false;
+          loadData();
+        }
+        $('setupForm').addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          var p1 = $('setupPw1').value, p2 = $('setupPw2').value;
+          var err = $('setupErr');
+          err.textContent = '';
+          if (!p1 || p1.length < 4) { err.textContent = '密码至少 4 位。'; return; }
+          if (p1 !== p2) { err.textContent = '两次输入的密码不一致，请重新输入。'; return; }
+          hashPw(p1).then(function (h) {
+            try { localStorage.setItem(LS_PW, h); } catch (e) { /* 忽略 */ }
+            $('setupPw1').value = ''; $('setupPw2').value = '';
+            toast('管理密码已设置');
+            enterAdmin();
+          });
+        });
+        $('loginForm').addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          var pw = $('loginPw').value;
+          var err = $('loginErr');
+          err.textContent = '';
+          if (!pw) { err.textContent = '请输入管理密码。'; return; }
+          var saved = null;
+          try { saved = localStorage.getItem(LS_PW); } catch (e) { saved = null; }
+          hashPw(pw).then(function (h) {
+            if (saved && h === saved) {
+              $('loginPw').value = '';
+              enterAdmin();
+            } else {
+              err.textContent = '密码不对，请重新输入。';
+              $('loginPw').value = '';
+              $('loginPw').focus();
+            }
+          });
+        });
+        $('lockBtn').addEventListener('click', function () { showGate(); });
+
+        showGate();
+      })();
+    </script>
+  </body>
+</html>
