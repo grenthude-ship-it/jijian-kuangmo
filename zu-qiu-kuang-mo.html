@@ -713,6 +713,9 @@ function sanitizeSaveData(d){
     pack:{draws:0, hist:[], shards:0, peaks:[]},
     hall:{club:[]},
     bet:{slips:[], rounds:{}, totalBet:0, totalWin:0, settled:0, won:0},
+    rig:{plan:null, log:[], ops:0, caught:0},
+    venue:{ticket:1, security:1, food:1, transport:1, exp:1, reports:[]},
+    court:{cases:[], history:[], seq:0, banUntil:0},
     nm:{v:1} };
   for(var k in defs){ if(d[k]===undefined) d[k]=JSON.parse(JSON.stringify(defs[k])); }
   if(!d.pay2 || typeof d.pay2!=='object') d.pay2=JSON.parse(JSON.stringify(defs.pay2));
@@ -1753,6 +1756,9 @@ function newGame(clubName, origin, diff){
     pack:{draws:0, hist:[], shards:0, peaks:[]},
     hall:{club:[]},
     bet:{slips:[], rounds:{}, totalBet:0, totalWin:0, settled:0, won:0},
+    rig:{plan:null, log:[], ops:0, caught:0},
+    venue:{ticket:1, security:1, food:1, transport:1, exp:1, reports:[]},
+    court:{cases:[], history:[], seq:0, banUntil:0},
     nm:{v:1},
     grayWinBoost:0, seasonRank:0, negMonths:0,
     ventures:{}, ventureNet:0, biz:defaultBiz(),
@@ -2014,7 +2020,20 @@ function playSingleMatch(fx){
     else if(prep.type==='rotate'){ xg*=0.94; fatScale=0.45; injScale=0.45; }
     G.prep=null;
   }
+  // 默契球操盘（虚构玩法）：赛前安排在本场生效——暗示让球队踢差，安排则按指定结果走
+  var rigPlan=(typeof rigPlanFor==='function')? rigPlanFor(fx) : null;
+  var rigForced=false;
+  if(rigPlan && rigPlan.type==='hint'){ xg*=0.55; xa*=1.3; }
   var gf=pois(xg), ga=pois(xa);
+  if(rigPlan && rigPlan.type==='arrange'){
+    if(Math.random()<0.85){
+      rigForced=true;
+      if(rigPlan.target==='draw'){ var rs=ri(0,2); gf=rs; ga=rs; }
+      else if(rigPlan.target==='lose'){ ga=gf+ri(1,2); }
+      else if(rigPlan.target==='lose2'){ ga=gf+2; }
+      else if(rigPlan.target==='win'){ gf=ga+ri(1,2); }
+    }
+  }
   G.gf+=gf; G.ga+=ga; opp.gf+=ga; opp.ga+=gf;
   var res, cls='';
   if(gf>ga){ G.pts+=3; G.wins++; res='胜'; cls='good'; }
@@ -2051,6 +2070,9 @@ function playSingleMatch(fx){
   // 门票：比赛日当天入账
   var gate=0;
   if(fx.home){ gate=matchGate(res==='胜'); G.cash+=gate; G.monthGate=(G.monthGate||0)+gate; }
+  // 场馆比赛日运营（仅主场）：票价/上座修正门票，餐饮与运营成本、安保事件、满意度一并结算
+  var venueRep=null;
+  if(fx.home && typeof venueSettle==='function'){ venueRep=venueSettle(fx, res, gate); if(venueRep) gate+=venueRep.ticketDelta; }
   // 关键战的额外声浪
   if(fx.tag){
     if(res==='胜'){ G.fans=Math.round(G.fans*1.03); G.rep=clamp(G.rep+1,0,100); log('🔥 '+fx.tag+'拿下！'+G.club+' '+gf+':'+ga+' 战胜 '+fx.opp+'，球迷满意度飙升，球迷 +3%、声望 +1。','good'); }
@@ -2058,6 +2080,7 @@ function playSingleMatch(fx){
   }
   if(prep && prep.type==='speech' && res==='负'){ G.morale=clamp(G.morale-5,0,100); log('🗣️ 赛前那番激情演讲没换来胜利，更衣室士气额外 -5——话说得太满，是要还的。','bad'); }
   var result={opp:fx.opp, score:gf+':'+ga, res:res, home:fx.home, cls:cls, scorers:scorers, day:fx.day, tag:fx.tag||'', prep:prepName, gate:gate};
+  if(venueRep && venueRep.report){ venueRep.report.score=result.score; result.venue=venueRep.report; }
   fx.played=true; fx.result=result;
   // 赛后战报明细：由本场已结算的真实赛果生成（进球分钟/牌/事件线/最佳球员），直播回放也读这一份，比分与结算永远一致
   result.detail=buildMatchDetail({fx:fx, gf:gf, ga:ga, myScorers:scorers, lineup:lineupSlots, injuries:matchInj, xg:xg, xa:xa, pens:null});
@@ -2066,6 +2089,7 @@ function playSingleMatch(fx){
   G.monthResults.push(result);
   if(typeof taskBump==='function'){ taskBump('match'); if(res==='胜') taskBump('win'); }
   log('⚽ '+G.mon+'月'+fx.day+'日 '+(fx.home?'主场':'客场')+' '+gf+':'+ga+' '+fx.opp+'（'+res+'）'+(scorers.length?'，进球：'+scorers.join('、'):'')+(fx.home?'，门票 +'+fmt(gate):'')+(prepName?'｜本场部署：'+prepName:'')+'。', cls);
+  if(rigPlan && typeof rigResolve==='function') rigResolve(rigPlan, rigForced, result); // 操盘赛后结算：生效记录 + 被查风险 roll
   return result;
 }
 function playFixture(fx){
@@ -2318,6 +2342,7 @@ function settleMonth(manual){
   processBiz();
   if(typeof processNewMonthly==='function') processNewMonthly();
   if(typeof settleOtherBets==='function') settleOtherBets(); // 体彩竞猜：联赛其他球队的比赛在月末统一模拟开奖并结算注单
+  if(typeof courtMonthlyTick==='function') courtMonthlyTick(); // 足球法庭：新案子出现 / 超期自动结案 / 转会禁令到期
   var wins=results.filter(function(r){ return r.res==='胜'; }).length;
   G.totalWins=(G.totalWins||0)+wins;
   var losses=results.filter(function(r){ return r.res==='负'; }).length;
@@ -2424,6 +2449,7 @@ function endGame(kind){
 function go(p){ PAGE=p; render(); window.scrollTo(0,0); if(p==='home' && typeof lobbyBanCheck==='function') lobbyBanCheck(); if(p==='inbox' && typeof refreshInboxOnOpen==='function') refreshInboxOnOpen(); }
 function buyPlayer(i){
   var p=G.market[i]; if(!p) return;
+  if(G.court && G.court.banUntil>G.month){ toast('转会禁令生效中（还剩 '+(G.court.banUntil-G.month)+' 个月）：足球法庭的裁决没到期，不能签人'); return; }
   if(G.director && G.director.mode==='none'){ toast('当前是「零引援」建队策略：只靠原阵容和青训。去转会页把策略改掉才能买人。'); return; }
   if(G.board && G.board.frozen>0){ toast('董事会冻结了本月预算，先把成绩打回来，下个月再买。'); return; }
   if(G.cash<p.price){ toast('现金不够，还差 '+fmt(p.price-G.cash)); return; }
@@ -3080,13 +3106,15 @@ function restart(){ stopAuto(); clearAutoSave(); G=null; PAGE='home'; showStart(
 <script>
 "use strict";
 /* ---------------- 渲染 ---------------- */
-var NAV=[['home','游戏大厅','📋'],['account','账号中心','👤'],['inbox','邮箱','📬'],['tasks','每日任务','✅'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['fun','趣味乐园','🎡'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['neg','商务谈判中心','📞'],['cross','跨行业经营','🏭'],['ipo','企业上市','📈'],['packs','球星抽卡','🃏'],['hall','荣耀殿堂','🏛️'],['bet','体彩竞猜','🎟️'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
+var NAV=[['home','游戏大厅','📋'],['account','账号中心','👤'],['inbox','邮箱','📬'],['tasks','每日任务','✅'],['league','联盟联赛','🏆'],['market','转会市场','🔁'],['intel','数据球探','🔭'],['stars','球星图鉴','⭐'],['ops','运营活动','🎪'],['fun','趣味乐园','🎡'],['squad','阵容教练','👕'],['honors','荣誉中心','🎖️'],['youth','青训体系','🌱'],['rel','人脉关系','🤝'],['media','媒体中心','🎙️'],['gray','灰色账本','🕶️'],['club','俱乐部','🏛️'],['career','我的生涯','🏆'],['empire','集团扩张','🏢'],['overseas','海外俱乐部','🌍'],['brand','自有品牌','👕'],['deals','品牌合作','🤝'],['neg','商务谈判中心','📞'],['cross','跨行业经营','🏭'],['ipo','企业上市','📈'],['packs','球星抽卡','🃏'],['hall','荣耀殿堂','🏛️'],['bet','体彩竞猜','🎟️'],['rig','默契球操盘','🎭'],['venue','场馆运营','🏟️'],['court','足球法庭','⚖️'],['pay','充值中心','💎'],['auto','全自动模拟','🤖']];
 function navBtns(cls){
   return NAV.map(function(n){
     var bdg='';
     if(n[0]==='market' && G && G.market.length) bdg='<span class="bdg">'+G.market.length+'</span>';
     if(n[0]==='youth' && G && G.youth){ var pr=G.youth.filter(function(p){ return p.age>=16 && p.ab>=50; }).length; if(pr) bdg='<span class="bdg">可提拔 '+pr+'</span>'; }
     if(n[0]==='gray' && G && G.heat>=60) bdg='<span class="bdg">热度'+G.heat+'</span>';
+    if(n[0]==='court' && G && G.court && G.court.cases && G.court.cases.length) bdg='<span class="bdg">待办 '+G.court.cases.length+'</span>';
+    if(n[0]==='rig' && G && G.rig && G.rig.plan) bdg='<span class="bdg">已安排</span>';
     if(n[0]==='tasks' && G && typeof dailyClaimable==='function'){ var dc=dailyClaimable(); if(dc) bdg='<span class="bdg">'+dc+' 可领</span>'; }
     if(n[0]==='inbox' && CUR_USER && typeof unreadMailCount==='function'){ var uc=unreadMailCount(); if(uc) bdg='<span class="bdg">'+uc+' 未读</span>'; }
     return '<button class="'+(PAGE===n[0]?'on':'')+'" onclick="go(\''+n[0]+'\')"><span class="ic">'+n[2]+'</span>'+n[1]+bdg+'</button>';
@@ -3196,6 +3224,9 @@ function render(){
   else if(PAGE==='packs') body+=pagePacks();
   else if(PAGE==='hall') body+=pageHall();
   else if(PAGE==='bet') body+=pageBet();
+  else if(PAGE==='rig') body+=pageRig();
+  else if(PAGE==='venue') body+=pageVenue();
+  else if(PAGE==='court') body+=pageCourt();
   else if(PAGE==='pay') body+=pagePay();
   else if(PAGE.indexOf('nm')===0) body+=pageNM(PAGE);
   else if(PAGE==='auto') body+=pageAuto();
@@ -3735,7 +3766,8 @@ function pageGray(){
   +'<p class="desc">热度每月按比例消退（约 12%）：偶尔操作能慢慢凉下来，天天全开只会越烧越旺。热度 65 以上随时可能被调查：轻则罚款扣分，重则取消注册资格、直接结局。郑国强关系到 70，有一半概率能提前给你通气。</p>'
   +'<div style="display:flex;align-items:center;gap:12px;margin:10px 0 4px;"><b>纪检热度</b><div class="bar r" style="flex:1;"><i style="width:'+G.heat+'%"></i></div><b class="num" style="color:'+(G.heat>=60?'var(--red)':'inherit')+'">'+G.heat+' / 100</b></div>'
   +(G.heat>=60?'<div class="warn-strip">⚠️ 热度过高！建议立刻停手几个月，或者去充值中心用危机公关降温。</div>':'')
-  +list+'</div>';
+  +list+'</div>'
+  +(typeof rigGrayHTML==='function'? rigGrayHTML():'');
 }
 function pageClub(){
   var facs=FACDEF.map(function(f){
@@ -4506,6 +4538,9 @@ function lobbyHTML(){
   + ltile("go('ops')",'🎪','运营活动','战术体系 · 赛前部署 · 足协杯')
   + ltile("go('hall')",'🏛️','荣耀殿堂','名人堂 · 退役号码 · 世界传奇')
   + ltile("go('bet')",'🎟️','体彩竞猜','只用游戏内现金 · 赛后结算')
+  + ltile("go('rig')",'🎭','默契球操盘','虚构玩法 · 暗示/安排 · 配合竞猜赚钱', (G.rig&&G.rig.plan)?'已安排':'')
+  + ltile("go('venue')",'🏟️','场馆运营','票务 · 安保 · 餐饮 · 交通 · 球迷体验')
+  + ltile("go('court')",'⚖️','足球法庭','合同纠纷 · 转会违规 · 纪律处罚', (G.court&&G.court.cases&&G.court.cases.length)? G.court.cases.length+' 案待办':'')
   + ltile("go('honors')",'🎖️','荣誉中心','俱乐部与球员荣誉 · 赛季颁奖')
   + ltile("go('fun')",'🎡','趣味乐园','幸运转盘 · 球迷来信 · 随机事件');
   var shopTilesHTML=''
@@ -8868,6 +8903,435 @@ if(typeof processNewMonthly==='function'){
 if(typeof seasonSettle==='function'){
   var __nmOrigSeason=seasonSettle;
   seasonSettle=function(){ __nmOrigSeason(); try{ nmSeasonEnd(); }catch(e){} };
+}
+</script>
+<script>
+"use strict";
+/* ================= 新系统三件套（一）：默契球操盘 + 场馆比赛日运营 + 足球法庭 =================
+   全部为游戏内虚构玩法，与现有系统打通：现金 / 纪检热度（G.heat）/ 球迷满意度（G.fanSat）/
+   声望（G.rep）/ 积分（G.pts）/ 球员停赛（复用伤停天数 p.inj，期间不可出场）/ 体彩竞猜（注单按真实赛果结算）。
+   老存档由 sanitizeSaveData 补默认字段，这里再兜底一次，任何入口都先 ensureNew3()。 */
+function ensureNew3(){
+  if(!G) return;
+  if(!G.rig || typeof G.rig!=='object') G.rig={plan:null, log:[], ops:0, caught:0};
+  if(!G.rig.log) G.rig.log=[]; if(G.rig.ops==null) G.rig.ops=0; if(G.rig.caught==null) G.rig.caught=0; if(G.rig.plan===undefined) G.rig.plan=null;
+  if(!G.venue || typeof G.venue!=='object') G.venue={ticket:1, security:1, food:1, transport:1, exp:1, reports:[]};
+  ['ticket','security','food','transport','exp'].forEach(function(k){ if(G.venue[k]==null) G.venue[k]=1; });
+  if(!G.venue.reports) G.venue.reports=[];
+  if(!G.court || typeof G.court!=='object') G.court={cases:[], history:[], seq:0, banUntil:0};
+  if(!G.court.cases) G.court.cases=[]; if(!G.court.history) G.court.history=[]; if(G.court.seq==null) G.court.seq=0; if(G.court.banUntil==null) G.court.banUntil=0;
+}
+/* ---------------- 一、默契球操盘（假球/默契球 + 竞猜回报） ---------------- */
+var rigTarget='draw';
+var RIG_TARGETS={draw:'平局', lose:'输球（让对方赢）', lose2:'输 2 球', win:'赢球（对方放水）'};
+function rigKey(fx){ return 'M'+G.month+'-'+fx.day+'-'+fx.opp; }
+function rigPlanFor(fx){
+  if(!G || !fx || fx.cup) return null;
+  ensureNew3();
+  var p=G.rig.plan; if(!p) return null;
+  return p.key===rigKey(fx)? p : null;
+}
+function rigLog(txt, bad){
+  ensureNew3();
+  G.rig.log.unshift({m:G.year+'/'+G.mon, t:txt});
+  if(G.rig.log.length>30) G.rig.log.length=30;
+  log(txt, bad?'bad':'');
+}
+function rigSetTarget(t){ rigTarget=t; render(); }
+function rigDo(type){
+  ensureNew3();
+  var fx=nextFixture();
+  if(!fx){ toast('本月比赛已经踢完了，下个月再安排'); return; }
+  if(fx.cup){ toast('足协杯不做操盘，只对联赛比赛生效'); return; }
+  if(G.rig.plan){
+    toast(G.rig.plan.key===rigKey(fx)? '下一场已经安排过了：一场比赛只能安排一次':'上一场的安排还没踢完，先把那场踢了再说');
+    return;
+  }
+  if(type==='hint'){
+    var cost=15;
+    if(G.cash<cost){ toast('现金不够，还差 '+fmt(cost-G.cash)); return; }
+    G.cash-=cost; G.heat=clamp(G.heat+6,0,100); G.rig.ops++;
+    G.rig.plan={key:rigKey(fx), type:'hint', target:'', opp:fx.opp, day:fx.day, home:!!fx.home, cost:cost, when:G.year+'/'+G.mon};
+    rigLog('🎭【灰账】暗示球员：花 '+fmt(cost)+' 疏通更衣室，让球队下一场对 '+fx.opp+' 别拼太狠（放水、不全力拼）。纪检热度 +6 → '+G.heat+'。（游戏内虚构玩法）', true);
+    toast('暗示递到更衣室了：下一场球队会踢得松一些');
+  } else {
+    var cost2=150;
+    if(G.cash<cost2){ toast('现金不够，还差 '+fmt(cost2-G.cash)); return; }
+    G.cash-=cost2; G.heat=clamp(G.heat+18,0,100); G.rig.ops++;
+    G.rig.plan={key:rigKey(fx), type:'arrange', target:rigTarget, opp:fx.opp, day:fx.day, home:!!fx.home, cost:cost2, when:G.year+'/'+G.mon};
+    rigLog('🎭【灰账】安排默契球：花 '+fmt(cost2)+' 上下打点贿赂球员与对方，目标结果【'+RIG_TARGETS[rigTarget]+'】（'+G.mon+'月'+fx.day+'日 vs '+fx.opp+'）。纪检热度 +18 → '+G.heat+'。谈成了就去体彩竞猜押这个结果。（游戏内虚构玩法）', true);
+    toast('默契球已安排：目标「'+RIG_TARGETS[rigTarget]+'」，别忘了去体彩竞猜下注');
+  }
+  render();
+}
+function rigCancel(){
+  ensureNew3(); if(!G.rig.plan) return;
+  rigLog('🎭【灰账】你临时取消了对 '+G.rig.plan.opp+' 的赛前安排——打点的钱和涨过的热度都退不回来。', false);
+  G.rig.plan=null;
+  toast('已取消安排（费用与热度不退）');
+  render();
+}
+function rigResolve(plan, forced, result){
+  ensureNew3();
+  if(G.rig.plan && G.rig.plan.key===plan.key) G.rig.plan=null;
+  if(plan.type==='arrange' && !forced){
+    rigLog('🎭 默契球没谈拢：中间人临时变卦，对 '+plan.opp+' 这场照常踢完了（'+result.score+'）。'+fmt(plan.cost)+' 打了水漂，热度也白涨了。', true);
+  } else {
+    rigLog('🎭 赛前安排已生效：对 '+plan.opp+' 最终比分 '+result.score+'（'+result.res+'）'+(plan.type==='arrange'?'，目标结果达成——去体彩竞猜看看押的注单中没中。':'，球队明显没尽全力。'), false);
+  }
+  var chance= plan.type==='hint'? 0.06 : (forced? 0.20 : 0.12);
+  chance += G.rig.ops*0.012 + (G.heat>=60? 0.05 : 0);
+  if(Math.random()<chance){
+    G.rig.caught++;
+    var fine=ri(200,500);
+    G.cash-=fine; G.pts=Math.max(0, G.pts-6); G.rep=clamp(G.rep-10,0,100); G.heat=45;
+    var suspTxt='';
+    var starters=pickLineup();
+    if(starters.length){
+      var sp=starters[Math.floor(Math.random()*starters.length)].p;
+      var days=ri(20,40);
+      sp.inj=(sp.inj||0)+days;
+      suspTxt='、主力 '+sp.name+' 被停赛 '+days+' 天';
+    }
+    rigLog('🚨 操盘被查出来了！纪律委员会调查落地：罚款 '+fmt(fine)+'、联赛扣 6 分、声望 -10'+suspTxt+'。纪检热度暂降到 45，案底记在灰账里——操作越多、热度越高，越容易被查。', true);
+    toast('被查了！罚款扣分，还有球员停赛');
+    if(typeof courtPush==='function') courtPush('discipline', {preset:'fix'});
+  }
+}
+function pageRig(){
+  ensureNew3();
+  var fx=nextFixture();
+  var plan=G.rig.plan;
+  var planForNext= fx && plan && plan.key===rigKey(fx);
+  var fxHTML= fx
+    ? '<div class="item"><div class="grow"><div class="nm">下一场：'+G.mon+'月'+fx.day+'日 · '+(fx.home?'主场':'客场')+' vs '+esc(fx.opp)+(fx.tag?' · '+fx.tag:'')+(fx.cup?' · 🏆 足协杯':'')+'</div><div class="meta">'+(fx.cup?'足协杯不做操盘，只对联赛比赛生效。':'操盘只对这一场生效，赛前（比赛日之前）安排，踢完自动结算。')+'</div></div>'+(planForNext?'<span class="pill dn">已安排</span>':'<span class="pill up">可安排</span>')+'</div>'
+    : '<p class="desc">本月比赛已经踢完了，下个月赛程出来再安排。</p>';
+  var planHTML='';
+  if(plan){
+    planHTML='<div class="warn-strip">🎭 已安排：对 '+esc(plan.opp)+'（'+plan.when+'）· '+(plan.type==='hint'?'暗示球员放水':('默契球目标【'+RIG_TARGETS[plan.target]+'】'))+' · 花费 '+fmt(plan.cost)+'。'+(planForNext?'这场踢完自动生效结算。':'（这场还没轮到踢）')+' <button class="btn sm" onclick="rigCancel()">取消安排（钱和热度不退）</button></div>';
+  }
+  var tgtBtns=Object.keys(RIG_TARGETS).map(function(k){
+    return '<button class="btn sm'+(rigTarget===k?' on':'')+'" onclick="rigSetTarget(\''+k+'\')">'+RIG_TARGETS[k]+'</button>';
+  }).join('');
+  var logs=G.rig.log.length
+    ? G.rig.log.map(function(e){ return '<div class="item"><div class="grow"><div class="meta" style="font-size:12.5px;">'+e.m+' · '+esc(e.t)+'</div></div></div>'; }).join('')
+    : '<p class="desc">还没有操盘记录。第一次下手之前，先想想热度扛不扛得住。</p>';
+  return '<div class="card"><h3><span class="no">操盘</span>默契球操盘<span class="hint">累计操作 '+G.rig.ops+' 次 · 被查 '+G.rig.caught+' 次 · 当前纪检热度 '+G.heat+'</span></h3>'
+  +'<div class="warn-strip">⚠️ 本页全部是<b>游戏里的虚构玩法</b>，不是真事、更不是教你做真事。每一次操作都会涨纪检热度、记进灰账；被查出来会触发调查：罚款、扣联赛积分、球员停赛、声誉下降，热度冲顶还可能直接取消资格。操作越明目张胆、次数越多，被发现的概率越高。</div>'
+  + fxHTML + planHTML
+  +'<div class="grid2" style="margin-top:10px;">'
+  +'<div class="card" style="margin:0;"><h3>🗣️ 暗示球员</h3><p class="desc">低成本、低风险、成功率一般：花 '+fmt(15)+' 疏通更衣室，让球队这场踢得差一点——放水、不全力拼。本队进攻明显变弱、对手更容易进球，但比分到底怎么样还看临场。</p><div class="meta" style="margin:6px 0;"><span class="pill dn">热度 +6</span> <span class="pill">被查概率低</span></div><button class="btn dark" onclick="rigDo(\'hint\')" '+((!fx||fx.cup||plan)?'disabled':'')+'>暗示球员 · '+fmt(15)+'</button></div>'
+  +'<div class="card" style="margin:0;"><h3>🤝 安排默契球</h3><p class="desc">花钱贿赂球员/对方：成本高、风险高、成功率约 85%。先选一个指定结果，比赛会按安排走（谈拢的情况下）；谈成之后，去体彩竞猜押这个结果，押中了赚钱。</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;">'+tgtBtns+'</div><div class="meta" style="margin:6px 0;"><span class="pill dn">热度 +18</span> <span class="pill dn">被查概率高</span></div><button class="btn dark" onclick="rigDo(\'arrange\')" '+((!fx||fx.cup||plan)?'disabled':'')+'>安排默契球 · '+fmt(150)+'</button> <button class="btn pri" onclick="go(\'bet\')">🎟️ 去体彩竞猜下注</button></div>'
+  +'</div>'
+  +'<p class="mini" style="margin-top:10px;">配合玩法：先在这里把结果安排好（比如平局），再到「体彩竞猜」押同一场的结果——竞猜注单按比赛的真实赛果结算，安排生效就等于押中。被查概率 = 基础概率 + 累计操作次数加成 + 热度加成；热度 65 以上每月还有纪律委员会的常规调查（灰色账本里那套）。</p>'
+  +'</div>'
+  +'<div class="card"><h3>🕶️ 操盘灰账记录<span class="hint">每一次操作都记在这里，和灰色账本共用纪检热度</span></h3>'+logs+'</div>';
+}
+function rigGrayHTML(){
+  ensureNew3();
+  var recent=G.rig.log.slice(0,5).map(function(e){ return '<div class="item"><div class="grow"><div class="meta" style="font-size:12.5px;">'+e.m+' · '+esc(e.t)+'</div></div></div>'; }).join('');
+  return '<div class="card"><h3><span class="no">操盘</span>默契球操盘（灰账）<span class="hint">累计 '+G.rig.ops+' 次 · 被查 '+G.rig.caught+' 次</span></h3>'
+  +'<p class="desc">赛前暗示球员放水、安排默契球指定结果，再配合体彩竞猜押注赚钱——全部是游戏内虚构玩法，每次操作涨热度、记灰账，被查会罚款扣分停赛。</p>'
+  +(recent||'<p class="desc">暂无操盘记录。</p>')
+  +'<button class="btn dark sm" onclick="go(\'rig\')">打开默契球操盘页</button></div>';
+}
+/* ---------------- 二、场馆与比赛日运营 ---------------- */
+var VENUE_TICKET=[
+  {n:'亲民', price:0.7, att:1.18, sat:2, ds:'票价低三成：上座率明显涨、球迷满意度 +2，但单场票房打折'},
+  {n:'标准', price:1.0, att:1.0, sat:0, ds:'不涨不降：上座率和票房都按平常走'},
+  {n:'高价', price:1.5, att:0.78, sat:-3, ds:'票价高五成：单场票房更高，但上座率掉、球迷满意度 -3'}
+];
+var VENUE_SECURITY=[
+  {n:'基础', cost:5, risk:0.16, ds:'只花 '+fmt(5)+'：便宜，但球迷骚乱概率高，出事要被足协罚款、扣声誉'},
+  {n:'标准', cost:12, risk:0.06, ds:'花 '+fmt(12)+'：骚乱概率低不少'},
+  {n:'严密', cost:25, risk:0.015, ds:'花 '+fmt(25)+'：基本不出事，关键战和德比建议拉满'}
+];
+var VENUE_FOOD=[
+  {n:'基础', cost:5, spend:12, sat:0, ds:'成本 '+fmt(5)+'：只有水和简餐，人均消费低'},
+  {n:'丰富', cost:12, spend:30, sat:1, ds:'成本 '+fmt(12)+'：小吃饮料齐全，餐饮收入明显涨，满意度 +1'},
+  {n:'豪华', cost:25, spend:55, sat:2, ds:'成本 '+fmt(25)+'：美食街区级别，人均消费最高，满意度 +2'}
+];
+var VENUE_TRANSPORT=[
+  {n:'无安排', cost:0, att:1.0, sat:0, ds:'不花钱：球迷自己想办法来，上座率不加成'},
+  {n:'球迷班车', cost:8, att:1.08, sat:1, ds:'花 '+fmt(8)+'：市区接送，上座率 +8%，满意度 +1'},
+  {n:'地铁专线', cost:18, att:1.15, sat:2, ds:'花 '+fmt(18)+'：协调专线直达，上座率 +15%，满意度 +2'}
+];
+var VENUE_EXP=[
+  {n:'不投入', cost:0, sat:0, ds:'不花钱：氛围和设施维持现状'},
+  {n:'常规氛围', cost:10, sat:1, ds:'花 '+fmt(10)+'：TIFO、灯光、互动活动，满意度 +1'},
+  {n:'豪华体验', cost:25, sat:3, ds:'花 '+fmt(25)+'：沉浸式观赛体验拉满，满意度 +3，长期利好上座与赞助'}
+];
+function venueSet(k, lv){ ensureNew3(); G.venue[k]=lv; render(); }
+function venueSettle(fx, res, gate){
+  ensureNew3();
+  var V=G.venue;
+  var cap=8000+G.fac.stadium*9000;
+  var att0=Math.min(G.fans, cap);
+  var tk=VENUE_TICKET[V.ticket], sc=VENUE_SECURITY[V.security], fd=VENUE_FOOD[V.food], tr=VENUE_TRANSPORT[V.transport], ex=VENUE_EXP[V.exp];
+  var attMult=tk.att*tr.att;
+  var attendees=Math.max(0, Math.min(cap, Math.round(att0*attMult)));
+  var attRate=cap>0? Math.round(attendees/cap*100) : 0;
+  var ticketDelta=Math.round(gate*(tk.price*attMult-1));
+  G.cash+=ticketDelta; G.monthGate=(G.monthGate||0)+ticketDelta;
+  var foodRev=Math.round(attendees*fd.spend/10000);
+  var costs=sc.cost+fd.cost+tr.cost+ex.cost;
+  G.cash+=foodRev-costs;
+  var incident='', fine=0;
+  var risk=sc.risk+(attRate>=90?0.04:0);
+  if(Math.random()<risk){
+    fine=ri(20,60); G.cash-=fine;
+    incident='安保不足，看台出现球迷骚乱，被足协罚款 '+fmt(fine)+'、声誉 -2';
+    G.rep=clamp(G.rep-2,0,100);
+  }
+  var satDelta=tk.sat+fd.sat+tr.sat+ex.sat+(incident?-5:0);
+  G.fanSat=clamp((G.fanSat==null?62:G.fanSat)+satDelta,0,100);
+  var rep={opp:fx.opp, when:G.year+'/'+G.mon+'月'+fx.day+'日', score:'', attRate:attRate, attendees:attendees,
+    gate:gate+ticketDelta, foodRev:foodRev, costs:costs, fine:fine, incident:incident, satDelta:satDelta,
+    net:ticketDelta+foodRev-costs-fine};
+  V.reports.unshift(rep); if(V.reports.length>12) V.reports.length=12;
+  log('🏟️ 比赛日结算 vs '+fx.opp+'：上座率 '+attRate+'%（'+attendees.toLocaleString('zh-CN')+' 人），门票 '+fmt(rep.gate)+'、餐饮收入 '+fmt(foodRev)+'、运营成本 '+fmt(costs)+(incident?'；⚠️ '+incident:'')+'，球迷满意度 '+(satDelta>=0?'+':'')+satDelta+' → '+(G.fanSat==null?62:G.fanSat)+'。', incident?'bad':'');
+  return {ticketDelta:ticketDelta, report:rep};
+}
+function venueSeg(title, key, defs){
+  ensureNew3();
+  var cur=G.venue[key];
+  var btns=defs.map(function(d, i){
+    return '<button class="btn sm'+(cur===i?' on':'')+'" onclick="venueSet(\''+key+'\','+i+')">'+d.n+'</button>';
+  }).join('');
+  return '<div class="item" style="align-items:flex-start;"><div class="grow"><div class="nm">'+title+'</div><div class="meta">'+defs[cur].ds+'</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;">'+btns+'</div></div>';
+}
+function pageVenue(){
+  ensureNew3();
+  var fx=nextFixture();
+  var nextHome=null;
+  if(G.fixtures){ for(var i=0;i<G.fixtures.length;i++){ if(!G.fixtures[i].played && G.fixtures[i].home){ nextHome=G.fixtures[i]; break; } } }
+  var cap=8000+G.fac.stadium*9000;
+  var reps=G.venue.reports.length
+    ? G.venue.reports.map(function(r){
+        return '<div class="item"><div class="grow"><div class="nm">'+esc(r.when)+' · 主场 vs '+esc(r.opp)+(r.score?' · '+esc(r.score):'')+'</div><div class="meta">上座率 '+r.attRate+'%（'+Number(r.attendees).toLocaleString('zh-CN')+' 人）· 门票 '+fmt(r.gate)+' · 餐饮 '+fmt(r.foodRev)+' · 运营成本 '+fmt(r.costs)+(r.fine?' · 骚乱罚款 '+fmt(r.fine):'')+' · 本场运营净'+(r.net>=0?'+':'')+fmt(r.net)+' · 球迷满意度 '+(r.satDelta>=0?'+':'')+r.satDelta+(r.incident?'<br>⚠️ '+esc(r.incident):'')+'</div></div><span class="pill '+(r.net>=0?'up':'dn')+'">'+(r.net>=0?'赚':'亏')+' '+fmt(Math.abs(r.net))+'</span></div>';
+      }).join('')
+    : '<p class="desc">还没有主场比赛日结算——踢完第一场主场比赛，这里就会出结算单。</p>';
+  return '<div class="card"><h3><span class="no">场馆</span>场馆与比赛日运营<span class="hint">球场容量 '+cap.toLocaleString('zh-CN')+' 人（设施「主场球场」'+G.fac.stadium+' 级）· 球迷满意度 '+(G.fanSat==null?62:G.fanSat)+'</span></h3>'
+  +'<p class="desc">这里管每一个<b>主场</b>比赛日：设置会一直生效到你下次修改，每个主场比赛后自动按这套设置结算——门票、餐饮、安保事件、球迷满意度变化，全都算进现金和满意度。客场比赛不走场馆运营。</p>'
+  +(nextHome? '<div class="item"><div class="grow"><div class="nm">下一个主场：'+G.mon+'月'+nextHome.day+'日 vs '+esc(nextHome.opp)+(nextHome.tag?' · '+nextHome.tag:'')+'</div><div class="meta">在比赛日之前把下面五项定好，踢完立刻出结算单。</div></div></div>' : '<p class="desc">本月剩下的比赛没有主场了，下个月主场再结算。</p>')
+  + venueSeg('🎟️ 票务 · 票价档次', 'ticket', VENUE_TICKET)
+  + venueSeg('🛡️ 安保 · 安保级别', 'security', VENUE_SECURITY)
+  + venueSeg('🍔 餐饮 · 餐饮档次', 'food', VENUE_FOOD)
+  + venueSeg('🚌 交通 · 球迷交通', 'transport', VENUE_TRANSPORT)
+  + venueSeg('🎉 球迷体验 · 氛围与设施投入', 'exp', VENUE_EXP)
+  +'<p class="mini" style="margin-top:8px;">算账方式：门票收入按票价档次和实际上座人数修正基础门票；餐饮收入 = 到场人数 × 人均消费；安保/餐饮/交通/体验的钱在比赛日直接从现金扣。球迷满意度长期偏高，上座率和门票还会更好（满意度本身也影响基础门票）。</p>'
+  +'</div>'
+  +'<div class="card"><h3>🧾 比赛日结算记录<span class="hint">最近 '+G.venue.reports.length+' 场主场</span></h3>'+reps+'</div>';
+}
+</script>
+<script>
+"use strict";
+/* ================= 新系统三件套（二）：足球法庭 / 仲裁 =================
+   三类案子：合同纠纷 / 转会违规 / 纪律处罚。来源：每月随机出现、热度过高滋生、
+   操盘被查后追加听证。裁决真实影响现金、声望、热度、球员去留与停赛、转会禁令
+   （禁令期内 buyPlayer 直接拦下）。案子拖过 2 个月不处理，自动按最不利结果结案。 */
+function courtBanActive(){ ensureNew3(); return G.court.banUntil>G.month; }
+function courtHist(title, act, outcome){
+  ensureNew3();
+  G.court.history.unshift({when:G.year+'/'+G.mon, title:title, act:act, outcome:outcome});
+  if(G.court.history.length>30) G.court.history.length=30;
+}
+function courtPush(type, opts){
+  ensureNew3(); opts=opts||{};
+  if(G.court.cases.length>=4) return null;
+  G.court.seq++;
+  var squad=G.squad||[];
+  var rp=squad.length? squad[Math.floor(Math.random()*squad.length)] : null;
+  var c={id:'C'+G.month+'-'+G.court.seq, type:type, variant:'', player:rp? rp.name:'', amount:50, susp:0, month:G.month, created:G.year+'/'+G.mon, title:'', desc:''};
+  if(type==='contract'){
+    c.amount=rp? Math.max(30, Math.round((rp.wage||2)*14)) : 60;
+    c.title='合同纠纷 · '+(c.player||'球员')+' 要求加薪';
+    c.desc=(c.player||'队内球员')+'（能力 '+(rp?rp.ab:'—')+'，月薪 '+(rp?rp.wage:'—')+'万）的经纪人找上门：现在的工资配不上他的表现，要求涨薪约五成，外加一笔签字费，否则就寻求转会。你可以谈判（小幅涨薪留人）、接受要求（大幅涨薪 + 签字费），或走仲裁——仲裁可能判他留队（新条件）、判他走人（你收一笔转会费），也可能判俱乐部赔钱。';
+  } else if(type==='transfer'){
+    c.variant= opts.variant || (Math.random()<0.5? 'accused':'victim');
+    c.amount=ri(80,220);
+    if(c.variant==='accused'){
+      c.title='转会违规 · 被指控违规接触球员';
+      c.desc='足协收到举报：你方在没有通过对方俱乐部的情况下，私下接触了对方球员谈转会。对方要求严惩。你可以辩护（拿证据自证清白，成败看运气和足协关系）、和解（赔一笔钱息事宁人），或上诉仲裁（赢了无罪，输了罚款加重 + 转会禁令 2 个月）。';
+    } else {
+      c.title='转会违规 · 对手违规挖角你的球员';
+      c.player=rp? rp.name:'';
+      c.desc='你发现同联赛对手绕过俱乐部，私下接触了你的球员 '+(c.player||'')+' 谈转会，还许了高薪。你可以向足协投诉（赢了对方赔钱）、私下和解（拿一笔封口费），或上诉仲裁（赢了赔更多，输了球员可能被直接挖走、一分钱转会费都没有）。';
+    }
+  } else {
+    c.susp=ri(10,30);
+    c.amount=ri(40,120);
+    if(opts.preset==='fix'){
+      c.title='纪律处罚 · 操盘调查追加听证';
+      c.desc='默契球操盘被查之后，足协纪律委员会追加了一场听证：除了已经执行的罚款扣分，还要追加罚款 '+fmt(c.amount)+(c.player?'，并拟对 '+c.player+' 停赛 '+c.susp+' 天':'')+'。你可以接受处罚，或上诉——上诉结果可能是减轻、维持，也可能加重。';
+    } else {
+      var ev=pick(['在比赛中暴力犯规，赛后被追罚','在更衣室顶撞教练组，视频被发到了网上','场外深夜泡吧被拍，还和球迷起了冲突','训练中故意铲伤队友，队内影响很坏']);
+      c.title='纪律处罚 · '+(c.player||'球员')+' 违纪';
+      c.desc=(c.player||'队内球员')+' 出了事：'+ev+'。足协拟罚款 '+fmt(c.amount)+'，并对他停赛 '+c.susp+' 天。你可以接受处罚（照单全收），或上诉——上诉可能减轻、维持，也可能加重（罚款和停赛都涨）。';
+    }
+  }
+  G.court.cases.push(c);
+  return c;
+}
+function courtFind(id){
+  ensureNew3();
+  for(var i=0;i<G.court.cases.length;i++) if(G.court.cases[i].id===id) return G.court.cases[i];
+  return null;
+}
+function courtClose(c){ G.court.cases=G.court.cases.filter(function(x){ return x.id!==c.id; }); }
+function courtPlayer(name){ if(!name) return null; for(var i=0;i<G.squad.length;i++) if(G.squad[i].name===name) return G.squad[i]; return null; }
+function courtSuspend(c, days){
+  var p=courtPlayer(c.player); if(!p || !days) return '';
+  p.inj=(p.inj||0)+days;
+  return '，'+p.name+' 停赛 '+days+' 天（期间不可出场）';
+}
+function courtRemovePlayer(c){
+  var p=courtPlayer(c.player); if(!p) return 0;
+  var idx=G.squad.indexOf(p); if(idx<0) return 0;
+  var fee=p.value||0;
+  G.squad.splice(idx,1);
+  if(typeof migrateLineupData==='function') migrateLineupData(G);
+  return fee;
+}
+function courtAct(id, act){
+  ensureNew3();
+  var c=courtFind(id); if(!c){ toast('这个案子已经结案了'); render(); return; }
+  var outcome='';
+  if(c.type==='contract'){
+    var p=courtPlayer(c.player);
+    if(act==='negotiate'){
+      var fee=Math.round(c.amount*0.3);
+      G.cash-=fee;
+      if(p){ p.wage=Math.round(p.wage*1.2*10)/10; p.mood=clamp((p.mood||60)+8,0,100); p.trust=clamp((p.trust||55)+6,0,100); }
+      outcome='谈判达成：签字费 '+fmt(fee)+'，'+(c.player||'球员')+' 月薪上调约两成留队，更衣室心情变好。';
+    } else if(act==='accept'){
+      var fee2=Math.round(c.amount*0.5);
+      G.cash-=fee2;
+      if(p){ p.wage=Math.round(p.wage*1.5*10)/10; p.mood=clamp((p.mood||60)+12,0,100); p.trust=clamp((p.trust||55)+10,0,100); }
+      outcome='接受要求：签字费 '+fmt(fee2)+'，'+(c.player||'球员')+' 月薪上调约五成，心满意足续约留队（以后每月工资支出更高）。';
+    } else {
+      var r=Math.random();
+      if(r<0.4){
+        var fee3=Math.round(c.amount*0.3); G.cash-=fee3;
+        if(p){ p.wage=Math.round(p.wage*1.3*10)/10; }
+        outcome='仲裁裁决：球员留队，但俱乐部要按新条件涨薪约三成，并补签字费 '+fmt(fee3)+'。';
+      } else if(r<0.7){
+        var fee4=courtRemovePlayer(c); G.cash+=fee4;
+        outcome='仲裁裁决：球员获准转会离队，对方支付转会费 '+fmt(fee4)+' 已到账。他已从阵容、大名单和首发里移除，空位记得去阵容页补人。';
+      } else {
+        G.cash-=c.amount;
+        if(p) p.mood=clamp((p.mood||60)-10,0,100);
+        outcome='仲裁裁决：俱乐部败诉，赔偿 '+fmt(c.amount)+'，球员留队但心情受了影响。';
+      }
+    }
+  } else if(c.type==='transfer'){
+    if(c.variant==='accused'){
+      if(act==='defend'){
+        var ch=0.45+((G.rel&&G.rel.fa)||30)*0.003;
+        if(Math.random()<ch){ G.rep=clamp(G.rep+1,0,100); outcome='辩护成功：证据链完整，足协认定接触发生在合规窗口内，无罪，声望 +1。'; }
+        else { G.cash-=c.amount; G.heat=clamp(G.heat+8,0,100); outcome='辩护失败：罚款 '+fmt(c.amount)+'，纪检热度 +8 → '+G.heat+'。'; }
+      } else if(act==='settle'){
+        var s1=Math.round(c.amount*0.6); G.cash-=s1;
+        outcome='庭外和解：赔付 '+fmt(s1)+' 息事宁人，对方撤诉，不留案底。';
+      } else {
+        if(Math.random()<0.5){ outcome='上诉仲裁胜诉：指控不成立，无罪结案，一分钱不用赔。'; }
+        else { var f1=Math.round(c.amount*1.2); G.cash-=f1; G.court.banUntil=G.month+2; outcome='上诉仲裁败诉：罚款加重到 '+fmt(f1)+'，外加转会禁令 2 个月——禁令期内转会市场签不了人。'; }
+      }
+    } else {
+      if(act==='defend'){
+        if(Math.random()<0.55){ G.cash+=c.amount; G.rep=clamp(G.rep+2,0,100); outcome='投诉成功：足协认定对方违规挖角，对方俱乐部赔偿 '+fmt(c.amount)+'，声望 +2，你的球员留队。'; }
+        else outcome='投诉被驳回：证据不足，足协不予立案。球员留队，但这事在圈子里传开了。';
+      } else if(act==='settle'){
+        var s2=Math.round(c.amount*0.5); G.cash+=s2;
+        outcome='私下和解：对方赔了 '+fmt(s2)+' 封口费，承诺不再私下接触你的球员。';
+      } else {
+        if(Math.random()<0.5){ var w=Math.round(c.amount*1.5); G.cash+=w; outcome='上诉仲裁大胜：对方被重罚，赔偿 '+fmt(w)+'，还被警告再犯就扣分。'; }
+        else { var fee5=courtRemovePlayer(c); outcome='上诉仲裁败诉：仲裁庭反而认定球员有权自由接触，'+(c.player||'球员')+' 被对方直接挖走，转会费一分没有（本可收约 '+fmt(fee5)+'）。他已从阵容移除，空位去阵容页补。'; }
+      }
+    }
+  } else {
+    if(act==='accept'){
+      G.cash-=c.amount;
+      outcome='接受处罚：罚款 '+fmt(c.amount)+' 已缴'+courtSuspend(c, c.susp)+'。';
+    } else {
+      var r2=Math.random();
+      if(r2<0.38){ var f2=Math.round(c.amount*0.4); G.cash-=f2; outcome='上诉成功，处罚减轻：罚款降到 '+fmt(f2)+courtSuspend(c, Math.ceil(c.susp/2))+'。'; }
+      else if(r2<0.72){ G.cash-=c.amount; outcome='上诉被驳回，维持原判：罚款 '+fmt(c.amount)+courtSuspend(c, c.susp)+'。'; }
+      else { var f3=Math.round(c.amount*1.6); G.cash-=f3; G.rep=clamp(G.rep-3,0,100); G.heat=clamp(G.heat+5,0,100); outcome='上诉反而激怒了纪律委员会，处罚加重：罚款 '+fmt(f3)+courtSuspend(c, Math.round(c.susp*1.5))+'，声望 -3、热度 +5。'; }
+    }
+  }
+  courtClose(c);
+  courtHist(c.title, act, outcome);
+  log('⚖️ 足球法庭结案【'+c.title+'】：'+outcome, '');
+  toast('已结案：'+c.title);
+  render();
+}
+function courtAutoResolve(c){
+  var outcome='';
+  if(c.type==='contract'){ G.cash-=c.amount; outcome='拖过期限未处理，自动按最不利结果结案：俱乐部赔偿 '+fmt(c.amount)+'，球员留队。'; }
+  else if(c.type==='transfer' && c.variant==='victim'){ courtRemovePlayer(c); outcome='拖过期限未处理，自动按最不利结果结案：对方把 '+(c.player||'球员')+' 直接挖走，转会费一分没有。'; }
+  else if(c.type==='transfer'){ G.cash-=c.amount; G.court.banUntil=G.month+2; outcome='拖过期限未处理，自动按最不利结果结案：罚款 '+fmt(c.amount)+' + 转会禁令 2 个月。'; }
+  else { G.cash-=c.amount; var s=courtSuspend(c, c.susp); outcome='拖过期限未处理，自动按最不利结果结案：罚款 '+fmt(c.amount)+s+'。'; }
+  courtClose(c);
+  courtHist(c.title, '超期自动结案', outcome);
+  log('⚖️ 足球法庭【'+c.title+'】超期未处理，自动结案：'+outcome, 'bad');
+}
+function courtMonthlyTick(){
+  if(!G || !G.started) return;
+  ensureNew3();
+  if(G.court.banUntil && G.month>=G.court.banUntil && G.court.banUntil>0 && G._banNoted!==G.court.banUntil){
+    G._banNoted=G.court.banUntil; G.court.banUntil=0;
+    log('⚖️ 转会禁令已到期，转会市场恢复正常签人。','good');
+  }
+  var expired=G.court.cases.filter(function(c){ return G.month-(c.month||G.month)>=2; });
+  expired.forEach(function(c){ courtAutoResolve(c); });
+  if(G.court.cases.length<3){
+    var ch=0.45 + (G.heat>=50? 0.2:0);
+    if(Math.random()<ch){
+      var t=pick(['contract','transfer','discipline']);
+      var c=courtPush(t, {});
+      if(c) log('⚖️ 足球法庭来新案子了：'+c.title+'。去「足球法庭」页处理——拖过 2 个月不处理，会自动按最不利结果结案。','bad');
+    }
+  }
+}
+function courtActionsHTML(c){
+  var b='';
+  if(c.type==='contract'){
+    b='<button class="btn sm" onclick="courtAct(\''+c.id+'\',\'negotiate\')">🤝 谈判（小幅涨薪留人）</button>'
+     +'<button class="btn sm" onclick="courtAct(\''+c.id+'\',\'accept\')">✅ 接受要求（大幅涨薪+签字费）</button>'
+     +'<button class="btn pri sm" onclick="courtAct(\''+c.id+'\',\'arbitrate\')">⚖️ 走仲裁（留队/走人/赔钱看裁决）</button>';
+  } else if(c.type==='transfer' && c.variant==='accused'){
+    b='<button class="btn sm" onclick="courtAct(\''+c.id+'\',\'defend\')">🛡️ 辩护（自证清白）</button>'
+     +'<button class="btn sm" onclick="courtAct(\''+c.id+'\',\'settle\')">💸 和解（赔六成息事宁人）</button>'
+     +'<button class="btn pri sm" onclick="courtAct(\''+c.id+'\',\'appeal\')">⚖️ 上诉（赢了无罪，输了加重+禁转会）</button>';
+  } else if(c.type==='transfer'){
+    b='<button class="btn sm" onclick="courtAct(\''+c.id+'\',\'defend\')">📣 向足协投诉</button>'
+     +'<button class="btn sm" onclick="courtAct(\''+c.id+'\',\'settle\')">🤝 私下和解（拿封口费）</button>'
+     +'<button class="btn pri sm" onclick="courtAct(\''+c.id+'\',\'appeal\')">⚖️ 上诉仲裁（赢赔更多，输人被挖走）</button>';
+  } else {
+    b='<button class="btn sm" onclick="courtAct(\''+c.id+'\',\'accept\')">✅ 接受处罚（罚款'+(c.susp?' + 停赛':'')+'）</button>'
+     +'<button class="btn pri sm" onclick="courtAct(\''+c.id+'\',\'appeal\')">⚖️ 上诉（减轻 / 维持 / 加重）</button>';
+  }
+  return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">'+b+'</div>';
+}
+var COURT_TYPE_NM={contract:'📄 合同纠纷', transfer:'🔁 转会违规', discipline:'🚨 纪律处罚'};
+function pageCourt(){
+  ensureNew3();
+  var open=G.court.cases.map(function(c){
+    return '<div class="card" style="margin:0 0 10px;"><h3>'+(COURT_TYPE_NM[c.type]||'案子')+'<span class="hint">'+esc(c.created)+' 立案 · 拖过 2 个月自动按最不利结果结案</span></h3>'
+    +'<div class="nm" style="font-weight:800;">'+esc(c.title)+'</div>'
+    +'<p class="desc" style="margin-top:6px;">'+esc(c.desc)+'</p>'
+    + courtActionsHTML(c)+'</div>';
+  }).join('');
+  var hist=G.court.history.length
+    ? G.court.history.map(function(h){ return '<div class="item"><div class="grow"><div class="nm" style="font-weight:700;">'+esc(h.title)+'</div><div class="meta">'+esc(h.when)+' · 处理方式：'+esc(h.act)+' —— '+esc(h.outcome)+'</div></div></div>'; }).join('')
+    : '<p class="desc">还没有裁决记录。</p>';
+  return '<div class="card"><h3><span class="no">法庭</span>足球法庭 / 仲裁<span class="hint">待办案件 '+G.court.cases.length+' 件 · 裁决会影响钱、声望、热度、球员去留与停赛</span></h3>'
+  +'<p class="desc">合同纠纷、转会违规、纪律处罚都在这里审：案子会随时间随机出现，也会被你的行为触发（比如操盘被查、热度太高）。每个案子都有几种处理方式，后果当场生效、记入裁决记录。<b>拖着不管超过 2 个月，自动按最不利结果结案。</b></p>'
+  +(courtBanActive()? '<div class="warn-strip">🚫 转会禁令生效中：还剩 '+(G.court.banUntil-G.month)+' 个月，禁令期内转会市场签不了人（卖人、青训提拔不受影响）。</div>':'')
+  +'</div>'
+  +(G.court.cases.length? open : '<div class="card"><p class="desc">⚖️ 目前没有待办案件。踢球、经营、操盘都可能把案子招来——案子出现时大厅和侧边栏会有提示。</p></div>')
+  +'<div class="card"><h3>📜 裁决记录<span class="hint">最近 '+G.court.history.length+' 条</span></h3>'+hist+'</div>';
 }
 </script>
 
