@@ -1,8 +1,27 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-23T18:42:02+08:00",
+  "updatedAt": "2026-11-23T19:45:40+08:00",
   "bans": [],
-  "mail": [],
+  "mail": [
+    {
+      "id": "m-1795434340692-0-994506",
+      "to": "测试十号",
+      "title": "版本号修复验证",
+      "body": "",
+      "tag": "通知",
+      "items": {
+        "diamonds": 0,
+        "cash": 0,
+        "vouchers": 0,
+        "trialCards": 0,
+        "shards": 0,
+        "playerId": null,
+        "customTitle": null
+      },
+      "sentAt": "2026-11-23T19:45:40+08:00",
+      "expiresAt": null
+    }
+  ],
   "announcement": null,
   "players": []
 }
