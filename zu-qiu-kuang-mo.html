@@ -6007,10 +6007,11 @@ function liveNextKeyMin(from){
 }
 function liveTick(){
   if(!LIVE || LIVE.paused || LIVE.done) return;
-  var step=LIVE.speed;
+  // 节奏：1× 时 1 分钟比赛 ≈ 5 秒真实时间（每 200ms 推进 0.04 分钟），看得清传球和跑位；2×/4× 按倍率加快
+  var step=LIVE.speed*0.04;
   if(LIVE.keyOnly){
     var nk=liveNextKeyMin(LIVE.min);
-    step= nk!=null? Math.min(LIVE.speed*6, Math.max(1, nk-LIVE.min)) : LIVE.speed*6;
+    step= nk!=null? Math.min(LIVE.speed*1.6, Math.max(0.04, nk-LIVE.min)) : LIVE.speed*1.6;
   }
   LIVE.min+=step;
   liveReveal();
@@ -6029,7 +6030,7 @@ function liveReveal(){
   feed.innerHTML=html||'<div class="live-ev"><span class="mn num">0\'</span><span>📣 双方球员入场，比赛马上开始。</span></div>';
   feed.scrollTop=feed.scrollHeight;
   var sc=document.getElementById('lv-score'); if(sc) sc.textContent=s1+' : '+s2;
-  var ck=document.getElementById('lv-clock'); if(ck) ck.textContent=Math.min(90,LIVE.min)+'\'';
+  var ck=document.getElementById('lv-clock'); if(ck) ck.textContent=Math.floor(Math.min(90,LIVE.min))+'\'';
   var ph=document.getElementById('lv-phase'); if(ph && !LIVE.done) ph.textContent= LIVE.min<45?'上半场':(LIVE.min<90?'下半场':'全场结束');
   // 控球率随分钟推进：从 50:50 出发，按已踢分钟占比逐步走向终场控球，终场前看不到终场值
   var possNow=Math.round(50+(d.stats.poss-50)*(Math.min(90,Math.max(0,LIVE.min))/90));
@@ -6958,11 +6959,25 @@ function pageHall(){
   +'<div class="acts" style="margin:4px 0 10px;"><button class="btn" onclick="go(\'home\')">← 回大厅</button><button class="btn sm" onclick="go(\'honors\')">去荣誉中心 →</button></div>';
 }
 
-/* ---------------- 直播球场画面（canvas 俯视 2D） ----------------
-   与文字直播共用 LIVE.det 同一份比赛数据：比分、分钟、事件完全一致。
-   球员按首发阵型站位（我方蓝点向右攻、对方红点向左攻），随分钟与球的位置
-   整体移动；球按事件推进：射门/进球时冲向球门，进球瞬间球进网并闪字提示。 */
-var PITCH={raf:0, ball:{x:440,y:215,tx:440,ty:215}, trail:[], goals:-1, flashUntil:0, flashTxt:''};
+/* ---------------- 直播球场画面（canvas 俯视 2D · 连续运动模拟） ----------------
+   与文字直播共用 LIVE.det 同一份比赛数据：比分、分钟、进球/机会事件完全一致，
+   进球与机会的射门严格按事件分钟、事件方发生，进球后比分与战报一致。
+   画面是一套连续运动模拟（按真实时间步进，速度随直播倍率缩放）：
+   · 球永远沿连续轨迹运动——带球时粘在持球人脚下；传球按距离定飞行时间
+     （短传约 1 秒、长传约 2.5 秒），起脚快、到脚前减速停稳，贴地滚动；
+     射门/传中带一点平滑弧线（用 z 高度只影响阴影与球大小，不跳跃）。
+   · 球员有位置/速度/加速度：起步加速、停下减速，按阵型站位整体随球移动，
+     有接应、前插、盯人、门将站位；无球时慢速回位，绝不瞬移（用户点
+     「下一关键时刻/跳到终场」造成分钟跳变时才整体重排一次）。
+   · 节奏有呼吸感：后场/中场倒脚时持球人多停顿、多横传回传；进入进攻
+     三区后传球间隔变短、前插变多。机会/进球前约 1 分钟比赛时间开始由
+     事件方组织进攻，射门在事件分钟打出。进球/半场后双方回位、球自然
+     滚回中圈由失球方开球。 */
+var PITCH={raf:0, built:false, players:[], ball:null, carrier:null, poss:'me',
+  state:'play', stateT:0, dwell:1.4, passInfo:null, shotInfo:null, pendingShot:null, looseTarget:null, kickoffPlayer:null,
+  kickoffSide:'me', htDone:false, slowT:0, lastMin:-1, lastFrame:0, lastSeenEv:-1, keyIdx:0,
+  flashUntil:0, flashTxt:''};
+var PXM=880/105; // 画布像素/米（球场按 105m×68m 折算）
 function liveSetView(v){
   var w=document.getElementById('lv-pitch-wrap'), c=document.getElementById('lv-cols');
   var bp=document.getElementById('lv-vp'), bt=document.getElementById('lv-vt');
@@ -6973,7 +6988,10 @@ function liveSetView(v){
   if(v==='text' && typeof liveReveal==='function') liveReveal();
 }
 function pitchStart(){
-  PITCH.goals=-1; PITCH.flashUntil=0; PITCH.ball={x:440,y:215,tx:440,ty:215}; PITCH.trail=[];
+  PITCH.built=false; PITCH.players=[]; PITCH.ball=null; PITCH.carrier=null; PITCH.poss='me';
+  PITCH.state='play'; PITCH.stateT=0; PITCH.dwell=1.4; PITCH.passInfo=null; PITCH.shotInfo=null; PITCH.pendingShot=null; PITCH.looseTarget=null; PITCH.keyIdx=0;
+  PITCH.kickoffSide='me'; PITCH.htDone=false; PITCH.slowT=0; PITCH.lastMin=-1; PITCH.lastFrame=0; PITCH.lastSeenEv=-1;
+  PITCH.flashUntil=0; PITCH.flashTxt='';
   if(PITCH.raf) cancelAnimationFrame(PITCH.raf);
   var step=function(){
     var cv=document.getElementById('lv-pitch');
@@ -6982,6 +7000,337 @@ function pitchStart(){
     PITCH.raf=requestAnimationFrame(step);
   };
   step();
+}
+function pitchBuild(){
+  var d=LIVE.det, nums={}; try{ nums=jerseyNumbers(); }catch(e){}
+  var mine=pitchLineCoords(d.myLineup||[], true, nums);
+  var opps=pitchLineCoords(d.oppLineup||[], false, nums);
+  PITCH.players=[];
+  mine.concat(opps).forEach(function(pl,i){
+    PITCH.players.push({x:pl.x, y:pl.y, vx:0, vy:0, hx:pl.x, hy:pl.y, num:pl.num, name:pl.name,
+      gk:pl.gk, mine:pl.mine, team:pl.mine?'me':'opp', idx:i, tx:pl.x, ty:pl.y, cap:30});
+  });
+  PITCH.ball={x:440, y:215, z:0};
+  // 开球：我方一名中场在中圈持球
+  var cands=PITCH.players.filter(function(p){ return p.team==='me' && !p.gk; });
+  cands.sort(function(a,b){ return (Math.abs(a.hx-440)+Math.abs(a.hy-215))-(Math.abs(b.hx-440)+Math.abs(b.hy-215)); });
+  PITCH.carrier=cands[0]||PITCH.players[0];
+  if(PITCH.carrier){ PITCH.carrier.x=440; PITCH.carrier.y=215; }
+  PITCH.poss='me'; PITCH.state='play'; PITCH.dwell=1.6;
+  PITCH.keyIdx=0;
+  PITCH.built=true;
+}
+function pitchReset(kickoffSide, dur){
+  PITCH.state='reset'; PITCH.stateT=dur||3.0; PITCH.kickoffSide=kickoffSide;
+  PITCH.passInfo=null; PITCH.shotInfo=null; PITCH.pendingShot=null; PITCH.carrier=null; PITCH.looseTarget=null;
+  // 指定开球球员：回位阶段他就走向中圈站在球旁，开球时不瞬移
+  var cc=pitchTeam(kickoffSide).filter(function(p){ return !p.gk; });
+  cc.sort(function(a,b){ return (Math.abs(a.hx-440)+Math.abs(a.hy-215))-(Math.abs(b.hx-440)+Math.abs(b.hy-215)); });
+  PITCH.kickoffPlayer=cc[0]||null;
+}
+function pitchTeam(side){ return PITCH.players.filter(function(p){ return p.team===side; }); }
+function pitchOther(side){ return side==='me'?'opp':'me'; }
+function pitchAtkDir(side){ return side==='me'? 1 : -1; }
+function pitchGoalX(side){ return side==='me'? 872 : 8; } // 该方进攻的球门
+function pitchOwnGoalX(side){ return side==='me'? 8 : 872; }
+function pitchDist(a,b){ var dx=a.x-b.x, dy=a.y-b.y; return Math.sqrt(dx*dx+dy*dy); }
+function pitchNextKeyEv(){
+  // 指针式：返回第一个尚未上演的进球/机会事件（哪怕其分钟刚被越过也不会漏掉）
+  var evs=LIVE.det.events, i=PITCH.keyIdx||0;
+  while(i<evs.length && evs[i].type!=='goal' && evs[i].type!=='chance') i++;
+  PITCH.keyIdx=i;
+  return i<evs.length? evs[i] : null;
+}
+function pitchAttack(ev){
+  // 组织事件方的这次进攻：球权不对先断球，位置太远先一脚直塞，都到位了直接射门
+  var c=PITCH.carrier; if(!c) return;
+  if(PITCH.poss!==ev.side){
+    var op=pitchTeam(ev.side).filter(function(p){ return !p.gk; });
+    op.sort(function(a,b){ return pitchDist(a,c)-pitchDist(b,c); });
+    if(!op.length) return;
+    var stealer=op[0];
+    pitchStartPass(c, {x:stealer.x, y:stealer.y}, { recv:stealer, dur:0.7, onDone:function(){
+      PITCH.poss=ev.side; PITCH.carrier=stealer; PITCH.state='play'; PITCH.dwell=99;
+    }});
+    return;
+  }
+  var gx=pitchGoalX(ev.side);
+  var mates=pitchTeam(ev.side).filter(function(p){ return p!==c && !p.gk; });
+  mates.sort(function(a,b){ return Math.abs(a.x-gx)-Math.abs(b.x-gx); });
+  if(Math.abs(c.x-gx)>330 && mates.length && Math.abs(mates[0].x-gx)<Math.abs(c.x-gx)-90){
+    PITCH.pendingShot=ev;
+    var recv=mates[0];
+    pitchStartPass(c, {x:recv.x, y:recv.y}, { recv:recv, dur:0.8, onDone:function(){
+      PITCH.carrier=recv; PITCH.state='play'; PITCH.dwell=99;
+    }});
+  } else pitchShoot(ev);
+}
+function pitchStartPass(from, to, opts){
+  opts=opts||{};
+  var dx=to.x-from.x, dy=to.y-from.y, dist=Math.sqrt(dx*dx+dy*dy), distM=dist/PXM;
+  var dur= opts.dur || Math.min(2.9, Math.max(0.75, 0.35+distM*0.06)); // 短传(12m)≈1.1s · 长传(35m)≈2.5s
+  PITCH.passInfo={ fx:from.x, fy:from.y, tx:to.x, ty:to.y, t:0, dur:dur,
+    recv:opts.recv||null, inter:opts.inter||null, cross:!!opts.cross, onDone:opts.onDone||null };
+  PITCH.state='pass';
+  if(opts.recv){ opts.recv.tx=to.x; opts.recv.ty=to.y; }
+}
+function pitchDoPass(){
+  var c=PITCH.carrier; if(!c) return;
+  var mates=pitchTeam(PITCH.poss).filter(function(p){ return p!==c && !p.gk; });
+  if(!mates.length) return;
+  var dir=pitchAtkDir(PITCH.poss), gx=pitchGoalX(PITCH.poss);
+  // 接应点权重：靠前、距离适中（多在 8~35 米）者优先；后场多横传/回传，前场多向前
+  var scored=mates.map(function(m){
+    var dM=pitchDist(c,m)/PXM;
+    var fwd=(m.x-c.x)*dir/PXM; // 向前米数（可负）
+    var w=1/(1+Math.abs(dM-16)*0.16);
+    if(fwd>2) w*=1.5; else if(fwd<-4) w*=0.75;
+    if(m.gk) w*=0.1;
+    if(Math.random()<0.10) w*=2.6; // 偶尔一脚长传转移
+    return {m:m, w:w*Math.random()};
+  });
+  scored.sort(function(a,b){ return b.w-a.w; });
+  var recv=scored[0].m;
+  // 抢断：传球线路附近有对方球员时有概率被断
+  var inter=null;
+  var opps=pitchTeam(pitchOther(PITCH.poss));
+  for(var i=0;i<opps.length;i++){
+    var o=opps[i]; if(o.gk) continue;
+    var mx=(c.x+recv.x)/2, my=(c.y+recv.y)/2;
+    if(Math.abs(o.x-mx)<46 && Math.abs(o.y-my)<40 && Math.random()<0.4){ inter=o; break; }
+  }
+  if(inter){
+    pitchStartPass(c, {x:inter.x, y:inter.y}, { recv:inter, onDone:function(){
+      PITCH.poss=pitchOther(PITCH.poss); PITCH.carrier=inter; PITCH.state='play'; PITCH.dwell=0.9+Math.random()*0.9;
+    }});
+    return;
+  }
+  // 传中：持球人在对方禁区两侧且接应点在禁区内 → 带弧线
+  var cross = Math.abs(c.x-gx)<190 && Math.abs(recv.x-gx)<130 && Math.abs(recv.y-215)<95 && Math.abs(c.y-215)>55;
+  pitchStartPass(c, {x:recv.x+recv.vx*0.25, y:recv.y+recv.vy*0.25}, { recv:recv, cross:cross, onDone:function(){
+    PITCH.carrier=recv; PITCH.state='play';
+    PITCH.dwell=pitchDwellFor(recv);
+  }});
+}
+function pitchDwellFor(p){
+  // 节奏呼吸：后场/中场倒脚慢（1.4~3.0s），进攻三区快（0.7~1.5s）
+  var dir=pitchAtkDir(PITCH.poss), gx=pitchGoalX(PITCH.poss);
+  var toGoal=Math.abs(p.x-gx);
+  if(toGoal<250) return 0.7+Math.random()*0.8;
+  if(toGoal<480) return 1.1+Math.random()*1.2;
+  return 1.5+Math.random()*1.6;
+}
+function pitchShoot(ev){
+  var c=PITCH.carrier; if(!c) return;
+  PITCH.keyIdx=(PITCH.keyIdx||0)+1; // 该事件已上演，指针后移
+  var side=ev.side, gx=pitchGoalX(side);
+  var isGoal= ev.type==='goal';
+  var ty, kind;
+  if(isGoal){ ty=215+(Math.random()*44-22); kind='goal'; }
+  else if(Math.random()<0.55){ ty=215+(Math.random()*36-18); kind='saved'; } // 被门将扑住/挡出
+  else { ty=215+(Math.random()<0.5?-1:1)*(52+Math.random()*26); kind='wide'; } // 偏出立柱
+  var dist=Math.abs(gx-c.x), dur=Math.min(1.15, Math.max(0.38, dist/560));
+  PITCH.shotInfo={ fx:PITCH.ball.x, fy:PITCH.ball.y, tx:gx, ty:ty, t:0, dur:dur, kind:kind, ev:ev };
+  PITCH.state='shot';
+}
+function pitchSim(dt){
+  var d=LIVE.det, min=LIVE.min;
+  // 分钟跳变（点「下一关键时刻/跳到终场」）：整体重排一次，其余时间绝不瞬移
+  if(PITCH.lastMin>=0 && Math.abs(min-PITCH.lastMin)>1.5){
+    PITCH.players.forEach(function(p){ p.x=p.hx; p.y=p.hy; p.vx=0; p.vy=0; });
+    PITCH.ball.x=440; PITCH.ball.y=215; PITCH.ball.z=0;
+    PITCH.passInfo=null; PITCH.shotInfo=null; PITCH.pendingShot=null; PITCH.looseTarget=null;
+    // 跳过的旧事件不再补演：指针推进到当前分钟的事件为止
+    var evsJ=d.events;
+    while(PITCH.keyIdx<evsJ.length){
+      var ej=evsJ[PITCH.keyIdx];
+      if((ej.type==='goal'||ej.type==='chance') && ej.min>=min-0.02) break;
+      PITCH.keyIdx++;
+    }
+    var nk=pitchNextKeyEv();
+    PITCH.poss= nk? nk.side : 'me';
+    var cc=pitchTeam(PITCH.poss).filter(function(p){ return !p.gk; });
+    cc.sort(function(a,b){ return (Math.abs(a.hx-440)+Math.abs(a.hy-215))-(Math.abs(b.hx-440)+Math.abs(b.hy-215)); });
+    PITCH.carrier=cc[0]||null; PITCH.state='play'; PITCH.dwell=1.2;
+  }
+  PITCH.lastMin=min;
+  // 红黄牌/伤病事件刚揭示时，场上短暂放慢（裁判中断比赛的感觉）
+  var seen=-1;
+  d.events.forEach(function(e,i){ if(e.min<=min) seen=i; });
+  if(seen>PITCH.lastSeenEv){
+    for(var i=Math.max(0,PITCH.lastSeenEv+1); i<=seen; i++){
+      var et=d.events[i].type;
+      if(et==='yellow'||et==='red'||et==='injury') PITCH.slowT=1.1;
+      if(et==='ht' && !PITCH.htDone){ PITCH.htDone=true; pitchReset(pitchOther(PITCH.kickoffSide), 3.4); }
+    }
+    PITCH.lastSeenEv=seen;
+  }
+  if(LIVE.done){ if(PITCH.state!=='reset') pitchReset('me', 3.0); }
+  if(PITCH.slowT>0) PITCH.slowT-=dt;
+  var nextEv=pitchNextKeyEv();
+  var slowMul= PITCH.slowT>0? 0.35 : 1;
+
+  /* ---------- 状态机 ---------- */
+  if(PITCH.state==='reset'){
+    PITCH.stateT-=dt;
+    // 球自然滚回中圈（匀速偏减速，不闪现）
+    var bx=PITCH.ball.x-440, by=PITCH.ball.y-215, bd=Math.sqrt(bx*bx+by*by);
+    if(bd>2){
+      var sp=Math.min(bd, 130*dt*(0.4+0.6*bd/160));
+      PITCH.ball.x-=bx/bd*sp; PITCH.ball.y-=by/bd*sp;
+    }
+    PITCH.ball.z=0;
+    if(PITCH.stateT<=0 && !LIVE.done){
+      PITCH.poss=PITCH.kickoffSide;
+      PITCH.carrier=PITCH.kickoffPlayer||null;
+      if(!PITCH.carrier){
+        var cc2=pitchTeam(PITCH.poss).filter(function(p){ return !p.gk; });
+        cc2.sort(function(a,b){ return pitchDist(a,PITCH.ball)-pitchDist(b,PITCH.ball); });
+        PITCH.carrier=cc2[0]||null;
+      }
+      PITCH.state='play'; PITCH.dwell=1.5;
+    }
+  }
+  else if(PITCH.state==='pass'){
+    var pi=PITCH.passInfo;
+    pi.t+=dt/Math.max(0.2,pi.dur);
+    var tt=Math.min(1, pi.t), e2=1-Math.pow(1-tt,1.8); // 起脚快、临到脚下减速
+    PITCH.ball.x=pi.fx+(pi.tx-pi.fx)*e2;
+    PITCH.ball.y=pi.fy+(pi.ty-pi.fy)*e2;
+    PITCH.ball.z= pi.cross? Math.sin(tt*Math.PI)*13 : 0;
+    if(tt>=1){
+      var cb=pi.onDone; PITCH.passInfo=null; PITCH.ball.z=0;
+      if(cb) cb();
+      if(PITCH.pendingShot && PITCH.state==='play'){
+        var ev2=PITCH.pendingShot; PITCH.pendingShot=null; pitchShoot(ev2);
+      } else if(PITCH.state==='play'){
+        var dev=pitchNextKeyEv();
+        if(dev && min>=dev.min-0.02) pitchAttack(dev); // 传球途中越过事件分钟：接球后立刻补上这次进攻
+      }
+    }
+  }
+  else if(PITCH.state==='loose'){
+    // 球被扑出/偏出后滚向防守方门将，门将拿到球再开出——全程滚动，不瞬移
+    var gt=PITCH.looseTarget;
+    if(gt){
+      var lx=gt.x-PITCH.ball.x, ly=gt.y-PITCH.ball.y, ld=Math.sqrt(lx*lx+ly*ly);
+      if(ld<10){
+        PITCH.carrier=gt; PITCH.state='play'; PITCH.dwell=1.1; PITCH.looseTarget=null;
+      } else {
+        var ls=Math.min(ld, 165*dt);
+        PITCH.ball.x+=lx/ld*ls; PITCH.ball.y+=ly/ld*ls;
+      }
+    } else PITCH.state='play';
+    PITCH.ball.z=0;
+  }
+  else if(PITCH.state==='shot'){
+    var si=PITCH.shotInfo;
+    si.t+=dt/Math.max(0.2,si.dur);
+    var st2=Math.min(1, si.t), se=st2*st2*0.25+st2*0.75; // 出脚即高速、略带加速感
+    PITCH.ball.x=si.fx+(si.tx-si.fx)*se;
+    PITCH.ball.y=si.fy+(si.ty-si.fy)*se;
+    PITCH.ball.z=Math.sin(st2*Math.PI)*9;
+    if(st2>=1){
+      var ev3=si.ev; PITCH.shotInfo=null; PITCH.ball.z=0;
+      if(si.kind==='goal'){
+        PITCH.flashTxt='⚽ 进球！'+(ev3.side==='me'? G.club : d.opp)+' · '+(ev3.scorer||'');
+        PITCH.flashUntil=performance.now()+2600;
+        pitchReset(pitchOther(ev3.side), 3.4); // 失球方中圈开球
+      } else {
+        // 没进：球滚向防守方门将（扑出/偏出的余势），门将拿到后把球开出，比赛继续
+        var defSide=pitchOther(ev3.side);
+        var gk=pitchTeam(defSide).filter(function(p){ return p.gk; })[0];
+        PITCH.poss=defSide; PITCH.carrier=null;
+        if(gk){ PITCH.looseTarget=gk; PITCH.state='loose'; }
+        else { PITCH.state='play'; PITCH.dwell=1.0; }
+      }
+    }
+  }
+  else { // play：持球推进 / 组织
+    var c=PITCH.carrier;
+    if(!c){ var cc3=pitchTeam(PITCH.poss).filter(function(p){ return !p.gk; }); PITCH.carrier=cc3[0]||PITCH.players[0]; c=PITCH.carrier; }
+    if(c){
+      // 球粘在脚下：略在身前，跟随球员速度
+      var fx2=c.x, fy2=c.y;
+      var spd=Math.sqrt(c.vx*c.vx+c.vy*c.vy);
+      if(spd>4){ fx2+=c.vx/spd*11; fy2+=c.vy/spd*11; }
+      else { fx2+=pitchAtkDir(PITCH.poss)*9; }
+      var kk=1-Math.pow(0.0001, dt); // 强跟随但仍平滑
+      PITCH.ball.x+=(fx2-PITCH.ball.x)*kk;
+      PITCH.ball.y+=(fy2-PITCH.ball.y)*kk;
+      PITCH.ball.z=0;
+      // 事件临近：提前约 1 分钟由事件方抢回球权组织进攻；到事件分钟打出射门
+      if(nextEv && nextEv.side!==PITCH.poss && min>=nextEv.min-1.0){
+        pitchAttack(nextEv);
+      }
+      else if(nextEv && nextEv.side===PITCH.poss && min>=nextEv.min-0.02){
+        pitchAttack(nextEv);
+      }
+      else {
+        PITCH.dwell-=dt*slowMul;
+        if(PITCH.dwell<=0 && PITCH.state==='play') pitchDoPass();
+      }
+    }
+  }
+
+  /* ---------- 球员目标点与移动（加速度平滑，速度分档） ---------- */
+  var ball=PITCH.ball;
+  var shiftX=(ball.x-440)*0.11, shiftY=(ball.y-215)*0.06;
+  var presser=null, container=null;
+  if(PITCH.carrier && PITCH.state!=='reset'){
+    var defs=pitchTeam(pitchOther(PITCH.poss)).filter(function(p){ return !p.gk; });
+    defs.sort(function(a,b){ return pitchDist(a,PITCH.carrier)-pitchDist(b,PITCH.carrier); });
+    presser=defs[0]||null; container=defs[1]||null;
+  }
+  var support=null;
+  if(PITCH.carrier){
+    var ms=pitchTeam(PITCH.poss).filter(function(p){ return p!==PITCH.carrier && !p.gk; });
+    ms.sort(function(a,b){ return pitchDist(a,PITCH.carrier)-pitchDist(b,PITCH.carrier); });
+    support=ms[0]||null;
+  }
+  PITCH.players.forEach(function(p){
+    var tx=p.hx+shiftX, ty=p.hy+shiftY, cap=26; // 默认：慢速回位/走动
+    var dir=pitchAtkDir(p.team), gxA=pitchGoalX(p.team), gxO=pitchOwnGoalX(p.team);
+    if(p.gk){
+      tx=gxO+(p.team==='me'? 26 : -26);
+      ty=215+(ball.y-215)*0.42;
+      cap=44;
+    } else if(PITCH.state==='reset' && p===PITCH.kickoffPlayer){
+      tx=440; ty=215; cap=46; // 开球球员走向中圈，站到球旁
+    } else if(PITCH.state==='reset'){
+      tx=p.hx; ty=p.hy; cap=42; // 回阵型：小跑
+    } else if(p===PITCH.carrier){
+      // 持球人：向对方球门方向盘带，进攻三区更坚决；被逼近时略横移护球
+      var adv= nextEv && nextEv.side===p.team? 150 : 62;
+      tx=p.x+dir*adv; ty=p.y+(215-p.y)*0.12+Math.sin(performance.now()/2400+p.idx)*14;
+      if(Math.abs(p.x-gxA)<215) tx=gxA-dir*36; // 临门一带直冲球门
+      cap= (nextEv && nextEv.side===p.team)? 66 : 46;
+      if(PITCH.dwell>90) cap=66; // 已进入事件进攻：冲刺
+    } else if(PITCH.passInfo && PITCH.passInfo.recv===p){
+      tx=PITCH.passInfo.tx; ty=PITCH.passInfo.ty; cap=58; // 接应跑向落点
+    } else if(p===presser){
+      tx=PITCH.carrier.x-dir*10; ty=PITCH.carrier.y; cap=76; // 上抢：冲刺
+    } else if(p===container){
+      tx=(PITCH.carrier.x+gxO)/2; ty=(PITCH.carrier.y+215)/2; cap=58; // 协防封堵线路
+    } else if(p===support && p.team===PITCH.poss){
+      tx=p.hx+shiftX+dir*36; ty=p.hy+shiftY; cap=50; // 最近接应者前插
+    } else if(p.team===PITCH.poss){
+      tx=p.hx+shiftX+dir*14; ty=p.hy+shiftY; cap=34; // 有球方整体前压、保持阵型
+    } else {
+      tx=p.hx+shiftX; ty=p.hy+shiftY; cap=30; // 无球方回防保持阵型
+    }
+    if(PITCH.slowT>0) cap*=0.4;
+    tx=Math.max(18, Math.min(862, tx)); ty=Math.max(30, Math.min(400, ty));
+    // 转向带加速度的期望速度（arrive：越近越慢）→ 平滑起步/停下
+    var dx=tx-p.x, dy=ty-p.y, dd=Math.sqrt(dx*dx+dy*dy);
+    var want= dd>1? Math.min(cap, dd*1.5) : 0;
+    var wvx= dd>1? dx/dd*want : 0, wvy= dd>1? dy/dd*want : 0;
+    var acc=170*dt, dvx=wvx-p.vx, dvy=wvy-p.vy, dl=Math.sqrt(dvx*dvx+dvy*dvy);
+    if(dl>acc){ dvx*=acc/dl; dvy*=acc/dl; }
+    p.vx+=dvx; p.vy+=dvy;
+    p.x+=p.vx*dt; p.y+=p.vy*dt;
+    p.tx=tx; p.ty=ty;
+  });
 }
 function pitchLineCoords(lineup, mine, nums){
   var groups={'门将':[],'后卫':[],'中场':[],'前锋':[]};
@@ -6998,36 +7347,16 @@ function pitchLineCoords(lineup, mine, nums){
 }
 function pitchDraw(cv){
   var ctx=cv.getContext('2d'); if(!ctx) return;
-  var W=880, H=430, d=LIVE.det, min=Math.min(90, LIVE.min);
-  var now=performance.now(), t=now/1000;
-  // 1) 由已揭示事件决定球的目标位置 + 进球闪字
-  var goals=0, lastEv=null;
-  d.events.forEach(function(e){
-    if(e.min>LIVE.min) return;
-    lastEv=e;
-    if(e.type==='goal') goals++;
-  });
-  if(PITCH.goals>=0 && goals>PITCH.goals && lastEv && lastEv.type==='goal'){
-    PITCH.flashUntil=now+2600;
-    PITCH.flashTxt='⚽ 进球！'+(lastEv.side==='me'? G.club : d.opp)+' · '+lastEv.scorer;
-  }
-  if(PITCH.goals<0) PITCH.goals=goals; else PITCH.goals=goals;
-  var seed= lastEv? lastEv.min*37 : 0;
-  var bx=440+Math.sin(min*0.32)*110, by=215+Math.cos(min*0.21)*55;
-  if(lastEv){
-    if(lastEv.type==='goal') { bx= lastEv.side==='me'? 866:14; by=215; }
-    else if(lastEv.type==='chance'){ bx= lastEv.side==='me'? 795:85; by= 120+ (seed%180); }
-    else if(lastEv.type==='yellow' || lastEv.type==='red'){ bx= 380+(seed%120); by= 150+(seed%130); }
-    else if(lastEv.type==='injury'){ bx= 300+(seed%200); by= 160+(seed%110); }
-    else if(lastEv.type==='ht' || lastEv.type==='ft'){ bx=440; by=215; }
-  }
-  if(LIVE.done){ bx=440; by=215; }
-  PITCH.ball.tx=bx; PITCH.ball.ty=by;
-  PITCH.ball.x+=(PITCH.ball.tx-PITCH.ball.x)*0.055;
-  PITCH.ball.y+=(PITCH.ball.ty-PITCH.ball.y)*0.055;
-  PITCH.trail.push({x:PITCH.ball.x, y:PITCH.ball.y});
-  if(PITCH.trail.length>16) PITCH.trail.shift();
-  // 2) 球场
+  var W=880, H=430, d=LIVE.det;
+  var now=performance.now();
+  if(!PITCH.built) pitchBuild();
+  // 按真实时间步进模拟（暂停时冻结；倍率与直播速度一致），单步钳制防卡顿跳变
+  var dtR= PITCH.lastFrame? Math.min(0.05, (now-PITCH.lastFrame)/1000) : 0.016;
+  PITCH.lastFrame=now;
+  var dt= LIVE.paused? 0 : dtR*(LIVE.speed||1);
+  if(dt>0) pitchSim(dt);
+  var ball=PITCH.ball;
+  // 1) 球场
   ctx.fillStyle='#1a6e3e'; ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#1e7d46';
   for(var sx=0;sx<8;sx+=2) ctx.fillRect(sx*(W/8),0,W/8,H);
@@ -7039,34 +7368,28 @@ function pitchDraw(cv){
   ctx.strokeRect(24,155,48,H-310); ctx.strokeRect(W-72,155,48,H-310);
   ctx.fillStyle='#0b2e1a'; ctx.fillRect(6,175,18,80); ctx.fillRect(W-24,175,18,80);
   ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.strokeRect(6,175,18,80); ctx.strokeRect(W-24,175,18,80);
-  // 3) 球员
-  var nums={}; try{ nums=jerseyNumbers(); }catch(e){}
-  var mine=pitchLineCoords(d.myLineup||[], true, nums);
-  var opps=pitchLineCoords(d.oppLineup||[], false, nums);
-  var shift=(PITCH.ball.x-440)*0.09;
-  function drawTeam(list){
-    var nearest=null, nd=1e9;
-    list.forEach(function(pl){ var dd=Math.pow(pl.x+ (pl.mine?shift:-shift) -PITCH.ball.x,2)+Math.pow(pl.y-PITCH.ball.y,2); if(dd<nd){ nd=dd; nearest=pl; } });
-    list.forEach(function(pl){
-      var px=pl.x + (pl.mine? shift : -shift) + Math.sin(t*0.8 + pl.idx*1.93)*9;
-      var py=pl.y + Math.cos(t*0.66 + pl.idx*2.41)*7;
-      if(pl===nearest){ px+=(PITCH.ball.x-px)*0.38; py+=(PITCH.ball.y-py)*0.38; }
-      ctx.beginPath(); ctx.arc(px,py,13.5,0,Math.PI*2);
-      ctx.fillStyle= pl.gk? '#e8b71f' : (pl.mine? '#2f7fe0' : '#e05252');
-      ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#ffffff'; ctx.stroke();
-      ctx.fillStyle= pl.gk? '#101d29' : '#ffffff';
-      ctx.font='800 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(String(pl.num), px, py+0.5);
-      if(pl.mine){ ctx.font='10px sans-serif'; ctx.fillStyle='rgba(255,255,255,.92)'; ctx.fillText(pl.name, px, py+21); }
-    });
-  }
-  drawTeam(mine); drawTeam(opps);
-  // 4) 足球（带轨迹）
-  for(var ti=0; ti<PITCH.trail.length; ti++){ var tp=PITCH.trail[ti]; ctx.beginPath(); ctx.arc(tp.x,tp.y,3.5,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,'+(0.10+0.05*ti)+')'; ctx.fill(); }
-  ctx.beginPath(); ctx.arc(PITCH.ball.x, PITCH.ball.y, 6.5, 0, Math.PI*2);
+  // 2) 球员（位置来自模拟，带朝向小三角表示跑动方向）
+  PITCH.players.forEach(function(p){
+    ctx.beginPath(); ctx.arc(p.x,p.y,13.5,0,Math.PI*2);
+    ctx.fillStyle= p.gk? '#e8b71f' : (p.mine? '#2f7fe0' : '#e05252');
+    ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#ffffff'; ctx.stroke();
+    ctx.fillStyle= p.gk? '#101d29' : '#ffffff';
+    ctx.font='800 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(p.num), p.x, p.y+0.5);
+    if(p.mine){ ctx.font='10px sans-serif'; ctx.fillStyle='rgba(255,255,255,.92)'; ctx.fillText(p.name, p.x, p.y+21); }
+    if(p===PITCH.carrier){ // 持球人脚下高亮环
+      ctx.beginPath(); ctx.arc(p.x,p.y,17.5,0,Math.PI*2);
+      ctx.lineWidth=2; ctx.strokeStyle='rgba(255,215,106,.95)'; ctx.stroke();
+    }
+  });
+  // 3) 足球：贴地滚动；传中/射门时略离地（z 只抬高阴影间距与球径，轨迹仍连续平滑）
+  var bz=ball.z||0;
+  ctx.beginPath(); ctx.ellipse(ball.x, ball.y+5, 6.5, 2.6, 0, 0, Math.PI*2);
+  ctx.fillStyle='rgba(0,0,0,'+(0.30-Math.min(0.18, bz*0.012))+')'; ctx.fill();
+  ctx.beginPath(); ctx.arc(ball.x, ball.y-bz, 6.5+bz*0.16, 0, Math.PI*2);
   ctx.fillStyle='#ffffff'; ctx.fill(); ctx.lineWidth=1.6; ctx.strokeStyle='#101d29'; ctx.stroke();
-  ctx.fillStyle='#101d29'; ctx.beginPath(); ctx.arc(PITCH.ball.x, PITCH.ball.y, 2.2, 0, Math.PI*2); ctx.fill();
-  // 5) 队名与进球闪字
+  ctx.fillStyle='#101d29'; ctx.beginPath(); ctx.arc(ball.x, ball.y-bz, 2.2, 0, Math.PI*2); ctx.fill();
+  // 4) 队名与进球闪字
   ctx.font='800 12px sans-serif'; ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,.9)';
   ctx.fillText('🔵 '+G.club+'（向右攻）', 30, 16);
   ctx.textAlign='right'; ctx.fillText('🔴 '+d.opp+'（向左攻）', W-30, 16);
