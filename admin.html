@@ -275,6 +275,44 @@
       .pill.tag { border-color: var(--gold); color: var(--gold-2); }
       .pill.all { border-color: var(--gold); color: var(--gold-ink); background: var(--gold); font-weight: 700; }
 
+      /* ---------- 确认弹窗 ---------- */
+      .modal-mask {
+        position: fixed; inset: 0; background: rgba(4, 8, 16, .74); z-index: 60;
+        display: flex; align-items: center; justify-content: center; padding: 20px;
+      }
+      .modal {
+        background: var(--panel); border: 1px solid var(--gold); border-radius: 12px;
+        padding: 22px; max-width: 430px; width: 100%;
+      }
+      .modal-msg { margin: 0 0 18px; font-size: 15px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+      .modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+
+      /* ---------- 搜索 / 多选 / 日志 / 备份 ---------- */
+      .search-row { margin-bottom: 14px; }
+      .pick-list { display: flex; flex-wrap: wrap; gap: 8px; }
+      .pick-item {
+        display: flex; align-items: center; gap: 7px; border: 1px solid var(--line);
+        border-radius: 999px; padding: 6px 13px; font-size: 13.5px; cursor: pointer; background: var(--bg-2);
+      }
+      .pick-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--gold); flex: none; }
+      .log-item {
+        padding: 10px 14px; border: 1px solid var(--line-soft); border-radius: var(--radius-s);
+        margin-bottom: 8px; background: var(--panel); font-size: 13.5px; color: var(--ink-2);
+        word-break: break-word;
+      }
+      .log-item .lt { color: var(--ink-3); margin-right: 10px; white-space: nowrap; }
+      .tpl-row { display: flex; gap: 8px; flex-wrap: wrap; }
+      .tpl-row select { flex: 2; min-width: 160px; }
+      .tpl-row input { flex: 1; min-width: 130px; }
+      .backup-row {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        border: 1px solid var(--line-soft); border-radius: var(--radius-s);
+        background: var(--bg-2); padding: 11px 14px; margin-bottom: 9px; font-size: 13.5px;
+      }
+      .backup-row .b-main { flex: 1; min-width: 180px; }
+      .backup-row .b-label { font-weight: 600; color: var(--ink); }
+      .backup-row .b-meta { color: var(--ink-3); font-size: 12.5px; }
+
       /* ---------- 提示条 ---------- */
       .toast {
         position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
@@ -340,15 +378,40 @@
 
       <div class="wrap">
         <nav class="tabs" role="tablist">
-          <button class="tab active" type="button" data-tab="players" role="tab">玩家<span class="count" id="playerCount">0</span></button>
+          <button class="tab active" type="button" data-tab="overview" role="tab">概览</button>
+          <button class="tab" type="button" data-tab="players" role="tab">玩家<span class="count" id="playerCount">0</span></button>
           <button class="tab" type="button" data-tab="bans" role="tab">账号封禁<span class="count" id="banCount">0</span></button>
           <button class="tab" type="button" data-tab="mail" role="tab">发邮件<span class="count" id="mailCount">0</span></button>
           <button class="tab" type="button" data-tab="announce" role="tab">全服公告</button>
           <button class="tab" type="button" data-tab="sync" role="tab">数据同步</button>
+          <button class="tab" type="button" data-tab="trash" role="tab">回收站<span class="count" id="trashCount">0</span></button>
+          <button class="tab" type="button" data-tab="log" role="tab">操作日志</button>
         </nav>
 
+        <!-- ========== 页签0：概览 ========== -->
+        <section id="tab-overview">
+          <div class="stat-row players-stats">
+            <div class="stat"><div class="n" id="ovPlayers">0</div><div class="t">注册玩家数</div></div>
+            <div class="stat"><div class="n" id="ovValue">0</div><div class="t">账号总价值合计</div></div>
+            <div class="stat"><div class="n" id="ovMail">0</div><div class="t">累计发邮件数</div></div>
+            <div class="stat"><div class="n" id="ovMailDiamonds">0</div><div class="t">累计送出钻石</div></div>
+            <div class="stat"><div class="n" id="ovBans">0</div><div class="t">当前有效封禁数</div></div>
+            <div class="stat"><div class="n" id="ovSyncTime" style="font-size:15px;line-height:30px;">—</div><div class="t">上次同步时间</div></div>
+          </div>
+          <div class="panel">
+            <h2>同步状态</h2>
+            <p class="desc" id="ovSyncState">—</p>
+            <div class="sync-actions" style="margin-top:0">
+              <button class="btn-gold" id="ovSyncBtn" type="button">同步到游戏</button>
+              <button class="btn-ghost" id="ovPullBtn" type="button">拉取线上数据</button>
+              <button class="btn-ghost" id="ovBackupBtn" type="button">备份数据（下载）</button>
+            </div>
+          </div>
+          <div class="info-note">数据安全：删除邮件、封禁记录、玩家时不会真的删掉，会先放进「回收站」，随时可以恢复；每次同步成功后会自动在本机留一份备份（最近 5 份），在「数据同步」页的「数据备份」区可以一键恢复到任意一版；所有操作都会记进「操作日志」。</div>
+        </section>
+
         <!-- ========== 页签1：玩家 ========== -->
-        <section id="tab-players">
+        <section id="tab-players" hidden>
           <div class="info-note">玩家名单来自玩家发来的玩家卡（或老板手动添加），不是实时在线状态；玩家重新发一次玩家卡就能刷新信息。</div>
 
           <div class="stat-row players-stats">
@@ -394,6 +457,9 @@
             </form>
           </div>
 
+          <div class="search-row">
+            <input type="text" id="playerSearch" placeholder="搜索玩家：输入用户名或游戏账号编码" maxlength="32" aria-label="搜索玩家" />
+          </div>
           <div class="list-head"><h2>玩家列表</h2><span id="playerListInfo"></span></div>
           <div id="playerList"></div>
         </section>
@@ -438,6 +504,16 @@
             <h2>给玩家发邮件</h2>
             <p class="desc">邮件会发到玩家的游戏邮箱，附件道具在玩家领取时到账。同步到线上后生效。</p>
             <div class="info-note">说明：附件全填 0 就是只发消息不送道具。玩家在游戏邮箱里能看到这条消息并标为已读，不会收到任何道具，可以直接发送。还可以发私人定制球星（能力值最高 120，超过图鉴最高的 99）、自定义称号和全服邮件，选项都在下面的表单里。</div>
+            <div class="field">
+              <label>邮件模板 <span class="opt">（常用内容存成模板，下次选一下就填好；模板只存在本机）</span></label>
+              <div class="tpl-row">
+                <select id="tplSelect"><option value="">选择模板填入表单…</option></select>
+                <input type="text" id="tplName" placeholder="模板名字" maxlength="20" />
+                <button type="button" class="btn-ghost" id="tplSaveBtn">保存当前为模板</button>
+                <button type="button" class="btn-danger" id="tplDelBtn">删除所选模板</button>
+              </div>
+              <p class="form-ok" id="tplMsg"></p>
+            </div>
             <form id="mailForm" autocomplete="off">
               <div class="grid2">
                 <div class="field">
@@ -452,6 +528,11 @@
               </div>
               <div class="field checkline">
                 <label class="check" for="mailAll"><input type="checkbox" id="mailAll" /> 发给全部玩家（全服邮件，勾上后收件人可以留空）</label>
+              </div>
+              <div class="field" id="multiPickField">
+                <label>群发给多个玩家 <span class="opt">（可不选；勾了谁就发给谁，会给每人各发一封，收件人框就不用填了）</span></label>
+                <div class="pick-list" id="multiPickList"></div>
+                <p class="hint" id="multiPickHint">还没有登记玩家，登记后这里会出现可勾选的玩家。</p>
               </div>
               <div class="field">
                 <label for="mailBody">邮件正文 <span class="opt">（可不填）</span></label>
@@ -634,9 +715,24 @@
             <div class="sync-actions" style="margin-top:0">
               <button class="btn-gold" id="saveTokenBtn" type="button">保存令牌</button>
               <button class="btn-ghost" id="syncNowBtn" type="button">同步到游戏</button>
+              <button class="btn-ghost" id="pullOnlineBtn" type="button">拉取线上数据</button>
             </div>
             <p class="sync-status" id="syncStatusLine">上次同步：—</p>
             <p class="form-err" id="syncErr"></p>
+          </div>
+
+          <div class="panel">
+            <h2>数据备份</h2>
+            <p class="desc">点「备份数据」下载当前完整数据的 JSON 文件存好；「恢复备份」可以上传一个备份文件把数据恢复回来（恢复前会自动先备份当前数据，恢复错了还能再恢复回来）。每次同步成功后也会自动在本机留一份备份（保留最近 5 份），在下面列表里点「恢复」就能回到那一版。</p>
+            <div class="sync-actions" style="margin-top:0">
+              <button class="btn-gold" id="backupDlBtn" type="button">备份数据（下载）</button>
+              <button class="btn-ghost" id="restoreBtn" type="button">恢复备份（上传文件）</button>
+              <input type="file" id="restoreFile" accept=".json,application/json" hidden />
+            </div>
+            <p class="form-err" id="backupErr"></p>
+            <p class="form-ok" id="backupOk"></p>
+            <div class="list-head" style="margin-top:18px"><h2 style="font-size:15px">本机备份列表</h2><span id="backupListInfo"></span></div>
+            <div id="backupList"></div>
           </div>
 
           <div class="stat-row">
@@ -664,6 +760,32 @@
             </div>
           </div>
         </section>
+
+        <!-- ========== 页签5：回收站 ========== -->
+        <section id="tab-trash" hidden>
+          <div class="info-note">删掉的邮件、封禁记录、玩家和公告会先放进这里，不会真的消失，也不会同步到游戏。点「恢复」就能放回原来的地方（恢复后会重新同步）；只有点「彻底删除」并确认两次，才会真正删掉。</div>
+          <div class="list-head"><h2>回收站</h2><span id="trashListInfo"></span></div>
+          <div id="trashList"></div>
+        </section>
+
+        <!-- ========== 页签6：操作日志 ========== -->
+        <section id="tab-log" hidden>
+          <div class="list-head"><h2>操作日志</h2><span id="logListInfo"></span></div>
+          <div id="logList"></div>
+          <div class="sync-actions">
+            <button class="btn-ghost" id="clearLogBtn" type="button">清空日志</button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="confirmMask" hidden>
+      <div class="modal" role="alertdialog" aria-modal="true">
+        <p class="modal-msg" id="confirmMsg"></p>
+        <div class="modal-actions">
+          <button class="btn-ghost" id="confirmCancel" type="button">取消</button>
+          <button class="btn-gold" id="confirmOk" type="button">确定</button>
+        </div>
       </div>
     </div>
 
@@ -677,6 +799,10 @@
         var LS_DATA = 'hm-admin-data-v1';
         var LS_TOKEN = 'hm-github-token';
         var LS_SYNC_INFO = 'hm-sync-info-v1';
+        var LS_TRASH = 'hm-admin-trash-v1';
+        var LS_BACKUPS = 'hm-admin-backups-v1';
+        var LS_LOG = 'hm-admin-log-v1';
+        var LS_TEMPLATES = 'hm-admin-templates-v1';
         var GH_API = 'https://api.github.com/repos/grenthude-ship-it/jijian-kuangmo/contents/admin-data.json';
 
         var PLAYER_NAMES = {
@@ -738,6 +864,61 @@
           h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
           h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
           return Promise.resolve('x:' + (h2 >>> 0).toString(16) + (h1 >>> 0).toString(16));
+        }
+
+        /* ---------- 确认弹窗（用页面内弹窗，不用浏览器原生对话框） ---------- */
+        var confirmResolve = null;
+        function confirmDialog(msg, okText) {
+          $('confirmMsg').textContent = msg;
+          $('confirmOk').textContent = okText || '确定';
+          $('confirmMask').hidden = false;
+          return new Promise(function (resolve) { confirmResolve = resolve; });
+        }
+        function closeConfirm(result) {
+          $('confirmMask').hidden = true;
+          if (confirmResolve) { var r = confirmResolve; confirmResolve = null; r(result); }
+        }
+        $('confirmOk').addEventListener('click', function () { closeConfirm(true); });
+        $('confirmCancel').addEventListener('click', function () { closeConfirm(false); });
+        $('confirmMask').addEventListener('click', function (ev) { if (ev.target === this) closeConfirm(false); });
+
+        /* ---------- 本机数组存储（回收站 / 备份 / 日志 / 模板） ---------- */
+        function loadArr(key) {
+          try {
+            var s = localStorage.getItem(key);
+            if (s) { var j = JSON.parse(s); if (Array.isArray(j)) return j; }
+          } catch (e) { /* 忽略 */ }
+          return [];
+        }
+        function saveArr(key, arr) {
+          try { localStorage.setItem(key, JSON.stringify(arr)); } catch (e) { /* 存储不可用时静默 */ }
+        }
+        var trashItems = loadArr(LS_TRASH);
+        function addToTrash(kind, item) {
+          trashItems.unshift({ kind: kind, item: item, deletedAt: isoNow() });
+          saveArr(LS_TRASH, trashItems);
+        }
+        function logOp(text) {
+          var log = loadArr(LS_LOG);
+          log.unshift({ time: isoNow(), text: text });
+          if (log.length > 100) log.length = 100;
+          saveArr(LS_LOG, log);
+          if (typeof renderLog === 'function') renderLog();
+        }
+        // 备份：label 说明来源；isAuto=true 是同步成功后的自动备份，只保留最近 5 份
+        function addBackup(label, dataObj, isAuto) {
+          var list = loadArr(LS_BACKUPS);
+          var snap;
+          try { snap = JSON.parse(JSON.stringify(dataObj || data)); } catch (e) { snap = dataObj || data; }
+          list.unshift({ time: isoNow(), label: label, auto: !!isAuto, data: snap });
+          var autoCount = 0, out = [];
+          for (var i = 0; i < list.length; i++) {
+            if (list[i].auto) { autoCount++; if (autoCount > 5) continue; }
+            out.push(list[i]);
+          }
+          if (out.length > 12) out.length = 12;
+          saveArr(LS_BACKUPS, out);
+          if (typeof renderBackups === 'function') renderBackups();
         }
 
         /* ---------- 数据 ---------- */
@@ -870,20 +1051,46 @@
           for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
           return btoa(bin);
         }
+        function syncPayload() {
+          return {
+            version: data.version || 1,
+            updatedAt: data.updatedAt,
+            bans: data.bans, mail: data.mail,
+            announcement: data.announcement, players: data.players
+          };
+        }
+        // 一致性比较用（不含 updatedAt，光改时间不算改动）
+        function payloadKey() {
+          return JSON.stringify({ bans: data.bans, mail: data.mail, announcement: data.announcement, players: data.players });
+        }
+        function decodeOnlineFile(j) {
+          try {
+            if (!j || !j.content) return null;
+            var bin = atob(String(j.content).replace(/\s/g, ''));
+            var bytes = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            var obj = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+            return (obj && typeof obj === 'object') ? obj : null;
+          } catch (e) { return null; }
+        }
         function setSyncUI(state, msg) {
           // state: idle | busy | ok | err
           var line = $('syncStatusLine');
           var info = loadSyncInfo();
           var lastTxt = info && info.time ? fmtTime(info.time) : '—';
+          var cons = (info && info.payloadKey) ? (info.payloadKey === payloadKey()) : null;
+          var consTxt = cons === true ? '本地与线上一致' : (cons === false ? '本地有改动未同步' : '');
           if (line) {
             line.className = 'sync-status' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : state === 'busy' ? ' busy' : '');
-            line.textContent = '上次同步：' + lastTxt + (msg ? '　' + msg : (info && info.msg ? '　' + info.msg : ''));
+            line.textContent = '上次同步：' + lastTxt + (msg ? '　' + msg : (info && info.msg ? '　' + info.msg : '')) + (state === 'idle' && consTxt ? '　' + consTxt : '');
           }
           var badge = $('syncBadge');
           if (badge) {
             if (state === 'busy') { badge.hidden = false; badge.innerHTML = '同步：<b>正在同步…</b>'; }
             else if (state === 'ok') { badge.hidden = false; badge.innerHTML = '同步：<b>已同步</b>'; }
             else if (state === 'err') { badge.hidden = false; badge.innerHTML = '同步：<b>同步失败</b>'; }
+            else if (cons === true) { badge.hidden = false; badge.innerHTML = '同步：<b>已同步</b>'; }
+            else if (cons === false) { badge.hidden = false; badge.innerHTML = '同步：<b>本地有改动未同步</b>'; }
             else if (info && info.time) { badge.hidden = false; badge.innerHTML = '同步：<b>' + (info.ok ? '已同步' : '同步失败') + '</b>'; }
             else { badge.hidden = true; }
           }
@@ -901,7 +1108,8 @@
         var syncInFlight = false;
         var syncQueued = false;
         var syncDebounce = null;
-        function syncToGame() {
+        function syncToGame(opts) {
+          opts = opts || {};
           var token = getToken();
           if (!token) {
             setSyncUI('err', '同步失败：还没设置令牌，请先在「同步设置」里保存令牌');
@@ -915,61 +1123,128 @@
             'Accept': 'application/vnd.github+json',
             'X-GitHub-Api-Version': '2022-11-28'
           };
-          function fail(msg) {
+          function done(ok, msg) {
             syncInFlight = false;
-            saveSyncInfo({ time: loadSyncInfo() && loadSyncInfo().time ? loadSyncInfo().time : null, ok: false, msg: msg });
-            setSyncUI('err', msg);
-            toast(msg);
-            if (syncQueued) { syncQueued = false; syncToGame(); }
-            return false;
+            if (ok) {
+              saveSyncInfo({ time: isoNow(), ok: true, msg: msg, payloadKey: payloadKey() });
+              setSyncUI('ok', msg);
+              toast('已同步到游戏');
+              addBackup('同步成功自动备份', null, true);
+              logOp('同步到游戏成功');
+            } else {
+              var prev = loadSyncInfo();
+              saveSyncInfo({ time: prev ? prev.time : null, ok: false, msg: msg, payloadKey: prev ? prev.payloadKey : null });
+              setSyncUI('err', msg);
+              toast(msg);
+              logOp('同步失败：' + msg);
+            }
+            renderOverview();
+            if (syncQueued) { syncQueued = false; setTimeout(function () { syncToGame(); }, 300); }
+            return ok;
           }
+          function getCurrent() {
+            return fetch(GH_API + '?ref=main', { headers: headers, cache: 'no-store' })
+              .then(function (r) {
+                if (r.status === 401 || r.status === 403) throw new Error('__auth__');
+                if (r.status === 404) return null; // 文件不存在时按新建处理（PUT 不带 sha）
+                if (!r.ok) throw new Error('__http_' + r.status + '__');
+                return r.json();
+              });
+          }
+          function putOnce(cur) {
+            var body = {
+              message: '后台同步：更新 admin-data.json',
+              content: utf8ToBase64(JSON.stringify(syncPayload(), null, 2)),
+              branch: 'main'
+            };
+            if (cur && cur.sha) body.sha = cur.sha; // 每次都用刚拉到的最新 sha，不用缓存的旧 sha
+            return fetch(GH_API, {
+              method: 'PUT',
+              headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+              body: JSON.stringify(body)
+            }).then(function (r) {
+              if (r.status === 401 || r.status === 403) throw new Error('__auth__');
+              if (r.status === 409 || r.status === 422) throw new Error('__conflict__');
+              if (!r.ok) throw new Error('__http_' + r.status + '__');
+              return r.json();
+            });
+          }
+          function trySync(isRetry) {
+            return getCurrent().then(function (cur) {
+              // 同步安全锁：本地邮件/封禁是空的、线上不是空的，先问清楚再覆盖，防误删清空
+              if (!opts.force && cur) {
+                var online = decodeOnlineFile(cur);
+                if (online) {
+                  var oMail = Array.isArray(online.mail) ? online.mail.length : 0;
+                  var oBan = Array.isArray(online.bans) ? online.bans.length : 0;
+                  if ((data.mail.length === 0 && oMail > 0) || (data.bans.length === 0 && oBan > 0)) {
+                    syncInFlight = false;
+                    var ask = '本地是空的，线上还有 ' + oMail + ' 封邮件 / ' + oBan + ' 个封禁，确定要用本地空数据覆盖线上吗？覆盖后线上这些数据会被清掉。';
+                    var prev = loadSyncInfo();
+                    saveSyncInfo({ time: prev ? prev.time : null, ok: false, msg: '同步已暂停，等确认是否覆盖线上', payloadKey: prev ? prev.payloadKey : null });
+                    setSyncUI('err', '同步已暂停：本地是空的，线上还有 ' + oMail + ' 封邮件 / ' + oBan + ' 个封禁，等你确认');
+                    renderOverview();
+                    confirmDialog(ask, '确认覆盖同步').then(function (yes) {
+                      if (yes) { syncToGame({ force: true }); }
+                      else { toast('已取消这次同步，线上数据没动'); logOp('同步安全锁拦下一次空覆盖，已取消'); }
+                    });
+                    return 'paused';
+                  }
+                }
+              }
+              return putOnce(cur).then(function () { return 'ok'; }, function (e) {
+                // 提交时线上又变了：自动重新拉一次最新 sha 再试一次
+                if (e && e.message === '__conflict__' && !isRetry) return trySync(true);
+                throw e;
+              });
+            });
+          }
+          return trySync(false).then(function (res) {
+            if (res === 'paused') return false;
+            return done(true, '已同步到游戏，约 1 分钟后玩家就能在邮箱里看到');
+          }).catch(function (e) {
+            var m = e && e.message ? e.message : '';
+            if (m === '__auth__') return done(false, '同步失败：令牌不对或没有权限，请检查令牌');
+            if (m === '__conflict__') return done(false, '同步失败：线上数据刚被改动，已自动重试过一次，请再点一次「同步到游戏」');
+            if (m.indexOf('__http_404__') === 0) return done(false, '同步失败：找不到游戏仓库或文件，请检查令牌的仓库权限');
+            if (m.indexOf('__http_') === 0) return done(false, '同步失败：GitHub 返回错误（' + m.replace(/__/g, '').replace('http_', 'HTTP ') + '），请稍后再试');
+            return done(false, '同步失败：网络连不上 GitHub，请检查网络后重试');
+          });
+        }
+        // 拉取线上数据：把游戏仓库里的 admin-data.json 拉下来覆盖本地（拉取前自动备份本地）
+        function pullOnlineData() {
+          var token = getToken();
+          var headers = { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+          if (token) headers['Authorization'] = 'Bearer ' + token;
+          toast('正在拉取线上数据…');
           return fetch(GH_API + '?ref=main', { headers: headers, cache: 'no-store' })
             .then(function (r) {
-              if (r.status === 401 || r.status === 403) throw new Error('__auth__');
-              if (r.status === 404) return null; // 文件不存在时按新建处理（PUT 不带 sha）
+              if (r.status === 404) throw new Error('__nofile__');
               if (!r.ok) throw new Error('__http_' + r.status + '__');
               return r.json();
             })
-            .then(function (cur) {
-              var payload = {
-                version: data.version || 1,
-                updatedAt: data.updatedAt,
-                bans: data.bans, mail: data.mail,
-                announcement: data.announcement, players: data.players
-              };
-              var body = {
-                message: '后台同步：更新 admin-data.json',
-                content: utf8ToBase64(JSON.stringify(payload, null, 2)),
-                branch: 'main'
-              };
-              if (cur && cur.sha) body.sha = cur.sha;
-              return fetch(GH_API, {
-                method: 'PUT',
-                headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
-                body: JSON.stringify(body)
+            .then(function (j) {
+              var online = decodeOnlineFile(j);
+              if (!online) throw new Error('__bad__');
+              return confirmDialog('确定要拉取线上数据覆盖本地吗？拉取前会自动备份当前本地数据，拉错了可以从备份恢复。', '拉取并覆盖本地').then(function (yes) {
+                if (!yes) { toast('已取消拉取'); return false; }
+                addBackup('拉取线上前自动备份', null, false);
+                data = normalizeData(online);
+                saveLocal();
+                saveSyncInfo({ time: isoNow(), ok: true, msg: '刚拉取线上数据，本地与线上一致', payloadKey: payloadKey() });
+                renderAll();
+                logOp('拉取线上数据覆盖本地（拉取前已自动备份）');
+                toast('已拉取线上数据，本地已更新');
+                return true;
               });
-            })
-            .then(function (r) {
-              if (r.status === 401 || r.status === 403) throw new Error('__auth__');
-              if (!r.ok) throw new Error('__http_' + r.status + '__');
-              return r.json();
-            })
-            .then(function () {
-              syncInFlight = false;
-              var okMsg = '已同步到游戏，约 1 分钟后玩家就能在邮箱里看到';
-              saveSyncInfo({ time: isoNow(), ok: true, msg: okMsg });
-              setSyncUI('ok', okMsg);
-              toast('已同步到游戏');
-              if (syncQueued) { syncQueued = false; syncToGame(); }
-              return true;
             })
             .catch(function (e) {
               var m = e && e.message ? e.message : '';
-              if (m === '__auth__') return fail('同步失败：令牌不对或没有权限，请检查令牌');
-              if (m.indexOf('__http_404__') === 0) return fail('同步失败：找不到游戏仓库或文件，请检查令牌的仓库权限');
-              if (m.indexOf('__http_409__') === 0 || m.indexOf('__http_422__') === 0) return fail('同步失败：线上数据刚被改动，请再点一次「同步到游戏」');
-              if (m.indexOf('__http_') === 0) return fail('同步失败：GitHub 返回错误（' + m.replace(/__/g, '').replace('http_', 'HTTP ') + '），请稍后再试');
-              return fail('同步失败：网络连不上 GitHub，请检查网络后重试');
+              var msg = m === '__nofile__' ? '拉取失败：线上还没有数据文件' :
+                (m === '__bad__' ? '拉取失败：线上数据格式不对' : '拉取失败：网络连不上 GitHub，请检查网络后重试');
+              toast(msg);
+              logOp(msg);
+              return false;
             });
         }
         function autoSyncAfterChange() {
@@ -1041,14 +1316,25 @@
           $('pStatMail').textContent = fmtNum(data.mail.length);
           $('pStatMailDiamonds').textContent = fmtNum(mailDiamonds);
           $('pStatBans').textContent = fmtNum(activeBanCount());
-          $('playerListInfo').textContent = data.players.length ? ('共 ' + data.players.length + ' 人 · 按最后更新时间排序') : '';
+          var query = ($('playerSearch').value || '').trim().toLowerCase();
+          var shown = data.players.filter(function (p) {
+            if (!query) return true;
+            return p.username.toLowerCase().indexOf(query) >= 0 || (p.code || '').toLowerCase().indexOf(query) >= 0;
+          });
+          $('playerListInfo').textContent = data.players.length
+            ? (query ? ('搜到 ' + shown.length + ' 人（共 ' + data.players.length + ' 人）') : ('共 ' + data.players.length + ' 人 · 按最后更新时间排序'))
+            : '';
 
           var box = $('playerList');
           if (!data.players.length) {
             box.innerHTML = '<div class="empty">还没有登记玩家。把玩家发来的玩家卡粘贴到上面登记，或用手动添加先记下用户名。</div>';
             return;
           }
-          var list = data.players.slice().sort(function (a, b) {
+          if (!shown.length) {
+            box.innerHTML = '<div class="empty">没有搜到符合的玩家，换个用户名或编码试试。</div>';
+            return;
+          }
+          var list = shown.slice().sort(function (a, b) {
             var ta = new Date(b.updatedAt).getTime() || 0;
             var tb = new Date(a.updatedAt).getTime() || 0;
             return ta - tb;
@@ -1126,24 +1412,16 @@
           for (var d = 0; d < delBtns.length; d++) {
             delBtns[d].addEventListener('click', function () {
               var name = this.getAttribute('data-delplayer');
-              if (this.getAttribute('data-armed') === '1') {
+              confirmDialog('删除玩家「' + name + '」？删了会放进回收站，可以随时恢复，不会真的丢。', '放进回收站').then(function (yes) {
+                if (!yes) return;
                 var idx = findPlayer(name);
-                if (idx >= 0) data.players.splice(idx, 1);
+                if (idx < 0) return;
+                var removed = data.players.splice(idx, 1)[0];
+                addToTrash('player', removed);
                 touch();
-                toast('已删除玩家：' + name);
-              } else {
-                this.setAttribute('data-armed', '1');
-                this.classList.add('armed');
-                this.textContent = '确认删除「' + name + '」？再点一次删除';
-                var btn = this;
-                setTimeout(function () {
-                  if (btn.isConnected) {
-                    btn.removeAttribute('data-armed');
-                    btn.classList.remove('armed');
-                    btn.textContent = '删除';
-                  }
-                }, 4000);
-              }
+                logOp('删除玩家（进回收站）：' + name);
+                toast('已放进回收站：' + name + '（可恢复）');
+              });
             });
           }
         }
@@ -1177,10 +1455,19 @@
           for (var i = 0; i < btns.length; i++) {
             btns[i].addEventListener('click', function () {
               var idx = Number(this.getAttribute('data-unban'));
-              var name = data.bans[idx] ? data.bans[idx].username : '';
-              data.bans.splice(idx, 1);
-              touch();
-              toast('已解封账号：' + name);
+              var rec = data.bans[idx];
+              if (!rec) return;
+              confirmDialog('解封账号「' + rec.username + '」？这条封禁记录会放进回收站，可以恢复（恢复后封禁重新生效）。', '解封').then(function (yes) {
+                if (!yes) return;
+                var j = -1;
+                for (var k = 0; k < data.bans.length; k++) { if (data.bans[k].username === rec.username) { j = k; break; } }
+                if (j < 0) return;
+                var removed = data.bans.splice(j, 1)[0];
+                addToTrash('ban', removed);
+                touch();
+                logOp('解封账号（封禁记录进回收站）：' + rec.username);
+                toast('已解封账号：' + rec.username);
+              });
             });
           }
         }
@@ -1203,6 +1490,7 @@
         }
 
         function renderMail() {
+          renderMultiPick();
           $('mailCount').textContent = data.mail.length;
           $('mailListInfo').textContent = data.mail.length ? ('共 ' + data.mail.length + ' 封') : '';
           var box = $('mailList');
@@ -1227,11 +1515,49 @@
           for (var i = 0; i < btns.length; i++) {
             btns[i].addEventListener('click', function () {
               var id = this.getAttribute('data-delmail');
-              data.mail = data.mail.filter(function (m) { return m.id !== id; });
-              touch();
-              toast('邮件已删除');
+              var target = null;
+              for (var k = 0; k < data.mail.length; k++) { if (data.mail[k].id === id) { target = data.mail[k]; break; } }
+              if (!target) return;
+              confirmDialog('删除邮件「' + (target.title || '（无标题）') + '」（收件人：' + (target.to === '*' ? '全服' : target.to) + '）？删了会放进回收站，可以随时恢复。', '放进回收站').then(function (yes) {
+                if (!yes) return;
+                data.mail = data.mail.filter(function (m) { return m.id !== id; });
+                addToTrash('mail', target);
+                touch();
+                logOp('删除邮件（进回收站）：' + (target.title || '（无标题）') + ' → ' + target.to);
+                toast('邮件已放进回收站（可恢复）');
+              });
             });
           }
+        }
+
+        // 群发多选玩家列表（勾选状态记在 mailTargets 里，重渲染不丢）
+        var mailTargets = {};
+        function renderMultiPick() {
+          var box = $('multiPickList');
+          if (!box) return;
+          var hint = $('multiPickHint');
+          if (!data.players.length) {
+            box.innerHTML = '';
+            if (hint) hint.hidden = false;
+            return;
+          }
+          if (hint) hint.hidden = true;
+          box.innerHTML = data.players.map(function (p) {
+            var target = p.code ? p.code : p.username;
+            var checked = mailTargets[target] ? ' checked' : '';
+            return '<label class="pick-item"><input type="checkbox" data-pick="' + esc(target) + '"' + checked + ' /> ' +
+              esc(p.username) + (p.code ? '（' + esc(p.code) + '）' : '') + '</label>';
+          }).join('');
+          var boxes = box.querySelectorAll('[data-pick]');
+          for (var i = 0; i < boxes.length; i++) {
+            boxes[i].addEventListener('change', function () {
+              var t = this.getAttribute('data-pick');
+              if (this.checked) mailTargets[t] = true; else delete mailTargets[t];
+            });
+          }
+        }
+        function selectedMailTargets() {
+          return Object.keys(mailTargets).filter(function (t) { return mailTargets[t]; });
         }
 
         function renderAnnounce() {
@@ -1248,9 +1574,162 @@
             '<div class="announce-actions"><button type="button" class="btn-danger" id="annDownBtn">撤下公告</button></div>' +
             '</div>';
           $('annDownBtn').addEventListener('click', function () {
-            data.announcement = null;
+            var cur = data.announcement;
+            confirmDialog('撤下当前公告「' + (cur ? cur.title : '') + '」？撤下后会放进回收站，可以恢复重新发布。', '撤下公告').then(function (yes) {
+              if (!yes) return;
+              if (data.announcement) addToTrash('announcement', data.announcement);
+              data.announcement = null;
+              touch();
+              logOp('撤下全服公告（进回收站）：' + (cur ? cur.title : ''));
+              toast('公告已撤下（在回收站里可恢复）');
+            });
+          });
+        }
+
+        function renderOverview() {
+          if (!$('ovPlayers')) return;
+          var totalValue = 0;
+          data.players.forEach(function (p) { totalValue += pNum(p.value); });
+          var mailDiamonds = 0;
+          data.mail.forEach(function (m) { mailDiamonds += (m.items ? pNum(m.items.diamonds) : 0); });
+          $('ovPlayers').textContent = fmtNum(data.players.length);
+          $('ovValue').textContent = fmtNum(totalValue);
+          $('ovMail').textContent = fmtNum(data.mail.length);
+          $('ovMailDiamonds').textContent = fmtNum(mailDiamonds);
+          $('ovBans').textContent = fmtNum(activeBanCount());
+          var info = loadSyncInfo();
+          $('ovSyncTime').textContent = info && info.time ? fmtTime(info.time) : '还没同步过';
+          var stateEl = $('ovSyncState');
+          if (!getToken()) {
+            stateEl.textContent = '还没保存同步令牌：现在改的数据只能靠手动发 JSON 同步。去「数据同步」页保存一次令牌，之后改完自动同步到游戏。';
+          } else if (info && info.payloadKey) {
+            stateEl.textContent = info.payloadKey === payloadKey()
+              ? '已同步：本地数据和线上一致，玩家看到的就是现在这份数据。'
+              : '本地有改动未同步：点下面「同步到游戏」推一次，玩家才能看到最新数据。';
+          } else {
+            stateEl.textContent = '令牌已保存，但还没同步过：点下面「同步到游戏」推一次。';
+          }
+        }
+
+        function trashDescribe(t) {
+          var it = t.item || {};
+          if (t.kind === 'mail') return '邮件：' + (it.title || '（无标题）') + '（收件人 ' + (it.to === '*' ? '全服' : (it.to || '')) + '）';
+          if (t.kind === 'ban') return '封禁记录：' + (it.username || '') + '（' + (it.reason || '未填原因') + '）';
+          if (t.kind === 'player') return '玩家：' + (it.username || '') + (it.code ? '（' + it.code + '）' : '');
+          if (t.kind === 'announcement') return '全服公告：' + (it.title || '');
+          return t.kind;
+        }
+        function renderTrash() {
+          $('trashCount').textContent = trashItems.length;
+          $('trashListInfo').textContent = trashItems.length ? ('共 ' + trashItems.length + ' 件 · 不参与同步') : '';
+          var box = $('trashList');
+          if (!trashItems.length) {
+            box.innerHTML = '<div class="empty">回收站是空的。删掉的邮件、封禁记录、玩家会先放在这里。</div>';
+            return;
+          }
+          box.innerHTML = trashItems.map(function (t, i) {
+            return '<div class="row-card"><div class="main">' +
+              '<div class="title-line">' + esc(trashDescribe(t)) + '</div>' +
+              '<div class="meta"><span class="k">删除时间：</span>' + esc(fmtTime(t.deletedAt)) + '</div>' +
+              '</div>' +
+              '<button type="button" class="btn-ghost" data-restore="' + i + '">恢复</button>' +
+              '<button type="button" class="btn-danger" data-purge="' + i + '">彻底删除</button></div>';
+          }).join('');
+          var rBtns = box.querySelectorAll('[data-restore]');
+          for (var a = 0; a < rBtns.length; a++) {
+            rBtns[a].addEventListener('click', function () {
+              var idx = Number(this.getAttribute('data-restore'));
+              var t = trashItems[idx];
+              if (!t) return;
+              trashItems.splice(idx, 1);
+              saveArr(LS_TRASH, trashItems);
+              var it = t.item;
+              if (t.kind === 'mail') { data.mail.push(it); }
+              else if (t.kind === 'ban') {
+                var bi = -1;
+                for (var k = 0; k < data.bans.length; k++) { if (data.bans[k].username === it.username) { bi = k; break; } }
+                if (bi >= 0) data.bans[bi] = it; else data.bans.push(it);
+              } else if (t.kind === 'player') {
+                var pi = findPlayer(it.username);
+                if (pi >= 0) data.players[pi] = it; else data.players.push(it);
+              } else if (t.kind === 'announcement') { data.announcement = it; }
+              touch();
+              logOp('从回收站恢复：' + trashDescribe(t));
+              toast('已恢复：' + trashDescribe(t));
+            });
+          }
+          var pBtns = box.querySelectorAll('[data-purge]');
+          for (var b = 0; b < pBtns.length; b++) {
+            pBtns[b].addEventListener('click', function () {
+              var idx = Number(this.getAttribute('data-purge'));
+              var t = trashItems[idx];
+              if (!t) return;
+              confirmDialog('彻底删除「' + trashDescribe(t) + '」？这是第一次确认。', '继续').then(function (yes1) {
+                if (!yes1) return;
+                confirmDialog('再确认一次：彻底删除后就真的找不回来了。确定彻底删除「' + trashDescribe(t) + '」吗？', '彻底删除').then(function (yes2) {
+                  if (!yes2) return;
+                  var j = trashItems.indexOf(t);
+                  if (j >= 0) trashItems.splice(j, 1);
+                  saveArr(LS_TRASH, trashItems);
+                  renderAll();
+                  logOp('彻底删除：' + trashDescribe(t));
+                  toast('已彻底删除');
+                });
+              });
+            });
+          }
+        }
+
+        function renderLog() {
+          var box = $('logList');
+          if (!box) return;
+          var log = loadArr(LS_LOG);
+          $('logListInfo').textContent = log.length ? ('最近 ' + log.length + ' 条（最多保留 100 条）') : '';
+          if (!log.length) {
+            box.innerHTML = '<div class="empty">还没有操作记录。发邮件、封禁、同步等操作都会记在这里。</div>';
+            return;
+          }
+          box.innerHTML = log.map(function (e) {
+            return '<div class="log-item"><span class="lt">' + esc(fmtTime(e.time)) + '</span>' + esc(e.text) + '</div>';
+          }).join('');
+        }
+
+        function renderBackups() {
+          var box = $('backupList');
+          if (!box) return;
+          var list = loadArr(LS_BACKUPS);
+          $('backupListInfo').textContent = list.length ? ('共 ' + list.length + ' 份') : '';
+          if (!list.length) {
+            box.innerHTML = '<div class="empty">还没有备份。同步成功后会自动备份，也可以点上面「备份数据（下载）」存一份文件。</div>';
+            return;
+          }
+          box.innerHTML = list.map(function (b, i) {
+            var d = b.data || {};
+            var cnt = '邮件 ' + (Array.isArray(d.mail) ? d.mail.length : 0) + ' 封 · 封禁 ' + (Array.isArray(d.bans) ? d.bans.length : 0) + ' 个 · 玩家 ' + (Array.isArray(d.players) ? d.players.length : 0) + ' 人';
+            return '<div class="backup-row"><div class="b-main">' +
+              '<div class="b-label">' + esc(b.label || '备份') + (b.auto ? '（自动）' : '') + '</div>' +
+              '<div class="b-meta">' + esc(fmtTime(b.time)) + ' · ' + cnt + '</div></div>' +
+              '<button type="button" class="btn-ghost" data-restore-backup="' + i + '">恢复到这一版</button></div>';
+          }).join('');
+          var btns = box.querySelectorAll('[data-restore-backup]');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].addEventListener('click', function () {
+              var idx = Number(this.getAttribute('data-restore-backup'));
+              var b = loadArr(LS_BACKUPS)[idx];
+              if (!b || !b.data) return;
+              restoreFromData(b.data, '本机备份「' + (b.label || '') + '」（' + fmtTime(b.time) + '）');
+            });
+          }
+        }
+        // 用一份数据对象恢复（恢复前自动备份当前数据，恢复错了还能再回来）
+        function restoreFromData(obj, labelText) {
+          confirmDialog('确定要用「' + labelText + '」恢复数据吗？恢复前会自动备份当前数据，恢复错了还能再恢复回来。恢复后会自动同步到游戏。', '恢复备份').then(function (yes) {
+            if (!yes) return;
+            addBackup('恢复前自动备份（恢复自：' + labelText + '）', null, false);
+            data = normalizeData(obj);
             touch();
-            toast('公告已撤下');
+            logOp('恢复备份：' + labelText);
+            toast('已恢复：' + labelText);
           });
         }
 
@@ -1263,10 +1742,10 @@
           if (!syncInFlight) setSyncUI('idle', '');
         }
 
-        function renderAll() { renderPlayers(); renderBans(); renderMail(); renderAnnounce(); renderSync(); }
+        function renderAll() { renderOverview(); renderPlayers(); renderBans(); renderMail(); renderAnnounce(); renderSync(); renderTrash(); renderLog(); renderBackups(); renderTemplates(); }
 
         /* ---------- 页签切换 ---------- */
-        var TAB_NAMES = ['players', 'bans', 'mail', 'announce', 'sync'];
+        var TAB_NAMES = ['overview', 'players', 'bans', 'mail', 'announce', 'sync', 'trash', 'log'];
         function switchTab(name) {
           var tabs = document.querySelectorAll('.tab');
           for (var j = 0; j < tabs.length; j++) {
@@ -1321,6 +1800,7 @@
           var rec = normalizePlayer(base);
           if (idx >= 0) data.players[idx] = rec; else data.players.push(rec);
           touch();
+          logOp((idx >= 0 ? '更新玩家（玩家卡）：' : '登记玩家（玩家卡）：') + username);
           $('cardInput').value = '';
           ok.textContent = (idx >= 0 ? '已更新玩家：' : '已登记玩家：') + username;
           toast((idx >= 0 ? '已更新玩家：' : '已登记玩家：') + username);
@@ -1337,6 +1817,7 @@
           if (idx >= 0) {
             if (note) data.players[idx].note = note;
             touch();
+            logOp('更新玩家备注：' + user);
             ok.textContent = '该玩家已登记，已更新备注。账号详情等玩家发来玩家卡后会自动补齐。';
             toast('玩家已存在，已更新备注：' + user);
           } else {
@@ -1346,6 +1827,7 @@
               note: note, registeredAt: isoNow(), updatedAt: isoNow()
             }));
             touch();
+            logOp('手动添加玩家：' + user);
             ok.textContent = '已手动添加玩家：' + user + '（账号详情等玩家发来玩家卡后再补）';
             toast('已手动添加玩家：' + user);
           }
@@ -1374,8 +1856,79 @@
           var rec = { username: user, reason: reason, until: until, bannedAt: isoNow() };
           if (existing >= 0) data.bans[existing] = rec; else data.bans.push(rec);
           touch();
+          logOp((existing >= 0 ? '更新封禁：' : '封禁账号：') + user + '（' + (until ? ('到 ' + fmtTime(until)) : '永久') + '，原因：' + reason + '）');
           $('banUser').value = ''; $('banReason').value = ''; $('banDays').value = '0';
           toast(existing >= 0 ? ('已更新对 ' + user + ' 的封禁') : ('已封禁账号：' + user));
+        });
+
+        /* ---------- 邮件模板（只存本机） ---------- */
+        function renderTemplates() {
+          var sel = $('tplSelect');
+          if (!sel) return;
+          var cur = sel.value;
+          var tpls = loadArr(LS_TEMPLATES);
+          sel.innerHTML = '<option value="">选择模板填入表单…</option>' + tpls.map(function (t, i) {
+            return '<option value="' + i + '">' + esc(t.name) + '</option>';
+          }).join('');
+          if (cur !== '' && Number(cur) < tpls.length) sel.value = cur;
+        }
+        $('tplSelect').addEventListener('change', function () {
+          if (this.value === '') return;
+          var t = loadArr(LS_TEMPLATES)[Number(this.value)];
+          if (!t) return;
+          setPlayerSrc('gallery');
+          $('mailTitle').value = t.title || '';
+          $('mailBody').value = t.body || '';
+          $('mailTag').value = t.tag || '';
+          $('mailCustomTitle').value = t.customTitle || '';
+          $('itDiamonds').value = t.diamonds || 0;
+          $('itCash').value = t.cash || 0;
+          $('itVouchers').value = t.vouchers || 0;
+          $('itTrial').value = t.trialCards || 0;
+          $('itShards').value = t.shards || 0;
+          $('itPlayer').value = t.playerId || '';
+          $('tplMsg').textContent = '已填入模板「' + t.name + '」，收件人在下面填或勾选。';
+          toast('已填入模板：' + t.name);
+        });
+        $('tplSaveBtn').addEventListener('click', function () {
+          var name = $('tplName').value.trim();
+          var msg = $('tplMsg');
+          if (!name) { msg.textContent = ''; toast('先给模板起个名字'); $('tplName').focus(); return; }
+          var tpls = loadArr(LS_TEMPLATES);
+          var rec = {
+            name: name,
+            title: $('mailTitle').value.trim(), body: $('mailBody').value.trim(),
+            tag: $('mailTag').value, customTitle: $('mailCustomTitle').value.trim(),
+            diamonds: numVal('itDiamonds'), cash: numVal('itCash'), vouchers: numVal('itVouchers'),
+            trialCards: numVal('itTrial'), shards: numVal('itShards'),
+            playerId: playerSrc === 'gallery' ? ($('itPlayer').value || null) : null
+          };
+          var exist = -1;
+          for (var i = 0; i < tpls.length; i++) { if (tpls[i].name === name) { exist = i; break; } }
+          if (exist >= 0) tpls[exist] = rec; else tpls.push(rec);
+          saveArr(LS_TEMPLATES, tpls);
+          renderTemplates();
+          $('tplSelect').value = String(exist >= 0 ? exist : tpls.length - 1);
+          msg.textContent = '模板「' + name + '」已保存（同名会覆盖）。';
+          logOp('保存邮件模板：' + name);
+          toast('模板已保存：' + name);
+        });
+        $('tplDelBtn').addEventListener('click', function () {
+          var sel = $('tplSelect');
+          if (sel.value === '') { toast('先选一个模板'); return; }
+          var tpls = loadArr(LS_TEMPLATES);
+          var t = tpls[Number(sel.value)];
+          if (!t) return;
+          confirmDialog('删除模板「' + t.name + '」？模板删了不影响已发出的邮件。', '删除模板').then(function (yes) {
+            if (!yes) return;
+            var list = loadArr(LS_TEMPLATES);
+            list.splice(Number(sel.value), 1);
+            saveArr(LS_TEMPLATES, list);
+            sel.value = '';
+            renderTemplates();
+            logOp('删除邮件模板：' + t.name);
+            toast('模板已删除：' + t.name);
+          });
         });
 
         /* ---------- 发邮件 ---------- */
@@ -1425,12 +1978,13 @@
         $('mailForm').addEventListener('submit', function (ev) {
           ev.preventDefault();
           var all = $('mailAll').checked;
+          var picked = selectedMailTargets();
           var to = all ? '*' : $('mailTo').value.trim();
           var title = $('mailTitle').value.trim();
           var body = $('mailBody').value.trim();
           var err = $('mailErr'), ok = $('mailOk');
           err.textContent = ''; ok.textContent = '';
-          if (!all && !to) { err.textContent = '请填写收件人用户名或账号编码，或勾选「发给全部玩家」。'; return; }
+          if (!all && !to && !picked.length) { err.textContent = '请填写收件人用户名或账号编码，或在下面勾选要群发的玩家，或勾选「发给全部玩家」。'; return; }
           if (!title) { err.textContent = '请填写邮件标题。'; return; }
           var items = {
             diamonds: numVal('itDiamonds'), cash: numVal('itCash'), vouchers: numVal('itVouchers'),
@@ -1471,15 +2025,23 @@
             tag = customPlayer ? '私人定制' : (hasAttach ? '奖励' : '通知');
           }
           // 附件全填 0 允许发送：只发消息不送道具，不做拦截
-          var mail = {
-            id: 'm-' + Date.now() + '-' + Math.floor(Math.random() * 1e6),
-            to: to, title: title, body: body, tag: tag, items: items,
-            sentAt: isoNow(), expiresAt: null
-          };
-          data.mail.push(mail);
+          // 收件人：全服一封；勾了群发名单就每人一封；否则发给收件人框里的人
+          var targets = all ? ['*'] : (picked.length ? picked : [to]);
+          var sentAt = isoNow();
+          var baseId = 'm-' + Date.now() + '-';
+          targets.forEach(function (t, ti) {
+            data.mail.push({
+              id: baseId + ti + '-' + Math.floor(Math.random() * 1e6),
+              to: t, title: title, body: body, tag: tag, items: items,
+              sentAt: sentAt, expiresAt: null
+            });
+          });
           touch();
+          logOp(all ? ('发送全服邮件：' + title) : ('发送邮件：' + title + ' → ' + targets.join('、')));
           $('mailTo').value = ''; $('mailTitle').value = ''; $('mailBody').value = '';
           $('mailAll').checked = false; $('mailTo').disabled = false;
+          mailTargets = {};
+          renderMultiPick();
           $('mailTag').value = ''; $('mailCustomTitle').value = '';
           ['itDiamonds', 'itCash', 'itVouchers', 'itTrial', 'itShards'].forEach(function (id) { $(id).value = '0'; });
           $('itPlayer').value = '';
@@ -1488,8 +2050,9 @@
           $('cpImg').value = 'gold-star'; $('cpNote').value = ''; $('cpTagCustom').value = '';
           var onChips = $('cpTagChips').querySelectorAll('.chip.on');
           for (var oi = 0; oi < onChips.length; oi++) onChips[oi].classList.remove('on');
-          ok.textContent = all ? '全服邮件已发送（同步到线上后所有玩家可见）。' : ('已发送给 ' + to + '（同步到线上后玩家可见）。');
-          toast(all ? '全服邮件已发送' : ('邮件已发送给：' + to));
+          ok.textContent = all ? '全服邮件已发送（同步到线上后所有玩家可见）。'
+            : (picked.length ? ('已群发给 ' + picked.length + ' 个玩家（同步到线上后可见）。') : ('已发送给 ' + to + '（同步到线上后玩家可见）。'));
+          toast(all ? '全服邮件已发送' : (picked.length ? ('已群发给 ' + picked.length + ' 个玩家') : ('邮件已发送给：' + to)));
         });
 
         /* ---------- 公告 ---------- */
@@ -1503,6 +2066,7 @@
           if (!body) { err.textContent = '请填写公告正文。'; return; }
           data.announcement = { title: title, body: body, publishedAt: isoNow() };
           touch();
+          logOp('发布全服公告：' + title);
           $('annTitle').value = ''; $('annBody').value = '';
           toast('全服公告已发布');
         });
@@ -1547,6 +2111,59 @@
           document.body.removeChild(a);
           setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
           toast('admin-data.json 已下载');
+        });
+
+        /* ---------- 概览 / 搜索 / 拉取 / 备份 / 日志 ---------- */
+        $('playerSearch').addEventListener('input', function () { renderPlayers(); });
+        $('ovSyncBtn').addEventListener('click', function () {
+          if (!getToken()) { switchTab('sync'); toast('先在「数据同步」里保存令牌'); return; }
+          syncToGame();
+        });
+        $('ovPullBtn').addEventListener('click', function () { pullOnlineData(); });
+        $('pullOnlineBtn').addEventListener('click', function () { pullOnlineData(); });
+        function downloadBackup() {
+          var d = new Date();
+          var name = 'admin-backup-' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()) + '.json';
+          var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = name;
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+          logOp('下载数据备份文件：' + name);
+          toast('备份已下载：' + name);
+        }
+        $('backupDlBtn').addEventListener('click', downloadBackup);
+        $('ovBackupBtn').addEventListener('click', downloadBackup);
+        $('restoreBtn').addEventListener('click', function () { $('restoreFile').click(); });
+        $('restoreFile').addEventListener('change', function () {
+          var f = this.files && this.files[0];
+          this.value = '';
+          var err = $('backupErr'), ok = $('backupOk');
+          err.textContent = ''; ok.textContent = '';
+          if (!f) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            var obj = null;
+            try { obj = JSON.parse(String(reader.result || '')); } catch (e) { obj = null; }
+            if (!obj || typeof obj !== 'object' || !('bans' in obj || 'mail' in obj || 'announcement' in obj || 'players' in obj)) {
+              err.textContent = '这个文件不是后台备份（格式不对），没有恢复任何数据。';
+              return;
+            }
+            restoreFromData(obj, '上传的备份文件「' + f.name + '」');
+            ok.textContent = '已从备份文件恢复（恢复前已自动备份当前数据）。';
+          };
+          reader.onerror = function () { err.textContent = '文件读不出来，请重新选一次。'; };
+          reader.readAsText(f);
+        });
+        $('clearLogBtn').addEventListener('click', function () {
+          confirmDialog('清空操作日志？日志只是查看记录，清空不影响邮件、封禁、玩家这些数据。', '清空日志').then(function (yes) {
+            if (!yes) return;
+            saveArr(LS_LOG, []);
+            renderLog();
+            toast('操作日志已清空');
+          });
         });
 
         /* ---------- 密码门 ---------- */
