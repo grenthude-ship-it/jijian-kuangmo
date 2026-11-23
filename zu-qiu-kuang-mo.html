@@ -188,6 +188,11 @@
       .pill.tier3{ background:linear-gradient(135deg,#ffffff,#c7d0d8); color:#3c4a56; font-weight:800; border:1px solid #93a5b1; }
       .pill.tier4{ background:#2f6db3; color:#fff; font-weight:700; border:1px solid #1d4e82; }
       .pill.tier5{ background:#dff3e2; color:#146c2e; font-weight:700; border:1px solid #57a773; }
+      .pill.tier0{ background:linear-gradient(135deg,#2a0a3e,#5b21b6 55%,#7c3aed); color:#ffe9a8; font-weight:800; border:1px solid #ffd968; box-shadow:0 0 7px rgba(255,217,104,.75),0 1px 3px rgba(91,33,182,.5); }
+      .pill.custom{ background:linear-gradient(135deg,#ffe9a8,#d4af37 55%,#b8912a); color:#12263f; font-weight:800; border:1px solid #8a6508; box-shadow:0 0 6px rgba(212,175,55,.65),0 1px 3px rgba(212,175,55,.45); }
+      .pill.ctag{ background:#f1e8fd; color:#5b21b6; font-weight:700; border:1px solid #c9a9f2; }
+      .pill.mtag{ background:#fdf3d3; color:#8a6508; font-weight:700; border:1px solid #d4af37; }
+      .pill.mtag-custom{ background:linear-gradient(135deg,#5b21b6,#7c3aed); color:#ffe9a8; font-weight:800; border:1px solid #ffd968; box-shadow:0 1px 3px rgba(91,33,182,.45); }
       .mini{ font-size:11.5px; color:var(--ink3); }
       .log{ display:flex; flex-direction:column; }
       .log .it{ display:flex; gap:12px; padding:7px 0; border-bottom:1px dashed #e3e9ee; font-size:13px; }
@@ -693,6 +698,7 @@ function sanitizeSaveData(d){
     train:{intensity:'标准', physio:1}, scout:{reports:{}, used:0, mission:null}, director:{mode:'manual'},
     board:{patience:70, cityRep:35, frozen:0, budgetSeason:-1, grantSeason:-1, facGrant:false, citySeason:-1},
     mediaUsed:false,
+    customTitle:'',
     pay2:{firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:-1},
     daily:{dateKey:'', lastDate:'', streak:0, tasks:[], counters:{}, claimed:{}, streakClaimed:{}},
     fun:{wheelFree:'', wheelSpins:0, letters:[], letterDay:'', funDay:'', hist:[]},
@@ -1029,6 +1035,7 @@ function pageAccount(){
     var rec=acctGet(CUR_USER)||{};
     html+='<div class="card"><h3>👤 账号中心<span class="hint">账号的价值和装备都跟着账号走</span></h3>'
     +'<div class="item"><div class="grow"><div class="nm">用户名：<b>'+esc(CUR_USER)+'</b></div><div class="meta">注册时间 '+fmtDayTime(rec.reg)+' · 上次登录 '+fmtDayTime(rec.last)+'</div></div><span class="pill up">已登录</span></div>'
+    +'<div class="item"><div class="grow"><div class="nm">称号：'+(G.customTitle? '<span class="pill custom">👑 '+esc(G.customTitle)+'</span>' : '<span style="color:var(--ink3);font-weight:500;">暂无</span>')+'</div><div class="meta">后台通过邮箱发放的专属称号，会以金色小标签显示在游戏大厅的俱乐部信息旁；收到新称号会覆盖旧称号。</div></div></div>'
     +'<p class="desc">当前进度——俱乐部、现金、阵容、钻石、道具、品牌、海外俱乐部等——全部保存在这个账号名下。退出登录换别的账号，进度互不干扰。</p></div>';
   } else {
     html+='<div class="card"><h3>👤 账号中心<span class="hint">当前是游客模式</span></h3>'
@@ -1304,9 +1311,17 @@ function maybeShowAnnouncement(){
   });
 }
 /* ---------------- 邮箱（后台邮件） ----------------
-   邮件收件人是用户名；已领取记录按账号存在 localStorage
-   （zuqiu-km-mail-claimed-v1-<用户名>），领过的不重复发。
-   纯消息（无附件）的已读记录存在 zuqiu-km-mail-read-v1-<用户名>。 */
+   邮件收件人是用户名；to 为 '*' 时是全服邮件，每个已登录账号都能收到
+   （游客不收）。已领取记录按账号存在 localStorage
+   （zuqiu-km-mail-claimed-v1-<用户名>），领过的不重复发——全服邮件也是
+   按账号各领一次。纯消息（无附件）的已读记录存在
+   zuqiu-km-mail-read-v1-<用户名>。
+   附件除了钻石/现金/券/卡/碎片/图鉴球星，还可以带：
+   · items.customPlayer 私人定制球星 {name,pos,ab(1–120,可超99),price(万),img,tags(≤3),note}
+     ——只通过邮件获得，不进图鉴、抽卡、钻石招募和转会市场；
+   · items.customTitle 自定义称号字符串，领取后存 G.customTitle（新的覆盖旧的）。
+   邮件还可以带 tag 标签字符串（奖励/通知/活动/补偿/私人定制），列表里显示成小标签。
+   没有这些新字段的旧邮件照常显示和领取。 */
 function mailClaimedSet(){
   var o={};
   try{ var arr=JSON.parse(localStorage.getItem('zuqiu-km-mail-claimed-v1-'+CUR_USER)||'[]'); if(arr instanceof Array) arr.forEach(function(id){ o[id]=1; }); }catch(e){}
@@ -1323,7 +1338,7 @@ function myMails(){
   if(!CUR_USER || !ADMIN || !(ADMIN.mail instanceof Array)) return [];
   var now=Date.now();
   return ADMIN.mail.filter(function(m){
-    if(!m || m.to!==CUR_USER) return false;
+    if(!m || (m.to!==CUR_USER && m.to!=='*')) return false;
     if(m.expiresAt){ var t=Date.parse(m.expiresAt); if(!isNaN(t) && now>=t) return false; }
     return true;
   }).sort(function(a,b){ return (Date.parse(b.sentAt)||0)-(Date.parse(a.sentAt)||0); });
@@ -1360,6 +1375,11 @@ function mailItemsParts(m){
     var s=(typeof starById==='function')? starById(it.playerId) : null;
     parts.push('⭐ 球星：'+(s? esc(s.name)+'（能力 '+s.ab+'）' : esc(String(it.playerId))));
   }
+  if(it.customPlayer && typeof it.customPlayer==='object'){
+    var cp0=it.customPlayer;
+    parts.push('👑 私人定制球星：'+esc(String(cp0.name||'定制球星'))+'（'+esc(String(cp0.pos||'中场'))+' · 能力 '+(+cp0.ab||0)+'）');
+  }
+  if(it.customTitle) parts.push('👑 称号「'+esc(String(it.customTitle))+'」');
   return parts;
 }
 function pageInbox(){
@@ -1372,12 +1392,14 @@ function pageInbox(){
   }
   var list=myMails(), claimed=mailClaimedSet(), readSet=mailReadSet();
   var head='<div class="card"><h3>📬 邮箱<span class="hint">账号：'+esc(CUR_USER)+' · 共 '+list.length+' 封 · 未读 '+unreadMailCount()+' 封</span></h3>'
-  +'<p class="desc">这里是游戏管理后台发给你的邮件，按发送时间从新到旧排列。标着「奖励」的邮件带附件，点「领取」，钻石、现金和道具就会发到你的账号里，领过的不能重复领；标着「消息」的是后台发来的纯消息，读完点「标为已读」就不算未读了。邮件会一直留在这里，过期邮件会自动消失。</p>';
+  +'<p class="desc">这里是游戏管理后台发给你的邮件，按发送时间从新到旧排列。标着「奖励」的邮件带附件，点「领取」，钻石、现金和道具就会发到你的账号里，领过的不能重复领；标着「消息」的是后台发来的纯消息，读完点「标为已读」就不算未读了。标着「全服」的邮件是发给所有玩家的，每个账号只能领一次；带「私人定制」标签的邮件里有只属于你的定制球星（能力可以超过图鉴里的所有球星）和专属称号。邮件会一直留在这里，过期邮件会自动消失。</p>';
   if(!list.length) return head+'<p class="desc">暂时没有发给你的邮件。</p></div>';
   var items=list.map(function(m){
     var parts=mailItemsParts(m), isReward=parts.length>0;
     var safeId=String(m.id).replace(/\\/g,'').replace(/'/g,'');
     var typePill=isReward? ' <span class="pill fw">🎁 奖励</span>' : ' <span class="pill df">💬 消息</span>';
+    if(m.to==='*') typePill+=' <span class="pill df">🌐 全服</span>';
+    if(m.tag) typePill+=' <span class="pill '+(String(m.tag)==='私人定制'? 'mtag-custom' : 'mtag')+'">'+esc(String(m.tag))+'</span>';
     var statusPill, actionBtn;
     if(isReward){
       var isC=!!claimed[m.id];
@@ -1428,6 +1450,40 @@ function claimMail(id){
       }
     }
     /* playerId 不是有效球星 id 时只跳过这一项，其他附件照常发放 */
+  }
+  if(it.customPlayer && typeof it.customPlayer==='object'){
+    /* 私人定制球星：名字/位置/能力/身价全按邮件来，能力 1–120 不截断；
+       id 用 'custom-'+邮件id 保证唯一，绝不和图鉴球星重复，也永不进图鉴/抽卡/市场 */
+    var cp=it.customPlayer;
+    var cpName=String(cp.name||'定制球星').slice(0,20);
+    var cpPos=(cp.pos==='守门员')? '门将' : ((['门将','后卫','中场','前锋'].indexOf(cp.pos)>=0)? cp.pos : '中场');
+    var cpAb=Math.max(1, Math.min(120, Math.round(+cp.ab||80)));
+    var cpPrice=Math.max(0, Math.round(+cp.price||0));
+    var cpId='custom-'+id;
+    if(G.squad.some(function(x){ return x.star===cpId || x.customId===cpId; })){
+      got.push('👑 私人定制球星 '+cpName+' 已在你的阵容里（不重复加入）');
+    }
+    else if(G.squad.length>=22){
+      G.cash+=cpPrice; got.push('👑 阵容已满（22 人），私人定制球星 '+cpName+' 折成现金 '+fmt(cpPrice));
+    }
+    else{
+      var cpp=mkPlayer(cpName, cpPos, cpAb, 25, false);
+      cpp.pot=cpAb; /* 潜力跟能力一样，不截断到 99 */
+      cpp.cost=0; cpp.signNote='后台私人定制 · 邮件赠送'; cpp.star=cpId; cpp.customId=cpId; cpp.custom=true;
+      cpp.customTags=(cp.tags instanceof Array)? cp.tags.slice(0,3).map(function(t){ return String(t).slice(0,12); }).filter(function(t){ return t; }) : [];
+      if(cp.note) cpp.customNote=String(cp.note).slice(0,60);
+      if(cpPrice>0) cpp.value=cpPrice; /* 身价按邮件里的来（单位万） */
+      if(cp.img){
+        var cst=(typeof starById==='function')? starById(String(cp.img)) : null;
+        cpp.img= cst? cst.img : String(cp.img); /* img 可以是图鉴球星的 id，也可以直接是照片路径 */
+      }
+      G.squad.push(cpp);
+      got.push('👑 私人定制球星 '+cpName+'（'+cpPos+' · 能力 '+cpAb+'）已加入阵容');
+    }
+  }
+  if(it.customTitle){
+    G.customTitle=String(it.customTitle).slice(0,20); /* 新称号覆盖旧称号 */
+    got.push('👑 获得专属称号「'+G.customTitle+'」');
   }
   claimed[id]=1;
   try{ localStorage.setItem('zuqiu-km-mail-claimed-v1-'+CUR_USER, JSON.stringify(Object.keys(claimed))); }catch(e){}
@@ -1626,6 +1682,7 @@ function newGame(clubName, origin, diff){
     hist:[o.cash], log:[], lastResults:[], lastFinance:null,
     diamonds:0, vip:0, spent:0, claimed:{}, ended:false, ending:null,
     pay2:{firstPack:false, vouchers:0, trialCards:0, mUntil:0, mLast:-1, sUntil:0, sLast:-1, cum:{}, pity:0, draws:0, celeb:null, badge:'', titleName:'', titlesSeen:0},
+    customTitle:'',
     daily:{dateKey:'', lastDate:'', streak:0, tasks:[], counters:{}, claimed:{}, streakClaimed:{}},
     fun:{wheelFree:'', wheelSpins:0, letters:[], letterDay:'', funDay:'', hist:[]},
     neg:{cool:{}, memos:[]},
@@ -2987,7 +3044,7 @@ function render(){
   +'<div><img class="game-logo" src="logo.png" alt="豪门缔造者"></div>'
   +'<div><div class="club-name">'+esc(G.club)+'</div><div class="club-sub">江州 · '+d.name+' · 第 '+Math.ceil(G.month/12)+' 赛季</div></div>'
   +'<div class="month-box"><div class="m num">'+G.mon+'月'+G.day+'日<span>'+G.year+'年 · 第 '+G.month+' 个月 · 无限生涯</span></div><div class="s">联赛排名 第 '+myRank()+' · 积分 '+G.pts+' · 🏆 冠军×'+(G.titles||0)+' · 王朝评级 '+dynastyGrade().grade+'</div></div>'
-  +'<div class="tag-row"><span class="tag hot">'+d.short+'</span><span class="tag">声望 '+G.rep+'</span><span class="tag">🏢 '+STAGES[groupStage()].name+(ventCount()?' · '+ventCount()+'板块':'')+'</span>'+(G.champion?'<span class="tag hot">🏆 已夺冠</span>':'')+(G.vip?'<span class="tag hot">VIP'+G.vip+'</span>':'')+((G.pay2&&G.pay2.titleName)?'<span class="tag hot">👑 '+esc(G.pay2.titleName)+'</span>':'')+((G.pay2&&G.pay2.badge)?'<span class="tag">'+esc(G.pay2.badge)+'</span>':'')+'</div>'
+  +'<div class="tag-row"><span class="tag hot">'+d.short+'</span><span class="tag">声望 '+G.rep+'</span><span class="tag">🏢 '+STAGES[groupStage()].name+(ventCount()?' · '+ventCount()+'板块':'')+'</span>'+(G.champion?'<span class="tag hot">🏆 已夺冠</span>':'')+(G.vip?'<span class="tag hot">VIP'+G.vip+'</span>':'')+((G.pay2&&G.pay2.titleName)?'<span class="tag hot">👑 '+esc(G.pay2.titleName)+'</span>':'')+(G.customTitle?'<span class="tag hot">👑 '+esc(G.customTitle)+'</span>':'')+((G.pay2&&G.pay2.badge)?'<span class="tag">'+esc(G.pay2.badge)+'</span>':'')+'</div>'
   +'<nav class="side">'+navBtns()+'</nav>'
   +'<div class="side-stats">'
   +'<div class="row"><span>现金</span><b class="num'+(G.cash<0?' neg':'')+'">'+fmt(G.cash)+'</b></div>'
@@ -3184,7 +3241,7 @@ function pageHome(){
 "use strict";
 /* ---------------- 各页面 ---------------- */
 function abBar(p){
-  return '<div class="ab-wrap"><div class="bar '+(p.ab>=75?'g':(p.ab>=62?'':'o'))+'"><i style="width:'+p.ab+'%"></i></div><b class="num">'+p.ab+'</b></div>';
+  return '<div class="ab-wrap"><div class="bar '+(p.ab>=75?'g':(p.ab>=62?'':'o'))+'"><i style="width:'+Math.min(100,p.ab)+'%"></i></div><b class="num">'+p.ab+'</b></div>';
 }
 function posPill(pos){ var c= pos==='前锋'?'fw': pos==='中场'?'mf': pos==='后卫'?'df':'gk'; return '<span class="pill '+c+'">'+pos+'</span>'; }
 function pageMarket(){
@@ -3718,12 +3775,14 @@ var CREATOR_POS_TAG={
 };
 function creatorPosTag(s){ return CREATOR_POS_TAG[s.id] || s.tag; }
 /* 专属等级标志：按能力值自动判定，每个球员一个——
+   100 及以上 超凡巨星（紫金，只有后台私人定制球星能达到）/
    93–99 传奇巨星（红金）/ 88–92 世界级（金色）/ 80–87 顶级球星（银色）/
    70–79 主力悍将（蓝色）/ 60–69 及以下 未来之星（绿色）。
    适用于图鉴全部条目（传奇组、各位置组、中超组、卡包限定巅峰预览）；
    创作者三个链接条目不加等级标志（已有精英球员+创作者偶像+创作者+链接球员四个标志） */
 function abilityTier(ab){
   ab=+ab||0;
+  if(ab>=100) return {name:'超凡巨星', cls:'tier0'};
   if(ab>=93) return {name:'传奇巨星', cls:'tier1'};
   if(ab>=88) return {name:'世界级', cls:'tier2'};
   if(ab>=80) return {name:'顶级球星', cls:'tier3'};
@@ -3743,8 +3802,17 @@ function starBadgesHTML(s){
   if(s.idol) parts.push('<span class="pill idol">👑 创作者偶像</span>');
   return parts.join(' ');
 }
+/* 私人定制球星：只通过后台邮件获得（p.custom=true，p.star='custom-<邮件id>'），
+   不在 STARS 图鉴里，所以 playerBadgesHTML 要先于图鉴查表处理：
+   等级标志（能力可超 99，100+ 是超凡巨星）+「👑 私人定制」金标志 + 他自己的标签 */
+function isCustomPlayer(p){ return !!(p && (p.custom || (typeof p.star==='string' && p.star.indexOf('custom-')===0))); }
 function playerBadgesHTML(p){
   if(!p) return '';
+  if(isCustomPlayer(p)){
+    var cparts=[tierPillHTML(p.ab), '<span class="pill custom">👑 私人定制</span>'];
+    if(p.customTags instanceof Array) p.customTags.slice(0,3).forEach(function(t){ if(t) cparts.push('<span class="pill ctag">'+esc(String(t))+'</span>'); });
+    return cparts.join(' ');
+  }
   var s=null;
   if(typeof STARS!=='undefined' && p.star) STARS.forEach(function(x){ if(x.id===p.star) s=x; });
   if(!s && p.peak && typeof peakById==='function') s=peakById(p.peak); // 卡包限定巅峰球员：只有等级标志
@@ -4203,7 +4271,7 @@ function lobbyHTML(){
   +'<div class="respill"><button class="rmain" onclick="go(\'squad\')" title="球队士气，点开阵容页">⚡ <b class="num">'+G.morale+'/100</b></button><button class="rplus" onclick="go(\'ops\')" aria-label="去运营活动提升士气" title="去运营活动提升士气">+</button></div>'
   +'</div></div>'
   +'<div class="lobby-row2">'
-  +'<button class="lobby-profile" onclick="go(\'club\')" title="点开俱乐部页：设施、银行、王朝评级与成就"><span class="pshield">🛡️</span><span><span class="pname">经理人 · '+esc(G.club)+'</span><span class="plv">Lv.'+lv+' <span class="lvlbar"><i style="width:'+pct+'%"></i></span></span><span class="psub">'+d.short+' 第 '+myRank()+' 名 · '+G.mon+'月'+G.day+'日 · 声望 '+G.rep+' · 球迷 '+fmtFans(G.fans)+' · 满意度 '+(G.fanSat==null?62:G.fanSat)+'</span></span></button>'
+  +'<button class="lobby-profile" onclick="go(\'club\')" title="点开俱乐部页：设施、银行、王朝评级与成就"><span class="pshield">🛡️</span><span><span class="pname">经理人 · '+esc(G.club)+'</span>'+(G.customTitle? ' <span class="pill custom">👑 '+esc(G.customTitle)+'</span>':'')+'<span class="plv">Lv.'+lv+' <span class="lvlbar"><i style="width:'+pct+'%"></i></span></span><span class="psub">'+d.short+' 第 '+myRank()+' 名 · '+G.mon+'月'+G.day+'日 · 声望 '+G.rep+' · 球迷 '+fmtFans(G.fans)+' · 满意度 '+(G.fanSat==null?62:G.fanSat)+'</span></span></button>'
   +'</div>'
   + posterCarouselHTML()
   +'<button class="pwall-entry" onclick="showPosterWall()"><span class="pw-i">🖼️</span><span>海报墙 · 三张海报<small>C罗致敬海报 · 梅西反向海报 · 创作者海报 — 查看大图 / 删除 / 恢复</small></span><span class="pw-go">›</span></button>'

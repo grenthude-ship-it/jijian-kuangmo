@@ -239,6 +239,34 @@
         .note-row { flex-wrap: wrap; }
       }
 
+      /* ---------- 发邮件增强 ---------- */
+      .checkline label.check {
+        display: flex; align-items: center; gap: 8px; margin: 0;
+        font-size: 14px; color: var(--ink); font-weight: 600; cursor: pointer;
+      }
+      .checkline input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--gold); flex: none; }
+      input:disabled { opacity: .45; }
+      .hint { color: var(--ink-3); font-size: 12.5px; margin: 5px 0 0; }
+      .seg { display: flex; gap: 6px; }
+      .seg-btn {
+        flex: 1; background: var(--bg-2); border: 1px solid var(--line); color: var(--ink-2);
+        border-radius: var(--radius-s); font-weight: 600; padding: 0 10px;
+      }
+      .seg-btn.active { border-color: var(--gold); color: var(--gold-2); background: var(--panel-2); }
+      .custom-box {
+        border: 1px solid var(--gold); border-radius: var(--radius);
+        padding: 16px; background: var(--bg-2); margin-bottom: 14px;
+      }
+      .custom-box .cb-title { font-size: 14.5px; font-weight: 700; color: var(--gold-2); margin: 0 0 12px; }
+      .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+      .chip {
+        min-height: 34px; padding: 0 13px; border-radius: 999px;
+        background: var(--panel); border: 1px solid var(--line); color: var(--ink-2); font-size: 13.5px;
+      }
+      .chip.on { border-color: var(--gold); color: var(--gold-ink); background: var(--gold); font-weight: 700; }
+      .pill.tag { border-color: var(--gold); color: var(--gold-2); }
+      .pill.all { border-color: var(--gold); color: var(--gold-ink); background: var(--gold); font-weight: 700; }
+
       /* ---------- 提示条 ---------- */
       .toast {
         position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
@@ -400,7 +428,7 @@
           <div class="panel">
             <h2>给玩家发邮件</h2>
             <p class="desc">邮件会发到玩家的游戏邮箱，附件道具在玩家领取时到账。同步到线上后生效。</p>
-            <div class="info-note">说明：附件全填 0 就是只发消息不送道具。玩家在游戏邮箱里能看到这条消息并标为已读，不会收到任何道具，可以直接发送。</div>
+            <div class="info-note">说明：附件全填 0 就是只发消息不送道具。玩家在游戏邮箱里能看到这条消息并标为已读，不会收到任何道具，可以直接发送。还可以发私人定制球星（能力值最高 120，超过图鉴最高的 99）、自定义称号和全服邮件，选项都在下面的表单里。</div>
             <form id="mailForm" autocomplete="off">
               <div class="grid2">
                 <div class="field">
@@ -412,9 +440,29 @@
                   <input type="text" id="mailTitle" placeholder="例如：活动奖励" maxlength="60" />
                 </div>
               </div>
+              <div class="field checkline">
+                <label class="check" for="mailAll"><input type="checkbox" id="mailAll" /> 发给全部玩家（全服邮件，勾上后收件人可以留空）</label>
+              </div>
               <div class="field">
                 <label for="mailBody">邮件正文 <span class="opt">（可不填）</span></label>
                 <textarea id="mailBody" rows="3" placeholder="写给玩家的话" maxlength="500"></textarea>
+              </div>
+              <div class="grid2">
+                <div class="field">
+                  <label for="mailTag">邮件标签</label>
+                  <select id="mailTag">
+                    <option value="">自动（有定制球星=私人定制，有附件=奖励，没附件=通知）</option>
+                    <option value="奖励">奖励</option>
+                    <option value="通知">通知</option>
+                    <option value="活动">活动</option>
+                    <option value="补偿">补偿</option>
+                    <option value="私人定制">私人定制</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="mailCustomTitle">自定义称号 <span class="opt">（可不填，填了随邮件送出）</span></label>
+                  <input type="text" id="mailCustomTitle" placeholder="例如：球王、豪门传奇" maxlength="20" />
+                </div>
               </div>
               <div class="grid3">
                 <div class="field">
@@ -437,24 +485,97 @@
                   <label for="itShards">附件 · 碎片</label>
                   <input type="number" id="itShards" min="0" step="1" value="0" />
                 </div>
-                <div class="field">
-                  <label for="itPlayer">附件 · 球星</label>
-                  <select id="itPlayer">
-                    <option value="">不送球星</option>
-                    <option value="ronaldo">C罗</option>
-                    <option value="messi">梅西</option>
-                    <option value="neymar">内马尔</option>
-                    <option value="modric">莫德里奇</option>
-                    <option value="debruyne">德布劳内</option>
-                    <option value="lewandowski">莱万</option>
-                    <option value="son">孙兴慜</option>
-                    <option value="ramos">拉莫斯</option>
-                    <option value="kroos">克罗斯</option>
-                    <option value="benzema">本泽马</option>
-                    <option value="creator-gk">创作者守门员</option>
-                    <option value="creator-mf">创作者中场</option>
-                    <option value="creator-fw">创作者前锋</option>
-                  </select>
+              </div>
+              <div class="field">
+                <label>附件 · 球星 <span class="opt">（图鉴球星和私人定制球星二选一，一次只送一个）</span></label>
+                <div class="seg" role="radiogroup" aria-label="球员来源">
+                  <button type="button" class="seg-btn active" id="srcGalleryBtn">图鉴球星</button>
+                  <button type="button" class="seg-btn" id="srcCustomBtn">私人定制球星</button>
+                </div>
+              </div>
+              <div class="field" id="galleryPick">
+                <label for="itPlayer">选择图鉴球星</label>
+                <select id="itPlayer">
+                  <option value="">不送球星</option>
+                  <option value="ronaldo">C罗</option>
+                  <option value="messi">梅西</option>
+                  <option value="neymar">内马尔</option>
+                  <option value="modric">莫德里奇</option>
+                  <option value="debruyne">德布劳内</option>
+                  <option value="lewandowski">莱万</option>
+                  <option value="son">孙兴慜</option>
+                  <option value="ramos">拉莫斯</option>
+                  <option value="kroos">克罗斯</option>
+                  <option value="benzema">本泽马</option>
+                  <option value="creator-gk">创作者守门员</option>
+                  <option value="creator-mf">创作者中场</option>
+                  <option value="creator-fw">创作者前锋</option>
+                </select>
+              </div>
+              <div class="custom-box" id="customForm" hidden>
+                <p class="cb-title">私人定制球星</p>
+                <div class="grid2">
+                  <div class="field">
+                    <label for="cpName">球员名字</label>
+                    <input type="text" id="cpName" placeholder="例如：邓小明" maxlength="20" />
+                  </div>
+                  <div class="field">
+                    <label for="cpPos">位置</label>
+                    <select id="cpPos">
+                      <option value="守门员">守门员</option>
+                      <option value="中场">中场</option>
+                      <option value="前锋" selected>前锋</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="cpAb">能力值（1–120）</label>
+                    <input type="number" id="cpAb" min="1" max="120" step="1" value="100" />
+                    <p class="hint">100 以上就超过图鉴里所有球星，图鉴最高是 99。</p>
+                  </div>
+                  <div class="field">
+                    <label for="cpPrice">身价（万）</label>
+                    <input type="number" id="cpPrice" min="0" step="1" value="5000" />
+                    <p class="hint">默认按能力值 × 50 自动算，也可以自己改。</p>
+                  </div>
+                  <div class="field">
+                    <label for="cpImg">头像</label>
+                    <select id="cpImg">
+                      <option value="gold-star">默认金色星标</option>
+                      <option value="ronaldo">C罗的照片</option>
+                      <option value="messi">梅西的照片</option>
+                      <option value="neymar">内马尔的照片</option>
+                      <option value="modric">莫德里奇的照片</option>
+                      <option value="debruyne">德布劳内的照片</option>
+                      <option value="lewandowski">莱万的照片</option>
+                      <option value="son">孙兴慜的照片</option>
+                      <option value="ramos">拉莫斯的照片</option>
+                      <option value="kroos">克罗斯的照片</option>
+                      <option value="benzema">本泽马的照片</option>
+                      <option value="creator-gk">创作者守门员的照片</option>
+                      <option value="creator-mf">创作者中场的照片</option>
+                      <option value="creator-fw">创作者前锋的照片</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="cpNote">备注 <span class="opt">（可不填）</span></label>
+                    <input type="text" id="cpNote" placeholder="例如：老板专属定制" maxlength="100" />
+                  </div>
+                </div>
+                <div class="field" style="margin-bottom:0">
+                  <label>标签 <span class="opt">（点选预设标签，再加自定义标签，总共最多 3 个）</span></label>
+                  <div class="chips" id="cpTagChips">
+                    <button type="button" class="chip" data-tag="队长">队长</button>
+                    <button type="button" class="chip" data-tag="射手王">射手王</button>
+                    <button type="button" class="chip" data-tag="铁壁">铁壁</button>
+                    <button type="button" class="chip" data-tag="速度之王">速度之王</button>
+                    <button type="button" class="chip" data-tag="中场大师">中场大师</button>
+                    <button type="button" class="chip" data-tag="金靴">金靴</button>
+                    <button type="button" class="chip" data-tag="最佳球员">最佳球员</button>
+                    <button type="button" class="chip" data-tag="限量版">限量版</button>
+                    <button type="button" class="chip" data-tag="传奇">传奇</button>
+                    <button type="button" class="chip" data-tag="未来之星">未来之星</button>
+                  </div>
+                  <input type="text" id="cpTagCustom" placeholder="自定义标签（可不填，填了也算 1 个）" maxlength="10" style="margin-top:9px" />
                 </div>
               </div>
               <button type="submit" class="btn-gold">发送</button>
@@ -508,6 +629,13 @@
               <button class="btn-ghost" id="dlJsonBtn" type="button">下载 admin-data.json</button>
             </div>
             <div class="sync-note"><b>同步方法：</b>改完后把这个 JSON 发给管理员同步到线上，玩家那边才会生效。本页的修改只保存在这台设备的浏览器里，不会自动上传。</div>
+            <div class="info-note" style="margin:14px 0 0">
+              <b>邮件字段说明（发邮件页签的新玩法）：</b><br />
+              · <b>tag</b>：邮件标签，取值 奖励 / 通知 / 活动 / 补偿 / 私人定制。<br />
+              · <b>items.customPlayer</b>：私人定制球星，包含 name（名字）、pos（位置：守门员/中场/前锋）、ab（能力值 1–120）、price（身价，单位万）、img（头像：图鉴球星 id 或 gold-star 金色星标）、tags（标签数组，最多 3 个）、note（备注）。只在发定制球星时出现；发图鉴球星时没有这个字段，照常用 items.playerId，且有 customPlayer 时 playerId 为 null。<br />
+              · <b>items.customTitle</b>：自定义称号，没填称号时为 null。<br />
+              · <b>to = '*'</b>：全服邮件，发给全部玩家；普通邮件的 to 是收件人用户名。
+            </div>
           </div>
         </section>
       </div>
@@ -629,16 +757,37 @@
             d.mail = raw.mail.filter(function (m) { return m && typeof m.to === 'string'; }).map(function (m) {
               var it = (m.items && typeof m.items === 'object') ? m.items : {};
               function num(v) { v = Number(v); return (isFinite(v) && v > 0) ? Math.floor(v) : 0; }
+              var items = {
+                diamonds: num(it.diamonds), cash: num(it.cash), vouchers: num(it.vouchers),
+                trialCards: num(it.trialCards), shards: num(it.shards),
+                playerId: (typeof it.playerId === 'string' && it.playerId) ? it.playerId : null,
+                customTitle: (typeof it.customTitle === 'string' && it.customTitle) ? it.customTitle : null
+              };
+              var rawCp = (it.customPlayer && typeof it.customPlayer === 'object') ? it.customPlayer : null;
+              if (rawCp && typeof rawCp.name === 'string' && rawCp.name) {
+                var cpAb = Math.floor(Number(rawCp.ab));
+                if (!isFinite(cpAb) || cpAb < 1) cpAb = 100;
+                if (cpAb > 120) cpAb = 120;
+                var cpPrice = Math.floor(Number(rawCp.price));
+                if (!isFinite(cpPrice) || cpPrice < 0) cpPrice = cpAb * 50;
+                items.customPlayer = {
+                  name: rawCp.name,
+                  pos: (rawCp.pos === '守门员' || rawCp.pos === '中场' || rawCp.pos === '前锋') ? rawCp.pos : '前锋',
+                  ab: cpAb,
+                  price: cpPrice,
+                  img: (typeof rawCp.img === 'string' && rawCp.img) ? rawCp.img : 'gold-star',
+                  tags: Array.isArray(rawCp.tags) ? rawCp.tags.filter(function (t) { return typeof t === 'string' && t; }).slice(0, 3) : [],
+                  note: typeof rawCp.note === 'string' ? rawCp.note : ''
+                };
+                items.playerId = null;
+              }
               return {
                 id: typeof m.id === 'string' ? m.id : ('m-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)),
                 to: m.to,
                 title: typeof m.title === 'string' ? m.title : '',
                 body: typeof m.body === 'string' ? m.body : '',
-                items: {
-                  diamonds: num(it.diamonds), cash: num(it.cash), vouchers: num(it.vouchers),
-                  trialCards: num(it.trialCards), shards: num(it.shards),
-                  playerId: (typeof it.playerId === 'string' && it.playerId) ? it.playerId : null
-                },
+                tag: (typeof m.tag === 'string' && m.tag) ? m.tag : null,
+                items: items,
                 sentAt: typeof m.sentAt === 'string' ? m.sentAt : isoNow(),
                 expiresAt: m.expiresAt == null ? null : String(m.expiresAt)
               };
@@ -880,6 +1029,12 @@
           if (it.trialCards) parts.push('试用卡 ×' + it.trialCards);
           if (it.shards) parts.push('碎片 ×' + it.shards);
           if (it.playerId) parts.push('球星：' + (PLAYER_NAMES[it.playerId] || it.playerId));
+          if (it.customPlayer) {
+            var cpTxt = '私人定制球星：' + it.customPlayer.name + '（' + (it.customPlayer.pos || '') + ' · 能力 ' + it.customPlayer.ab + ' · 身价 ' + it.customPlayer.price + ' 万）';
+            if (it.customPlayer.tags && it.customPlayer.tags.length) cpTxt += '［标签：' + it.customPlayer.tags.join('、') + '］';
+            parts.push(cpTxt);
+          }
+          if (it.customTitle) parts.push('称号：' + it.customTitle);
           return parts.length ? parts.join('、') : '无附件';
         }
 
@@ -893,9 +1048,13 @@
           }
           var list = data.mail.slice().reverse();
           box.innerHTML = list.map(function (m) {
+            var tagPill = m.tag ? '<span class="pill tag">' + esc(m.tag) + '</span>' : '';
+            var toHtml = (m.to === '*')
+              ? '<span style="color:var(--gold-2)">全服（所有玩家）</span><span class="pill all">全服</span>'
+              : '<span style="color:var(--gold-2)">' + esc(m.to) + '</span>';
             return '<div class="row-card"><div class="main">' +
-              '<div class="title-line">' + esc(m.title || '（无标题）') + '</div>' +
-              '<div class="meta"><span class="k">收件人：</span><span style="color:var(--gold-2)">' + esc(m.to) + '</span></div>' +
+              '<div class="title-line">' + esc(m.title || '（无标题）') + tagPill + '</div>' +
+              '<div class="meta"><span class="k">收件人：</span>' + toHtml + '</div>' +
               '<div class="meta"><span class="k">附件：</span>' + esc(itemsSummary(m.items)) + '</div>' +
               '<div class="meta"><span class="k">发送时间：</span>' + esc(fmtTime(m.sentAt)) + '</div>' +
               '</div><button type="button" class="btn-danger" data-delmail="' + esc(m.id) + '">删除</button></div>';
@@ -1058,33 +1217,113 @@
           var v = Number($(id).value);
           return (isFinite(v) && v > 0) ? Math.floor(v) : 0;
         }
+
+        // 球员来源二选一：图鉴球星 / 私人定制球星
+        var playerSrc = 'gallery';
+        function setPlayerSrc(src) {
+          playerSrc = src;
+          $('srcGalleryBtn').classList.toggle('active', src === 'gallery');
+          $('srcCustomBtn').classList.toggle('active', src === 'custom');
+          $('galleryPick').hidden = (src !== 'gallery');
+          $('customForm').hidden = (src !== 'custom');
+        }
+        $('srcGalleryBtn').addEventListener('click', function () { setPlayerSrc('gallery'); });
+        $('srcCustomBtn').addEventListener('click', function () { setPlayerSrc('custom'); });
+
+        // 定制球星标签点选（预设 + 自定义，总共最多 3 个）
+        function selectedPresetTags() {
+          var out = [];
+          var chips = $('cpTagChips').querySelectorAll('.chip.on');
+          for (var i = 0; i < chips.length; i++) out.push(chips[i].getAttribute('data-tag'));
+          return out;
+        }
+        var chipBtns = $('cpTagChips').querySelectorAll('.chip');
+        for (var ci = 0; ci < chipBtns.length; ci++) {
+          chipBtns[ci].addEventListener('click', function () {
+            if (this.classList.contains('on')) { this.classList.remove('on'); return; }
+            var total = selectedPresetTags().length + ($('cpTagCustom').value.trim() ? 1 : 0);
+            if (total >= 3) { toast('标签最多选 3 个'); return; }
+            this.classList.add('on');
+          });
+        }
+        // 能力值变了，身价自动按 能力值 × 50 重算（之后仍可手动改）
+        $('cpAb').addEventListener('input', function () {
+          var ab = Math.floor(Number(this.value));
+          if (isFinite(ab) && ab > 0) $('cpPrice').value = ab * 50;
+        });
+        // 勾选全服后收件人输入框禁用（可以留空）
+        $('mailAll').addEventListener('change', function () {
+          $('mailTo').disabled = this.checked;
+        });
+
         $('mailForm').addEventListener('submit', function (ev) {
           ev.preventDefault();
-          var to = $('mailTo').value.trim();
+          var all = $('mailAll').checked;
+          var to = all ? '*' : $('mailTo').value.trim();
           var title = $('mailTitle').value.trim();
           var body = $('mailBody').value.trim();
           var err = $('mailErr'), ok = $('mailOk');
           err.textContent = ''; ok.textContent = '';
-          if (!to) { err.textContent = '请填写收件人用户名。'; return; }
+          if (!all && !to) { err.textContent = '请填写收件人用户名，或勾选「发给全部玩家」。'; return; }
           if (!title) { err.textContent = '请填写邮件标题。'; return; }
           var items = {
             diamonds: numVal('itDiamonds'), cash: numVal('itCash'), vouchers: numVal('itVouchers'),
             trialCards: numVal('itTrial'), shards: numVal('itShards'),
-            playerId: $('itPlayer').value ? $('itPlayer').value : null
+            playerId: null,
+            customTitle: $('mailCustomTitle').value.trim() || null
           };
+          var customPlayer = null;
+          if (playerSrc === 'custom') {
+            var cpName = $('cpName').value.trim();
+            if (!cpName) { err.textContent = '私人定制球星要填写球员名字。'; return; }
+            var cpAb = Math.floor(Number($('cpAb').value));
+            if (!isFinite(cpAb) || cpAb < 1 || cpAb > 120) { err.textContent = '能力值要填 1–120 之间的数字。'; return; }
+            var cpPrice = Math.floor(Number($('cpPrice').value));
+            if (!isFinite(cpPrice) || cpPrice < 0) cpPrice = cpAb * 50;
+            var cpTags = selectedPresetTags();
+            var cpCustomTag = $('cpTagCustom').value.trim();
+            if (cpCustomTag) cpTags.push(cpCustomTag);
+            if (cpTags.length > 3) { err.textContent = '标签总共最多 3 个，请去掉一些。'; return; }
+            customPlayer = {
+              name: cpName,
+              pos: $('cpPos').value,
+              ab: cpAb,
+              price: cpPrice,
+              img: $('cpImg').value,
+              tags: cpTags,
+              note: $('cpNote').value.trim()
+            };
+          } else {
+            items.playerId = $('itPlayer').value ? $('itPlayer').value : null;
+          }
+          if (customPlayer) items.customPlayer = customPlayer;
+          // 邮件标签：手动选了就用手动的；选「自动」按内容判断
+          var tag = $('mailTag').value;
+          if (!tag) {
+            var hasAttach = items.diamonds || items.cash || items.vouchers || items.trialCards ||
+              items.shards || items.playerId || items.customTitle;
+            tag = customPlayer ? '私人定制' : (hasAttach ? '奖励' : '通知');
+          }
           // 附件全填 0 允许发送：只发消息不送道具，不做拦截
           var mail = {
             id: 'm-' + Date.now() + '-' + Math.floor(Math.random() * 1e6),
-            to: to, title: title, body: body, items: items,
+            to: to, title: title, body: body, tag: tag, items: items,
             sentAt: isoNow(), expiresAt: null
           };
           data.mail.push(mail);
           touch();
           $('mailTo').value = ''; $('mailTitle').value = ''; $('mailBody').value = '';
+          $('mailAll').checked = false; $('mailTo').disabled = false;
+          $('mailTag').value = ''; $('mailCustomTitle').value = '';
           ['itDiamonds', 'itCash', 'itVouchers', 'itTrial', 'itShards'].forEach(function (id) { $(id).value = '0'; });
           $('itPlayer').value = '';
-          ok.textContent = '已发送给 ' + to + '（同步到线上后玩家可见）。';
-          toast('邮件已发送给：' + to);
+          setPlayerSrc('gallery');
+          $('cpName').value = ''; $('cpPos').value = '前锋'; $('cpAb').value = '100'; $('cpPrice').value = '5000';
+          $('cpImg').value = 'gold-star'; $('cpNote').value = ''; $('cpTagCustom').value = '';
+          var onChips = $('cpTagChips').querySelectorAll('.chip.on');
+          for (var oi = 0; oi < onChips.length; oi++) onChips[oi].classList.remove('on');
+          ok.textContent = all ? '全服邮件已发送（同步到线上后所有玩家可见）。' : ('已发送给 ' + to + '（同步到线上后玩家可见）。');
+          toast(all ? '全服邮件已发送' : ('邮件已发送给：' + to));
         });
 
         /* ---------- 公告 ---------- */
