@@ -1,4 +1,4 @@
-const CACHE = 'haomen-v52';
+const CACHE = 'haomen-v53';
 const ASSETS = ["zu-qiu-kuang-mo.html", "manifest.webmanifest", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "logo.png", "messi-reverse-fixed.jpg", "photo-25.jpg", "photo-26.jpg", "photo-32.jpg", "tribute-cr7.webp"];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(ASSETS.map(u => c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()));
