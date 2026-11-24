@@ -3,9 +3,9 @@
   "short_name": "豪门缔造者",
   "description": "从中乙到中超冠军的足球俱乐部经营游戏",
   "display": "standalone",
-  "orientation": "any",
-  "background_color": "#101d29",
-  "theme_color": "#101d29",
+  "orientation": "landscape",
+  "background_color": "#040805",
+  "theme_color": "#040805",
   "start_url": "zu-qiu-kuang-mo.html",
   "scope": "./",
   "icons": [
