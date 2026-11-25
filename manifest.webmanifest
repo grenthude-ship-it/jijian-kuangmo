@@ -4,8 +4,8 @@
   "description": "从中乙到中超冠军的足球俱乐部经营游戏",
   "display": "standalone",
   "orientation": "landscape",
-  "background_color": "#040805",
-  "theme_color": "#040805",
+  "background_color": "#16234d",
+  "theme_color": "#16234d",
   "start_url": "zu-qiu-kuang-mo.html",
   "scope": "./",
   "icons": [
