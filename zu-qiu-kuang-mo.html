@@ -107,7 +107,7 @@ img{display:block}
 
 /* ---------- 底部导航 ---------- */
 #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:60;background:rgba(8,13,34,.97);border-top:1px solid var(--line);backdrop-filter:blur(10px)}
-#tabbar .tb-in2{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:repeat(7,1fr)}
+#tabbar .tb-in2{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:repeat(8,1fr)}
 #tabbar button{padding:8px 2px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--dim);font-weight:600;position:relative}
 #tabbar button .ti{font-size:21px;line-height:1.1;filter:grayscale(.4);opacity:.85}
 #tabbar button.on{color:#fff}
@@ -235,6 +235,28 @@ label.fl{display:block;font-size:13px;color:var(--dim);margin:10px 0 5px;font-we
 .season-end .trophy{font-size:64px}
 .season-end h2{font-size:26px;margin:8px 0}
 
+/* ---------- 充值 / VIP / 杯赛 ---------- */
+.banner{position:relative;display:flex;align-items:center;gap:14px;width:100%;margin-top:14px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,207,77,.55);padding:0;text-align:left;color:var(--ink);min-height:88px;background:#0a1430}
+.banner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5}
+.banner::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,8,24,.88),rgba(4,8,24,.3))}
+.banner-tx{position:relative;z-index:2;padding:14px 0 14px 16px;display:flex;flex-direction:column;gap:2px}
+.banner-tx b{font-size:17px}
+.banner-tx small{color:#c7d4f5}
+.banner-go{position:relative;z-index:2;margin-left:auto;margin-right:16px;background:linear-gradient(180deg,#ffd964,#f0a81c);color:#3a2400;font-weight:900;padding:9px 16px;border-radius:10px;white-space:nowrap;flex:none}
+.tier{position:relative;text-align:center;overflow:hidden}
+.tier-tag{position:absolute;top:12px;right:-32px;transform:rotate(38deg);background:var(--red);color:#fff;font-size:11px;font-weight:800;padding:2px 36px}
+.vipcard{position:relative;overflow:hidden}
+.vipcard .vipbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35}
+.vipcard::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,8,24,.9),rgba(4,8,24,.4))}
+.vipin{position:relative;z-index:2;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between}
+.vipcard p{position:relative;z-index:2}
+.cupcard{display:flex;align-items:center;gap:16px;margin-top:14px;flex-wrap:wrap}
+.cupcard img{width:220px;height:98px;object-fit:cover;border-radius:10px;flex:none}
+.cupcard .cupcard-tx{flex:1;min-width:180px}
+.qrbox{text-align:center}
+.qrbox img{width:230px;max-width:78vw;margin:10px auto;border-radius:12px;border:1px solid var(--line)}
+@media(max-width:640px){.cupcard img{width:100%;height:120px}.banner-go{padding:8px 12px}}
+
 /* 响应式 */
 @media(max-width:900px){.g3{grid-template-columns:repeat(2,1fr)}.packrow{grid-template-columns:1fr}}
 @media(max-width:640px){
@@ -277,7 +299,7 @@ label.fl{display:block;font-size:13px;color:var(--dim);margin:10px 0 5px;font-we
     </div>
     <div class="tb-res">
       <div class="pill"><span class="ic">🪙</span><span id="tbCoins">0</span><small>金币</small></div>
-      <div class="pill"><span class="ic">💎</span><span id="tbGems">0</span><small>钻石</small><span class="plus" onclick="go('shop')">+</span></div>
+      <div class="pill"><span class="ic">💎</span><span id="tbGems">0</span><small>钻石</small><span class="plus" onclick="openRecharge()">+</span></div>
       <div class="pill"><span class="ic">🎟️</span><span id="tbTickets">0</span><small>抽卡券</small></div>
       <div class="pill"><span class="ic">⚡</span><span id="tbEnergy">0</span><small>体力</small></div>
     </div>
@@ -304,6 +326,12 @@ label.fl{display:block;font-size:13px;color:var(--dim);margin:10px 0 5px;font-we
         </div>
       </div>
     </div>
+
+    <button class="banner" onclick="openRecharge()">
+      <img src="photo-78.webp" alt="VIP 贵宾厅与奖杯钻石">
+      <span class="banner-tx"><b>💎 充值中心 · VIP</b><small id="bannerVip">首充双倍 · 钻石秒到账 · 累充升 VIP 领每日礼包</small></span>
+      <span class="banner-go">去充值 ›</span>
+    </button>
 
     <div class="quick">
       <button onclick="openSignin()"><span class="qi">📅</span>每日签到<span class="dot" id="dotSign" style="display:none"></span></button>
@@ -339,8 +367,18 @@ label.fl{display:block;font-size:13px;color:var(--dim);margin:10px 0 5px;font-we
         <div class="kv"><span class="mut">联赛排名</span><b id="ovRank">—</b></div>
         <div class="kv"><span class="mut">赛季战绩</span><b id="ovRecord">—</b></div>
         <div class="kv"><span class="mut">球队士气</span><b id="ovMorale">—</b></div>
+        <div class="kv"><span class="mut">队内射手王</span><b id="ovScorer">—</b></div>
         <div class="kv"><span class="mut">传奇天梯</span><b id="ovLadder">—</b></div>
       </div>
+    </div>
+
+    <div class="card cupcard">
+      <img src="photo-79.webp" alt="冠军杯金色奖杯">
+      <div class="cupcard-tx">
+        <h3>🏆 冠军杯 · 淘汰赛</h3>
+        <p class="small mut" id="cupStatus">八强、半决赛、决赛，三连胜捧杯，平局直接点球大战！</p>
+      </div>
+      <button class="btn gold" onclick="go('cup')">进入杯赛</button>
     </div>
 
     <h3 class="sec-t">⭐ 队内最佳</h3>
@@ -458,11 +496,12 @@ label.fl{display:block;font-size:13px;color:var(--dim);margin:10px 0 5px;font-we
       <div class="pack pack-gold">
         <div class="big">👑</div><h3>传奇包</h3>
         <p class="small mut">1 名球员 · 只出史诗与传奇</p>
-        <p style="margin:10px 0"><b>80 钻石</b></p>
+        <p style="margin:10px 0"><b><span id="legPrice">80</span> 钻石</b></p>
         <button class="btn sm gold" onclick="openPack('leg',1)">抽 1 次</button>
         <button class="btn sm ghost" onclick="openPack('leg',3)">抽 3 次</button>
       </div>
     </div>
+    <p class="small mut" id="pityInfo" style="margin-top:10px"></p>
     <div id="packReveal"></div>
     <h3 class="sec-t">📊 图鉴收集 <span class="small mut" style="font-weight:500" id="dexInfo"></span></h3>
     <div class="prog" style="max-width:none"><i id="dexBar" style="width:0%"></i></div>
@@ -478,8 +517,39 @@ label.fl{display:block;font-size:13px;color:var(--dim);margin:10px 0 5px;font-we
     <div id="sellList" class="pgrid"></div>
   </section>
 
+  <!-- ================= 杯赛 ================= -->
+  <section class="view" id="v-cup">
+    <div class="hero" style="min-height:170px">
+      <img class="bg" src="photo-79.webp" alt="冠军杯奖杯">
+      <div class="hero-in" style="min-height:170px">
+        <div class="hero-txt">
+          <div class="kick">KNOCKOUT CUP</div>
+          <h1 style="font-size:26px">🏆 冠军杯 · 淘汰赛</h1>
+          <p id="cupHead">三场定胜负，平局直接点球大战。赢一场，进一步，奖金翻着涨。</p>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>🗺️ 晋级之路</h3>
+      <div class="ladder" id="cupBracket"></div>
+      <div id="cupAction" style="margin-top:12px"></div>
+      <p class="small mut" id="cupLast" style="margin-top:8px"></p>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>🎖️ 杯赛奖励</h3>
+      <div class="kv"><span>八强赛获胜</span><b class="gold">🪙 1000</b></div>
+      <div class="kv"><span>半决赛获胜</span><b class="gold">🪙 2000 · 💎 15</b></div>
+      <div class="kv"><span>决赛夺冠</span><b class="gold">🪙 10000 · 💎 100 · 🎟️ ×3</b></div>
+      <div class="kv"><span class="mut">我的夺冠次数</span><b id="cupTitles">0 次</b></div>
+    </div>
+  </section>
+
   <!-- ================= 天梯 ================= -->
   <section class="view" id="v-challenge">
+    <div class="card" style="margin-bottom:14px;border-color:rgba(255,207,77,.55)">
+      <h3>📅 每日挑战 <span class="more" id="dcState"></span></h3>
+      <div id="dcBody"></div>
+    </div>
     <h3 class="sec-t" style="margin-top:4px">🏆 传奇天梯 <span class="small mut" style="font-weight:500">12 关传奇球队，逐关挑战，输了不扣进度</span></h3>
     <div class="card" style="margin-bottom:14px">
       <div class="kv"><span class="mut">当前进度</span><b id="ladProg">0 / 12</b></div>
@@ -513,16 +583,27 @@ label.fl{display:block;font-size:13px;color:var(--dim);margin:10px 0 5px;font-we
 
   <!-- ================= 商店 ================= -->
   <section class="view" id="v-shop">
-    <h3 class="sec-t" style="margin-top:4px">🛒 商店</h3>
+    <h3 class="sec-t" style="margin-top:4px">💎 充值中心</h3>
+    <div class="card vipcard">
+      <img class="vipbg" src="photo-78.webp" alt="VIP 贵宾厅">
+      <div class="vipin">
+        <div style="flex:1;min-width:200px">
+          <div class="b" style="font-size:18px">👑 <span id="vipName">VIP0 · 平民经理</span></div>
+          <div class="small" id="vipProgTx" style="color:#c7d4f5">累计充值 ¥0</div>
+          <div class="prog" style="max-width:280px"><i id="vipProgBar" style="width:0%"></i></div>
+        </div>
+        <button class="btn gold" id="vipGiftBtn" onclick="claimVipGift()">🎁 每日礼包</button>
+      </div>
+      <p class="small" style="color:#c7d4f5;margin-top:10px">VIP 特权：每日礼包（金币 + 钻石，等级越高越多）· 体力上限随等级提升 · 传奇包专属折扣（VIP3 起 9 折、VIP5 起 8 折）。</p>
+    </div>
+    <div class="grid g3" id="tierGrid" style="margin-top:14px"></div>
+    <p class="small mut" style="margin-top:10px">支付方式：微信扫码付款（收款人 邓**元）。付款时请在备注里写上你的俱乐部名，然后点该档位的「我已付款」按钮，钻石立即到账。每个档位首充双倍，终身仅一次。不想花钱也没关系：比赛、任务、天梯、杯赛照样能免费攒钻石。</p>
+    <h3 class="sec-t">🛒 金币商店</h3>
     <div class="grid g3" id="shopGrid"></div>
     <div class="card" style="margin-top:14px">
       <h3>🎡 幸运转盘</h3>
       <p class="small mut">每天免费转 1 次，之后每次 200 金币。金币、钻石、抽卡券、体力都有机会。</p>
       <button class="btn gold" style="margin-top:10px" onclick="openWheel()">去转转盘</button>
-    </div>
-    <div class="card" style="margin-top:14px">
-      <h3>💎 关于钻石</h3>
-      <p class="small mut">本重制版不设真实充值：钻石靠比赛、任务、成就、天梯和转盘免费获得。玩得越勤，阵容越强。</p>
     </div>
   </section>
 
@@ -537,6 +618,9 @@ label.fl{display:block;font-size:13px;color:var(--dim);margin:10px 0 5px;font-we
         <div class="kv"><span class="mut">累计比赛</span><b id="meMatches">0</b></div>
         <div class="kv"><span class="mut">胜 / 平 / 负</span><b id="meWDL">0 / 0 / 0</b></div>
         <div class="kv"><span class="mut">联赛冠军</span><b id="meTitles">0 次</b></div>
+        <div class="kv"><span class="mut">杯赛冠军</span><b id="meCups">0 次</b></div>
+        <div class="kv"><span class="mut">VIP 等级</span><b id="meVip" class="gold">VIP0</b></div>
+        <div class="kv"><span class="mut">累计充值</span><b id="meCharged">¥0</b></div>
         <div class="kv"><span class="mut">天梯进度</span><b id="meLadder">0 / 12</b></div>
         <div class="kv"><span class="mut">图鉴收集</span><b id="meDex">0</b></div>
         <label class="fl">俱乐部名称</label>
@@ -563,6 +647,9 @@ label.fl{display:block;font-size:13px;color:var(--dim);margin:10px 0 5px;font-we
       <div class="kv"><span>🏆 联赛</span><b class="mut" style="font-weight:500">10 队单循环 18 轮，赛季结算升降级</b></div>
       <div class="kv"><span>🎴 抽卡</span><b class="mut" style="font-weight:500">三种卡包，传奇图鉴收集</b></div>
       <div class="kv"><span>🔄 转会</span><b class="mut" style="font-weight:500">每日挂牌 + 砍价谈判，青训小将捡漏</b></div>
+      <div class="kv"><span>🏆 杯赛</span><b class="mut" style="font-weight:500">冠军杯淘汰赛，三连胜捧杯，平局点球大战</b></div>
+      <div class="kv"><span>📅 每日挑战</span><b class="mut" style="font-weight:500">每天一个新对手，赢了领钻石</b></div>
+      <div class="kv"><span>💎 充值</span><b class="mut" style="font-weight:500">微信扫码，首充双倍，VIP 每日礼包</b></div>
       <div class="kv"><span>🏆 天梯</span><b class="mut" style="font-weight:500">12 支传奇球队逐关挑战</b></div>
       <div class="kv"><span>📖 生涯</span><b class="mut" style="font-weight:500">剧情抉择影响声望 / 人心 / 董事会</b></div>
       <div class="kv"><span>🎯 任务</span><b class="mut" style="font-weight:500">每日任务 + 成就，奖励拿到手软</b></div>
@@ -575,7 +662,8 @@ label.fl{display:block;font-size:13px;color:var(--dim);margin:10px 0 5px;font-we
   <div class="tb-in2">
     <button data-go="home" class="on"><span class="ti">🏠</span>大厅</button>
     <button data-go="squad"><span class="ti">🛡️</span>阵容</button>
-    <button data-go="league"><span class="ti">🏆</span>联赛<span class="dot" id="dotLeague" style="display:none"></span></button>
+    <button data-go="league"><span class="ti">📊</span>联赛<span class="dot" id="dotLeague" style="display:none"></span></button>
+    <button data-go="cup"><span class="ti">🏆</span>杯赛</button>
     <button data-go="packs"><span class="ti">🎴</span>抽卡</button>
     <button data-go="market"><span class="ti">🔄</span>转会</button>
     <button data-go="tasks"><span class="ti">🎯</span>任务<span class="dot" id="dotTask2" style="display:none"></span></button>
@@ -740,6 +828,7 @@ var ACH = [
  {id:"w25",t:"累计获胜 25 场",goal:25,key:"wins",rw:{gems:25,tickets:1}},
  {id:"g100",t:"累计打进 100 球",goal:100,key:"goals",rw:{coins:5000}},
  {id:"title1",t:"夺得 1 次联赛冠军",goal:1,key:"titles",rw:{gems:50,tickets:2}},
+ {id:"cup1",t:"夺得 1 次冠军杯",goal:1,key:"cups",rw:{gems:80,tickets:2}},
  {id:"lad6",t:"天梯打通 6 关",goal:6,key:"ladder",rw:{gems:40}},
  {id:"lad12",t:"天梯全通关",goal:12,key:"ladder",rw:{gems:150,tickets:3}},
  {id:"dex30",t:"图鉴收集 30 名球员",goal:30,key:"dex",rw:{coins:4000}},
@@ -763,17 +852,40 @@ function defaultState(){
     stats:{matches:0,wins:0,draws:0,losses:0,goals:0,packs:0,trains:0,titles:0},
     daily:{date:"",prog:{},claimed:[]}, achClaimed:[],
     lastSign:"", wheelFree:"", marketDate:"", market:[], news:[],
-    dex:[], created:Date.now()
+    dex:[], created:Date.now(),
+    vipSpent:0, firstUsed:{}, vipGiftDate:"", pity:0, scorers:{}, cup:null, dailyChal:null, lastEnergyAt:0
   };
 }
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
 function load(){
-  try{ var raw = localStorage.getItem(SAVE_KEY); if(raw){ S = JSON.parse(raw); if(S && S.squad) return; } }catch(e){}
+  try{ var raw = localStorage.getItem(SAVE_KEY); if(raw){ S = JSON.parse(raw); if(S && S.squad){ var d = defaultState(); for(var k in d){ if(S[k]===undefined) S[k]=d[k]; } return; } } }catch(e){}
   S = defaultState(); save();
+}
+function vipLevel(){
+  var th = [0,6,30,68,128,328,648,1288,3288,6488], v = 0;
+  for(var i=1;i<th.length;i++) if((S.vipSpent||0) >= th[i]) v = i;
+  return v;
+}
+function energyCap(){ return 100 + vipLevel()*10; }
+function energyTick(){
+  var now = Date.now();
+  if(!S.lastEnergyAt){ S.lastEnergyAt = now; return; }
+  var gain = Math.floor((now - S.lastEnergyAt) / 120000);
+  if(gain <= 0) return;
+  var cap = energyCap();
+  if(S.energy < cap){ S.energy = Math.min(cap, S.energy + gain); save(); }
+  S.lastEnergyAt = (S.energy >= cap) ? now : S.lastEnergyAt + gain * 120000;
 }
 function dailyTick(){
   var t = todayStr(), changed = false;
+  energyTick();
   if(S.daily.date !== t){ S.daily = {date:t, prog:{}, claimed:[]}; changed = true; }
+  if(!S.dailyChal || S.dailyChal.date !== t){
+    var dnames = ["红魔青年军","蓝月预备队","铁血后备军","银河新星队","狂飙联队","磐石二队","猎鹰新军","烈焰预备队"];
+    var seed = 0; for(var ci=0; ci<t.length; ci++) seed += t.charCodeAt(ci) * (ci+3);
+    S.dailyChal = { date:t, name:dnames[seed % dnames.length], ovr: Math.max(60, Math.min(95, teamOvr() + (seed % 9) - 2)), done:false };
+    changed = true;
+  }
   if(S.marketDate !== t){
     S.marketDate = t; S.market = genMarket(); changed = true;
     pushNews("转会市场已刷新，今日有 "+S.market.length+" 名球员挂牌出售。");
@@ -876,10 +988,12 @@ function go(v){
   renderAll();
 }
 function renderAll(){
+  energyTick();
   refreshTop();
   if(CUR==="home") renderHome();
   else if(CUR==="squad") renderSquad();
   else if(CUR==="league") renderLeague();
+  else if(CUR==="cup") renderCup();
   else if(CUR==="packs") renderPacks();
   else if(CUR==="market") renderMarket();
   else if(CUR==="challenge") renderLadder();
@@ -918,7 +1032,15 @@ function renderHome(){
   $("ovRank").textContent = myRank() + " / 10（" + tier.name + "）";
   $("ovRecord").textContent = S.stats.wins + "胜 " + S.stats.draws + "平 " + S.stats.losses + "负";
   $("ovMorale").textContent = S.morale + (S.morale>=70 ? " · 高昂" : S.morale>=45 ? " · 平稳" : " · 低迷");
+  var topScorer = Object.keys(S.scorers||{}).filter(function(k){ return S.scorers[k]>0; }).sort(function(a,b){ return S.scorers[b]-S.scorers[a]; })[0];
+  $("ovScorer").textContent = topScorer ? P[topScorer].name + " · " + S.scorers[topScorer] + " 球" : "暂无进球记录";
   $("ovLadder").textContent = S.ladder + " / 12 关";
+  $("bannerVip").textContent = "当前 VIP" + vipLevel() + " · 累计充值 ¥" + (S.vipSpent||0) + " · 首充双倍，钻石秒到账";
+  var cc = S.cup;
+  $("cupStatus").textContent = !cc ? "新一届杯赛即将开打：八强赛、半决赛、决赛，三连胜捧杯！"
+    : cc.champion ? "🏆 卫冕冠军！已夺冠 " + (S.stats.cups||0) + " 次，进杯赛开启新一届继续卫冕。"
+    : !cc.alive ? "本届已出局，进杯赛重新开启新一届。"
+    : "进行中：" + ["八强赛","半决赛","决赛"][cc.round] + " vs " + cc.opps[cc.round].name + "（总评 " + cc.opps[cc.round].ovr + "），赢球奖金翻着涨。";
   var top = allPlayers().slice().sort(function(a,b){ return effOvr(b)-effOvr(a); }).slice(0,4);
   $("homeBest").innerHTML = top.map(function(id){ return pcardHTML(id); }).join("");
   if(S.news.length){
@@ -1102,6 +1224,15 @@ function seasonEnd(){
   st.forEach(function(r,i){ if(r.name==="ME"){ rank = i+1; me = r; } });
   var rw = rank===1?{coins:20000,gems:60,tickets:3}:rank===2?{coins:12000,gems:30,tickets:2}:rank===3?{coins:8000,gems:15,tickets:1}:rank<=6?{coins:4000}:{coins:1500};
   grant(rw);
+  var grown = [];
+  allPlayers().forEach(function(id){
+    var pp = P[id];
+    if(pp && pp.pot && effOvr(id) < pp.pot){
+      var g = Math.min(pp.pot - effOvr(id), 1 + Math.floor(Math.random()*3));
+      if(g > 0){ S.boosts[id] = (S.boosts[id]||0) + g; grown.push(pp.name + " +" + g); }
+    }
+  });
+  if(grown.length) pushNews("🌱 青训成长：一个赛季的磨练后，" + grown.join("、") + "。");
   if(rank===1){ S.stats.titles++; pushNews("🏆 冠军！球队夺得第 "+S.season+" 赛季 "+LEAGUE_TIERS[S.tier].name+" 冠军！"); }
   var oldTier = S.tier;
   if(rank<=2 && S.tier<3) S.tier++;
@@ -1136,12 +1267,17 @@ function pickName(grp){
   if(!c.length) c = S.squad;
   return P[c[Math.floor(Math.random()*c.length)]].name;
 }
+function pickId(grp){
+  var c = S.squad.filter(function(id){ return P[id].grp===grp; });
+  if(!c.length) c = S.squad;
+  return c[Math.floor(Math.random()*c.length)];
+}
 function startMatch(cfg){
   if(S.energy < 10){ toast("体力不足（需要 10），去商店补给或等任务奖励"); return; }
   S.energy -= 10;
   M = { kind:cfg.kind, comp:cfg.comp, oppName:cfg.name, oppOvr:cfg.ovr,
         min:0, hs:0, as:0, mom:50, subs:2, speed:1, timer:null, done:false,
-        tacAtk:0, tacDef:0, onDone:cfg.onDone };
+        tacAtk:0, tacDef:0, scorers:{}, onDone:cfg.onDone };
   $("mComp").textContent = cfg.comp;
   $("mHome").textContent = S.club; $("mAway").textContent = cfg.name;
   $("mHs").textContent = "0"; $("mAs").textContent = "0"; $("mClock").textContent = "0'";
@@ -1179,7 +1315,9 @@ function matchTick(){
   var r = Math.random();
   if(r < pMe){
     M.hs++; $("mHs").textContent = M.hs;
-    var scorer = pickName(Math.random()<0.72?"FW":"MF");
+    var scorerId = pickId(Math.random()<0.72?"FW":"MF");
+    var scorer = P[scorerId].name;
+    M.scorers[scorerId] = (M.scorers[scorerId]||0) + 1;
     addFeed(M.min, "⚽ <b>进球！</b> " + CHEERS[Math.floor(Math.random()*CHEERS.length)].replace("{s}", scorer) + " 球进了！<b>"+scorer+"</b> 为球队建功！", "goal");
     M.mom = Math.min(92, M.mom+10);
   } else if(r < pMe + pOpp){
@@ -1193,6 +1331,17 @@ function matchTick(){
     addFeed(M.min, TXT.chanceOpp + TXT.saveOpp.replace("{g}", pickName("GK")), "");
   } else if(r < pMe + pOpp + 0.105){
     addFeed(M.min, Math.random()<0.5 ? TXT.cardMe.replace("{s}", pickName("DF")) : TXT.cardOpp, "");
+  } else if(r < pMe + pOpp + 0.125){
+    if(Math.random() < 0.5){
+      var penId = pickId("FW"); M.hs++; $("mHs").textContent = M.hs;
+      M.scorers[penId] = (M.scorers[penId]||0) + 1;
+      addFeed(M.min, "⚽ <b>点球！</b> 对方后卫禁区内手球犯规，"+P[penId].name+" 冷静主罚，一蹴而就！", "goal");
+      M.mom = Math.min(92, M.mom+8);
+    } else {
+      M.as++; $("mAs").textContent = M.as;
+      addFeed(M.min, "🥅 对手获得点球并主罚命中……"+pickName("GK")+" 判断对了方向，还是慢了半步。", "goalopp");
+      M.mom = Math.max(8, M.mom-8);
+    }
   } else if(Math.random() < 0.16){
     addFeed(M.min, TXT.quiet[Math.floor(Math.random()*TXT.quiet.length)], "");
   }
@@ -1225,7 +1374,7 @@ function skipMatch(){
   if(!M || M.done) return;
   clearInterval(M.timer);
   var guard = 0;
-  while(!M.done && guard++ < 200) matchTick();
+  while(M && !M.done && guard++ < 200) matchTick();
 }
 function endMatch(){
   if(!M || M.done) return;
@@ -1237,6 +1386,12 @@ function endMatch(){
   S.morale = Math.max(5, Math.min(99, S.morale + (win?6:draw?1:-5)));
   S.xp += win?40:draw?22:12;
   var coins = win?900:draw?450:250;
+  var mvpName = "", mvpGoals = 0;
+  for(var sk in M.scorers){
+    S.scorers[sk] = (S.scorers[sk]||0) + M.scorers[sk];
+    if(M.scorers[sk] > mvpGoals){ mvpGoals = M.scorers[sk]; mvpName = P[sk].name; }
+  }
+  if(!mvpName) mvpName = P[S.squad[Math.floor(Math.random()*S.squad.length)]].name;
   var cb = M.onDone;
   M = null;
   save();
@@ -1244,6 +1399,7 @@ function endMatch(){
     + "<div style='font-size:40px'>"+(win?"🎉":draw?"🤝":"😞")+"</div>"
     + "<h3 style='justify-content:center;font-size:20px'>"+(win?"胜利！":draw?"战平":"惜败")+"</h3>"
     + "<p>比赛奖励：<b class='gold'>🪙 "+coins+"</b> · 经验 +"+(win?40:draw?22:12)+" · 士气 "+(win?"+6":draw?"+1":"-5")+"</p>"
+    + "<p class='small mut' style='margin-top:4px'>⭐ 本场最佳：<b class='gold'>"+mvpName+"</b>"+(mvpGoals?"（本场打进 "+mvpGoals+" 球）":"")+"</p>"
     + "<div style='margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap'>"
     + "<button class='btn gold' id='mDoneBtn'>收下奖励</button>"
     + "<button class='btn ghost' id='mDoneBtn2'>回大厅</button></div></div>";
@@ -1303,12 +1459,16 @@ function startLadder(idx){
 function renderPacks(){
   $("dexInfo").textContent = "已收集 " + S.dex.length + " / " + DB.length;
   $("dexBar").style.width = Math.round(S.dex.length / DB.length * 100) + "%";
+  $("legPrice").textContent = legCost();
+  $("pityInfo").textContent = "🎲 传奇保底：豪华包 / 传奇包累计抽卡计入保底，再抽 " + (10 - (S.pity||0)) + " 次必出传奇球星（当前进度 " + (S.pity||0) + " / 10）。传奇包现价 " + legCost() + " 钻石" + (vipLevel()>=5 ? "（VIP5 八折）" : vipLevel()>=3 ? "（VIP3 九折）" : "") + "。";
 }
-function rollPlayer(kind){
+function rollPlayer(kind, forceLegend){
   var pool;
   function byRar(r){ return DB.filter(function(x){ return rarityOf(P[x[0]])===r; }); }
   var r = Math.random();
-  if(kind==="std"){
+  if(forceLegend){
+    pool = byRar("legend");
+  } else if(kind==="std"){
     pool = r<0.62 ? DB.filter(function(x){ return P[x[0]].ovr<78; }) : r<0.93 ? byRar("rare") : byRar("epic");
   } else if(kind==="pro"){
     pool = r<0.55 ? byRar("rare") : r<0.88 ? byRar("epic") : byRar("legend");
@@ -1328,11 +1488,13 @@ function openPack(kind, n){
       got.push(rollPlayer("std"));
     }
   } else {
-    var cost = kind==="pro" ? 30 : 80;
+    var cost = kind==="pro" ? 30 : legCost();
     for(i=0;i<n;i++){
       if(S.gems>=cost){ S.gems-=cost; }
-      else { toast("钻石不足（"+cost+"/次）"); break; }
-      got.push(rollPlayer(kind));
+      else { toast("钻石不足（"+cost+"/次），去充值中心补钻石"); break; }
+      var pid = rollPlayer(kind, (S.pity||0) >= 9);
+      if(rarityOf(P[pid])==="legend") S.pity = 0; else S.pity = (S.pity||0) + 1;
+      got.push(pid);
     }
   }
   if(!got.length){ renderAll(); return; }
@@ -1441,6 +1603,7 @@ function confirmSell(id){
 
 /* ================= 天梯 ================= */
 function renderLadder(){
+  renderDailyChal();
   $("ladProg").textContent = S.ladder + " / 12";
   $("ladderList").innerHTML = LADDER.map(function(L, i){
     var done = i < S.ladder, cur = i === S.ladder, lock = i > S.ladder;
@@ -1533,6 +1696,24 @@ var SHOP_ITEMS = [
  {ic:"🌱", n:"球探报告", d:"立刻刷新转会市场（含青训新星）", price:{coins:700}, act:"scout"}
 ];
 function renderShop(){
+  var lv = vipLevel();
+  $("vipName").textContent = "VIP" + lv + " · " + VIP_TITLES[lv];
+  var th = [0,6,30,68,128,328,648,1288,3288,6488], nxt = th[lv+1];
+  $("vipProgTx").textContent = "累计充值 ¥" + (S.vipSpent||0) + (nxt ? " · 再充 ¥" + (nxt - (S.vipSpent||0)) + " 升 VIP" + (lv+1) : " · 已达最高等级");
+  $("vipProgBar").style.width = nxt ? Math.min(100, Math.round((S.vipSpent||0) / nxt * 100)) + "%" : "100%";
+  var gb = $("vipGiftBtn");
+  gb.disabled = false;
+  if(lv <= 0) gb.textContent = "🎁 每日礼包（VIP1 起可领）";
+  else if(S.vipGiftDate === todayStr()){ gb.textContent = "🎁 今日礼包已领取"; gb.disabled = true; }
+  else gb.textContent = "🎁 领取每日礼包（🪙 " + (200 + 300*lv) + " · 💎 " + (3*lv) + "）";
+  $("tierGrid").innerHTML = TIERS.map(function(t, i){
+    var first = !S.firstUsed[i];
+    return "<div class='card tier'>" + (t.tag ? "<span class='tier-tag'>" + t.tag + "</span>" : "")
+      + "<div style='font-size:36px'>💎</div>"
+      + "<div class='b' style='font-size:21px'>" + (first ? t.gems*2 : t.gems) + " 钻石</div>"
+      + (first ? "<div class='small gold b'>首充双倍！本档原 " + t.gems + " 钻</div>" : "<div class='small mut'>钻石充值档位</div>")
+      + "<button class='btn gold sm' style='margin-top:10px' onclick='payTier(" + i + ")'>¥" + t.rmb + " 充值</button></div>";
+  }).join("");
   $("shopGrid").innerHTML = SHOP_ITEMS.map(function(it, i){
     var price = it.price.coins ? ("🪙 "+it.price.coins) : ("💎 "+it.price.gems);
     var afford = it.price.coins ? S.coins>=it.price.coins : S.gems>=it.price.gems;
@@ -1613,6 +1794,9 @@ function renderMe(){
   $("meMatches").textContent = S.stats.matches;
   $("meWDL").textContent = S.stats.wins+" / "+S.stats.draws+" / "+S.stats.losses;
   $("meTitles").textContent = S.stats.titles + " 次";
+  $("meCups").textContent = (S.stats.cups||0) + " 次";
+  $("meVip").textContent = "VIP" + vipLevel() + " · " + VIP_TITLES[vipLevel()];
+  $("meCharged").textContent = "¥" + (S.vipSpent||0);
   $("meLadder").textContent = S.ladder + " / 12";
   $("meDex").textContent = S.dex.length + " / " + DB.length;
   if(document.activeElement !== $("clubNameInput")) $("clubNameInput").value = S.club;
@@ -1657,6 +1841,159 @@ function doWipe(){
   try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
   S = defaultState(); dailyTick(); save(); closeModal(); renderAll(); go("home");
   toast("已清空，新的王朝从今天开始");
+}
+
+/* ================= 充值 / VIP ================= */
+var TIERS = [
+  {rmb:1, gems:10, tag:""},
+  {rmb:6, gems:60, tag:""},
+  {rmb:30, gems:300, tag:""},
+  {rmb:68, gems:680, tag:"热门"},
+  {rmb:128, gems:1280, tag:""},
+  {rmb:328, gems:3280, tag:"超值"},
+  {rmb:648, gems:6480, tag:"至尊"}
+];
+var VIP_TITLES = ["平民经理","新晋富豪","球场新贵","转会大亨","豪门金主","王朝财阀","足坛首富","传奇赞助人","帝国缔造者","世界之王"];
+function legCost(){
+  var lv = vipLevel();
+  return Math.round(80 * (lv >= 5 ? 0.8 : lv >= 3 ? 0.9 : 1));
+}
+function openRecharge(){ go("shop"); }
+function payTier(i){
+  var t = TIERS[i], first = !S.firstUsed[i], g = first ? t.gems * 2 : t.gems;
+  openModal("<button class='mclose' onclick='closeModal()'>✕</button>"
+    + "<h3>💎 充值 ¥" + t.rmb + " · 得 " + g + " 钻石" + (first ? " <span class='tag gold'>首充双倍</span>" : "") + "</h3>"
+    + "<div class='qrbox'><img src='photo-26.jpg' alt='微信收款码'>"
+    + "<p class='small mut'>用微信扫码付款 <b class='gold'>¥" + t.rmb + "</b>（收款人 邓**元），<br>付款备注请写你的俱乐部名：<b>" + esc(S.club) + "</b></p></div>"
+    + "<button class='btn gold' style='width:100%;margin-top:8px' onclick='confirmPay(" + i + ")'>✅ 我已付款，领取 " + g + " 钻石</button>"
+    + "<button class='btn ghost' style='width:100%;margin-top:8px' onclick='closeModal()'>还没付款，先关闭</button>"
+    + "<p class='small mut' style='margin-top:10px'>点「我已付款」后钻石立即到账；累计充值自动提升 VIP 等级。付款遇到问题，凭付款截图找客服核对补发。</p>");
+}
+function confirmPay(i){
+  var t = TIERS[i], first = !S.firstUsed[i], g = first ? t.gems * 2 : t.gems;
+  var oldLv = vipLevel();
+  S.firstUsed[i] = 1;
+  S.vipSpent = (S.vipSpent || 0) + t.rmb;
+  S.gems += g;
+  var newLv = vipLevel();
+  pushNews("💎 充值成功：¥" + t.rmb + " 到账 " + g + " 钻石" + (first ? "（首充双倍）" : "") + "，当前 VIP" + newLv + "。");
+  save(); renderAll();
+  openModal("<button class='mclose' onclick='closeModal()'>✕</button><div class='season-end'>"
+    + "<div class='trophy'>💎</div><h2>充值成功！</h2>"
+    + "<p><b class='gold' style='font-size:20px'>+" + g + " 钻石</b> 已到账" + (first ? "（首充双倍）" : "") + "</p>"
+    + "<p style='margin:8px 0'>当前余额 💎 " + S.gems + " · 累计充值 ¥" + S.vipSpent + " · <b class='gold'>VIP" + newLv + " " + VIP_TITLES[newLv] + "</b>" + (newLv > oldLv ? "<br>🎉 VIP 升级了！每日礼包和特权已提升。" : "") + "</p>"
+    + "<div style='display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px'>"
+    + "<button class='btn gold' onclick='closeModal();go(\"packs\")'>🎴 去抽传奇包</button>"
+    + "<button class='btn ghost' onclick='closeModal()'>继续游戏</button></div></div>");
+  toast("充值成功！+" + g + " 钻石");
+}
+function claimVipGift(){
+  var lv = vipLevel();
+  if(lv <= 0){ toast("先任意充值一笔升到 VIP1，就能每天领礼包"); return; }
+  if(S.vipGiftDate === todayStr()){ toast("今天的 VIP 礼包已领取，明天再来"); return; }
+  var rw = {coins: 200 + 300 * lv, gems: 3 * lv};
+  grant(rw);
+  S.vipGiftDate = todayStr();
+  pushNews("🎁 领取 VIP" + lv + " 每日礼包：" + rwText(rw) + "。");
+  save(); renderAll(); toast("VIP 每日礼包：" + rwText(rw));
+}
+
+/* ================= 冠军杯 ================= */
+var CUP_TEAMS = [["王朝FC",84],["皇冠竞技",86],["银河王朝",90],["苍龙竞技",82],["帝景联",83],["星辰帝国",89],["不朽竞技",87],["天玺FC",81]];
+var CUP_RW = [{coins:1000},{coins:2000,gems:15},{coins:10000,gems:100,tickets:3}];
+var CUP_ROUNDS = ["八强赛","半决赛","决赛"];
+function newCup(){
+  var ed = S.cup ? (S.cup.edition || 1) + 1 : 1;
+  var pool = CUP_TEAMS.slice().sort(function(){ return Math.random() - 0.5; }).slice(0,3).sort(function(a,b){ return a[1] - b[1]; });
+  var base = (ed - 1) * 2;
+  S.cup = { edition:ed, round:0, alive:true, champion:false, last:"",
+    opps: pool.map(function(t){ return {name:t[0], ovr: Math.min(96, t[1] + base)}; }) };
+  save();
+}
+function ensureCup(){ if(!S.cup) newCup(); }
+function renderCup(){
+  ensureCup();
+  var c = S.cup;
+  $("cupHead").textContent = c.champion
+    ? "🏆 卫冕冠军！第 " + c.edition + " 届冠军杯已经被你捧起（累计夺冠 " + (S.stats.cups||0) + " 次），开启新一届继续卫冕，对手会更强。"
+    : !c.alive
+    ? "本届杯赛已在" + CUP_ROUNDS[c.round] + "出局。别灰心，开启新一届重新冲。"
+    : "第 " + c.edition + " 届 · 当前" + CUP_ROUNDS[c.round] + "，对手 " + c.opps[c.round].name + "（总评 " + c.opps[c.round].ovr + "）。三场定胜负，平局直接点球大战。";
+  $("cupBracket").innerHTML = c.opps.map(function(o, i){
+    var done = c.champion || i < c.round;
+    var out = !c.alive && i === c.round;
+    var cur = c.alive && !c.champion && i === c.round;
+    return "<div class='rung" + (done ? " done" : "") + "' style='" + (out ? "border-color:#5c1f28;background:#2b0f16" : "") + "'>"
+      + "<span class='rk'>" + (done ? "✔" : out ? "✘" : (i+1)) + "</span>"
+      + "<div style='flex:1;min-width:150px'><b>" + CUP_ROUNDS[i] + "</b> · " + esc(o.name) + " <span class='tag'>总评 " + o.ovr + "</span>"
+      + "<div class='small mut'>获胜奖励 " + rwText(CUP_RW[i]) + "</div></div>"
+      + (done ? "<span class='tag green'>已晋级</span>" : out ? "<span class='tag red'>已出局</span>" : cur ? "<span class='tag gold'>下一场</span>" : "<span class='small mut'>未解锁</span>")
+      + "</div>";
+  }).join("");
+  $("cupAction").innerHTML = c.champion
+    ? "<button class='btn gold' onclick='newCup();renderAll()'>🔁 开启新一届杯赛（对手更强）</button>"
+    : !c.alive
+    ? "<button class='btn' onclick='newCup();renderAll()'>🔁 重新开启一届杯赛</button>"
+    : "<button class='btn gold' onclick='startCupMatch()'>⚔️ 打" + CUP_ROUNDS[c.round] + "（体力 10）</button>";
+  $("cupLast").textContent = c.last ? ("上一场：" + c.last) : "";
+  $("cupTitles").textContent = (S.stats.cups||0) + " 次";
+}
+function startCupMatch(){
+  if(M){ toast("有一场比赛正在进行"); return; }
+  ensureCup();
+  var c = S.cup, o = c.opps[c.round], rn = CUP_ROUNDS[c.round];
+  startMatch({ kind:"cup", comp:"冠军杯 · 第 " + c.edition + " 届 · " + rn, name:o.name, ovr:o.ovr,
+    onDone:function(win, draw){
+      var cc = S.cup; if(!cc){ go("cup"); return; }
+      var adv = win, note = "";
+      if(draw){ adv = Math.random() < 0.5; note = adv ? "90 分钟战平，点球大战 4:2 胜出！" : "90 分钟战平，点球大战 3:4 惜败。"; }
+      if(adv){
+        var rw = CUP_RW[cc.round]; grant(rw);
+        if(cc.round === 2){
+          cc.champion = true; S.stats.cups = (S.stats.cups||0) + 1; S.xp += 60;
+          pushNews("🏆 冠军杯夺冠！球队捧起第 " + cc.edition + " 届冠军杯，奖励 " + rwText(rw) + "。");
+          cc.last = "决赛击败 " + o.name + "，冠军到手！" + (note ? "（" + note + "）" : "");
+          cc.round = 3;
+          save(); go("cup"); toast("🏆 冠军杯夺冠！奖励 " + rwText(rw));
+        } else {
+          pushNews("🏆 杯赛晋级：球队通过" + rn + "，奖励 " + rwText(rw) + "。");
+          cc.last = rn + "击败 " + o.name + "。" + (note ? "（" + note + "）" : "");
+          cc.round++;
+          save(); go("cup"); toast("晋级下一轮！奖励 " + rwText(rw));
+        }
+      } else {
+        cc.alive = false;
+        cc.last = "止步" + rn + "，对手 " + o.name + "。" + (note ? "（" + note + "）" : "");
+        pushNews("冠军杯出局：球队在" + rn + "不敌 " + o.name + "，止步本届杯赛。");
+        save(); go("cup"); toast("杯赛出局，下届再战");
+      }
+    }});
+}
+
+/* ================= 每日挑战 ================= */
+function renderDailyChal(){
+  var d = S.dailyChal; if(!d) return;
+  $("dcState").textContent = d.done ? "今日已完成 ✔" : "今日未完成";
+  $("dcBody").innerHTML = "<div class='nextmatch'>"
+    + "<div class='nm-team'><div class='nm-ovr'>" + teamOvr() + "</div><div class='nm-name'>" + esc(S.club) + "</div></div>"
+    + "<div class='nm-mid'><div class='nm-vs'>VS</div><div class='small mut'>奖励 🪙 1500 · 💎 20 · 每天刷新一个对手，输了可重试</div></div>"
+    + "<div class='nm-team'><div class='nm-ovr'>" + d.ovr + "</div><div class='nm-name'>" + esc(d.name) + "</div></div></div>"
+    + (d.done
+      ? "<p class='small green' style='margin-top:10px'>✔ 今天已拿下，明天再来挑战新对手。</p>"
+      : "<button class='btn gold' style='margin-top:10px' onclick='startDailyChal()'>⚔️ 开始挑战（体力 10）</button>");
+}
+function startDailyChal(){
+  if(M){ toast("有一场比赛正在进行"); return; }
+  var d = S.dailyChal; if(!d || d.done) return;
+  startMatch({ kind:"daily", comp:"每日挑战", name:d.name, ovr:d.ovr,
+    onDone:function(win){
+      if(win){
+        d.done = true;
+        var rw = {coins:1500, gems:20}; grant(rw);
+        pushNews("📅 每日挑战完成：击败 " + d.name + "，奖励 " + rwText(rw) + "。");
+        save(); go("challenge"); toast("挑战成功！" + rwText(rw));
+      } else { go("challenge"); toast("挑战失败，养强阵容今天还能再试"); }
+    }});
 }
 
 /* ================= 启动 ================= */
